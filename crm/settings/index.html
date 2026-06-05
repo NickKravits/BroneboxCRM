@@ -1,0 +1,2161 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <script>
+        let currentEditingStaffId = null;
+        let currentEditingObjectId = null;
+  // Мгновенная проверка токена до загрузки интерфейса
+  (function() {
+        const token = localStorage.getItem('broneboxtoken');
+        if (!token) {
+            window.location.href = '/login'; 
+        }
+    })();
+  </script>
+
+  <script>
+    async function getUserData() {
+      const token = localStorage.getItem('broneboxtoken');
+      if (!token) {
+        window.location.href = '/login';
+        return;
+      }
+      try {
+        const res = await fetch('http://127.0.0.1:3000/users/getme', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`, // Передаем токен бэкенду
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!res.ok) {
+            localStorage.removeItem('broneboxtoken');
+            window.location.href = '/login';
+        }
+
+        const data = await res.json();
+
+        let role = "";
+
+        if (data.role == 'ADMINISTRATOR') {
+            role = 'Администратор';
+        } else if (data.role == 'STAFF') {
+            role = 'Менеджер';
+        } else {
+            role = 'Неизвестная роль';
+        }
+
+        const initials = data.name ? data.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '??';
+
+        if (data.role == 'ADMINISTRATOR') {
+            const container = document.getElementById('menu-tabs');
+            container.insertAdjacentHTML('afterbegin', `<button class="tab-btn active" id="tab-btn-staff" onclick="switchTab('admins', this)">Сотрудники</button>`);
+            document.getElementById('tab-admins').classList.add('active');
+        } else {
+            document.getElementById('tab-btn-maids').classList.add('active');
+            document.getElementById('tab-maids').classList.add('active');
+        }
+
+        document.querySelector('.avatar-name').textContent = data.name || 'Без имени';
+        document.querySelector('.avatar-role').textContent = role;
+        document.getElementById('main_avatar').textContent = initials;
+      } catch (err) {
+        console.error('Ошибка при получении данных пользователя:', err);
+      }
+    }
+
+    async function loadStaffList() {
+        const token = localStorage.getItem('broneboxtoken');
+        const container = document.getElementById('staff-container');
+  
+        try {
+        const res = await fetch('http://127.0.0.1:3000/staff/getall', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!res.ok) throw new Error('Не удалось загрузить список сотрудников');
+
+        const staffList = await res.json();
+    
+        // Очищаем контейнер от заглушек типа "Загрузка..."
+        container.innerHTML = '';
+
+        if (staffList.length === 0) {
+            container.innerHTML = '<div style="padding:20px; text-align:center;">Сотрудники не найдены</div>';
+            return;
+        }
+
+        // Цикл по полученным из API данным
+        staffList.forEach(person => {
+            // Генерация инициалов для аватарки (например, Иван Иванов -> ИИ)
+            const initials = person.name ? person.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '??';
+
+            // Локализация роли
+            const roleBadge = person.role === 'ADMINISTRATOR' ? 'Администратор' : 'Менеджер';
+
+            const row = document.createElement('div');
+            row.className = 'person-row';
+            row.innerHTML = `
+            <div class="person-avatar">${initials}</div>
+            <div class="person-info">
+                <div class="person-name">${person.name || 'Без имени'}</div>
+                <div class="person-login">@${person.login}</div>
+            </div>
+            <span class="badge-role">${roleBadge}</span>
+            <div class="person-actions">
+                ${person.role != 'ADMINISTRATOR' ? `
+                 <button class="btn" onclick="openPermissions(${person.id}, '${person.name}')" title="Права доступа">
+                    <i class="ti ti-shield-cog"></i>
+                    ` : ''}
+                </button>
+                ${person.role != 'ADMINISTRATOR' ? `
+                <button class="btn btn-danger" onclick="deleteStaff(${person.id})">
+                    <i class="ti ti-trash"></i>
+                </button>
+                ` : ''}
+            </div>
+            `;
+      
+            container.appendChild(row);
+            });
+
+        } catch (err) {
+            console.error(err);
+            container.innerHTML = `<div style="padding:20px; text-align:center; color:red;">Ошибка загрузки данных</div>`;
+        }
+    }
+
+    async function loadMaidsList() {
+        const token = localStorage.getItem('broneboxtoken');
+        const container = document.getElementById('maids-container');
+
+        try {
+            const res = await fetch('http://127.0.0.1:3000/maids/getall', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!res.ok) throw new Error('Не удалось загрузить список Горничных');
+
+            const {maids, haveRights} = await res.json();
+    
+            container.innerHTML = '';
+
+            const button = document.getElementById('head-section');
+            if (haveRights === true) {
+                button.innerHTML = `<span class="section-label">Горничные</span>
+                <button class="btn" onclick="openNewMaidModal()"><i class="ti ti-plus"></i> Добавить</button>`;
+            } else {
+                button.innerHTML = `<span class="section-label">Горничные</span>`;
+            }
+
+            if (maids.length === 0) {
+                container.innerHTML = '<div style="padding:20px; text-align:center;">Горничные не найдены</div>';
+                return;
+            }
+
+            
+
+            maids.forEach(maid => {
+                const initials = maid.name ? maid.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '??';
+
+                const row = document.createElement('div');
+                row.className = 'person-row';
+                row.innerHTML = `
+                <div class="person-avatar">${initials}</div>
+                <div class="person-info">
+                    <div class="person-name">${maid.name || 'Без имени'}</div>
+                </div>
+                <span class="badge-role staff">Горничная</span>
+                ${haveRights == true ? `<div class="person-actions">
+                    <button class="btn btn-danger" onclick="deleteMaid(${maid.id})"><i class="ti ti-trash"></i></button>
+                </div>` : `` }`;
+
+                container.appendChild(row)
+            });
+
+            
+        } catch (err) {
+            console.error(err);
+            container.innerHTML = `<div style="padding:20px; text-align:center; color:red;">Ошибка загрузки данных</div>`;
+        }
+    }
+
+    async function loadObjectsList() {
+        const token = localStorage.getItem('broneboxtoken');
+        const container = document.getElementById('objects-container');
+
+        try {
+            const res = await fetch('http://127.0.0.1:3000/objects/getall', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!res.ok) throw new Error('Не удалось загрузить список Объектов');
+
+            const {objects, haveRights} = await res.json();
+    
+            container.innerHTML = '';
+
+            const button = document.getElementById('head-section-objects');
+            if (haveRights === true) {
+                button.innerHTML = `<span class="section-label">Объекты</span>
+                <button class="btn" onclick="openNewObjectModal()"><i class="ti ti-plus"></i> Добавить</button>`;
+            } else {
+                button.innerHTML = `<span class="section-label">Объекты</span>`;
+            }
+
+            if (objects.length === 0) {
+                container.innerHTML = '<div style="padding:20px; text-align:center;">Объекты не найдены</div>';
+                return;
+            }
+
+            
+
+            objects.forEach(object => {
+                const initials = object.name ? object.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '??';
+
+                const row = document.createElement('div');
+                row.className = 'object-card';
+                row.innerHTML = `
+                <div class="object-icon"><i class="ti ti-door"></i></div>
+                <div class="object-info">
+                    <div class="object-name">${object.name || 'Без названия'}</div>
+                    <div class="object-meta">${object.realtyid != "" ? object.realtyid + " • " : ''}${object.location}</div>
+                </div>
+                ${haveRights == true ? `<div class="person-actions">
+                    <button class="btn" onclick="openModalEditObject(${object.id})"><i class="ti ti-pencil"></i></button>
+                    <button class="btn btn-danger" onclick="deleteObject(${object.id})"><i class="ti ti-trash"></i></button>
+                </div>` : `` }`;
+
+                container.appendChild(row)
+            });
+
+            
+        } catch (err) {
+            console.error(err);
+            container.innerHTML = `<div style="padding:20px; text-align:center; color:red;">Ошибка загрузки данных</div>`;
+        }
+    }
+
+    function initPermissionsSync() {
+        const allPerms = document.querySelectorAll('.perm-row input[type="checkbox"]');
+
+        allPerms.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                // Отрезаем приставку "perm-", чтобы получить чистое имя поля
+                const permissionName = this.id.replace('perm-', ''); 
+                // Переводим true/false в формат "YES"/"NO"
+                const status = this.checked ? 'YES' : 'NO';
+
+                console.log(`Право для изменения: ${permissionName}, новый статус: ${status}`);
+        
+                // Передаем данные на бэкенд
+                savePermissionToBackend(permissionName, status);
+            });
+        });
+    }
+
+  async function getIntegrations() {
+    const token = localStorage.getItem('broneboxtoken');
+
+    try {
+        const res = await fetch('http://127.0.0.1:3000/integration/connected', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const { okidoki, tochka, permissions } = await res.json();
+
+        if (okidoki) {
+            document.getElementById('okidoki-con-label').textContent = 'Подключено';
+            document.getElementById('okidoki-con-label').classList.replace('disconnected', 'connected');
+            if (permissions == true) {
+            document.getElementById('okidoki-actions').innerHTML = `
+                <div style="display:flex; gap:8px;">
+                    <button class="btn" style="flex:1; justify-content:center;" onclick="showODTemplates()">
+                        <i class="ti ti-file-text"></i> Шаблоны
+                    </button>
+                    <button class="btn btn-danger" onclick="disconnectOkiDoki()">
+                        <i class="ti ti-trash"></i>
+                    </button>
+                </div>
+            `;
+            } else {
+              document.getElementById('okidoki-actions').innerHTML = ``;
+            }
+        } else {
+          if (permissions == true) {
+            document.getElementById('okidoki-actions').innerHTML = `
+                <button class="btn" style="width:100%; justify-content:center;" onclick="addIntegrationOkiDoki()">
+                    Подключить
+                </button>
+            `;
+          } else {
+            document.getElementById('okidoki-actions').innerHTML = ``;
+          }
+        }
+
+        if (permissions == true) {
+            document.getElementById('realty-actions').innerHTML = `
+                <button class="btn" style="width:100%;justify-content:center;" onclick="addIntegrationRealtyCalendar()">Подключить</button>
+            `;
+        }
+
+        if (tochka) {
+            document.getElementById('tochka-con-label').textContent = 'Подключено';
+            document.getElementById('tochka-con-label').classList.replace('disconnected', 'connected');
+            if (permissions == true) {
+              document.getElementById('tochka-actions').innerHTML = `
+                <div style="display:flex; gap:8px;">
+                    <button class="btn" style="flex:1; justify-content:center;" onclick="">
+                        <i class="ti ti-file-text"></i> Редактировать
+                    </button>
+                    <button class="btn btn-danger" onclick="disconnectOkiDoki()">
+                        <i class="ti ti-trash"></i>
+                    </button>
+                </div>
+            `;
+            } else {
+              document.getElementById('tochka-actions').innerHTML = ``;
+            }
+        } else {
+          if (permissions == true) {
+              document.getElementById('tochka-actions').innerHTML = `
+                <button class="btn" style="width:100%;justify-content:center;">Подключить</button>
+            `;
+            } else {
+              document.getElementById('tochka-actions').innerHTML = ``;
+            }
+        }
+    } catch (err) {
+        console.error(err);
+    }
+  }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        getUserData();
+        loadStaffList();
+        initPermissionsSync();
+        loadMaidsList();
+        loadObjectsList();
+        getIntegrations();
+    });
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BroneBox CRM — Настройки</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="ambient ambient-tr"></div>
+<div class="ambient ambient-bl"></div>
+
+<div class="layout">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="avatar-wrap">
+      <div class="avatar">
+        <div class="person-avatar" id="main_avatar"></div>
+      </div>
+      <div class="avatar-info">
+        <span class="avatar-name">Администратор</span>
+        <span class="avatar-role">Управление</span>
+      </div>
+    </div>
+    <nav class="nav-items">
+      <a class="nav-item" href="/crm">
+        <i class="ti ti-layout-dashboard"></i>
+        <span class="nav-label">Главное</span>
+      </a>
+      <a class="nav-item" href="/crm/bookings">
+        <i class="ti ti-calendar-event" aria-hidden="true"></i>
+        <span class="nav-label">Бронирования</span>
+      </a>
+      <a class="nav-item" href="/crm/maids">
+        <i class="ti ti-user" aria-hidden="true"></i>
+        <span class="nav-label">Горничные</span>
+      </a>
+      <a class="nav-item" href="/crm/chats">
+        <i class="ti ti-message-circle" aria-hidden="true"></i>
+        <span class="nav-label">Чаты</span>
+      </a>
+      <a class="nav-item" href="/crm/notes">
+        <i class="ti ti-note" aria-hidden="true"></i>
+        <span class="nav-label">Задачи</span>
+      </a>
+      <a class="nav-item active" href="#">
+        <i class="ti ti-settings-2"></i>
+        <span class="nav-label">Настройки</span>
+      </a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="toggle-btn" onclick="toggleSidebar()">
+        <i class="ti ti-chevrons-right"></i>
+        <span class="toggle-label">Свернуть</span>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page-title">Настройки</div>
+
+    <div class="tabs-row" id="menu-tabs">
+      <button class="tab-btn" id="tab-btn-maids" onclick="switchTab('maids', this)">Горничные</button>
+      <button class="tab-btn" id="tab-btn-objects" onclick="switchTab('objects', this)">Объекты</button>
+      <button class="tab-btn" id="tab-btn-integrations" onclick="switchTab('integrations', this)">Интеграция</button>
+      <button class="tab-btn" id="tab-btn-templates" onclick="switchTab('templates', this)">Шаблоны</button>
+      <button class="tab-btn" id="tab-btn-autosend" onclick="switchTab('autosend', this)">Автоотправка</button>
+    </div>
+
+    <!-- Сотрудники -->
+    <div class="tab-content" id="tab-admins">
+      <div class="section-head">
+        <span class="section-label">Сотрудники</span>
+        <button class="btn" onclick="openNewEmployeeModal()"><i class="ti ti-plus"></i> Добавить</button>
+      </div>
+      <div class="people-list" id="staff-container">
+      </div>
+    </div>
+
+    <!-- Горничные -->
+    <div class="tab-content" id="tab-maids">
+      <div class="section-head" id="head-section">
+      </div>
+      <div class="people-list" id="maids-container">
+      </div>
+    </div>
+
+    <!-- Объекты -->
+    <div class="tab-content" id="tab-objects">
+      <div class="section-head" id="head-section-objects">
+      </div>
+      <div class="objects-grid" id="objects-container">
+      </div>
+    </div>
+
+    <!-- Интеграция -->
+    <div class="tab-content" id="tab-integrations">
+      <div class="section-head">
+        <span class="section-label">Интеграция</span>
+      </div>
+      <div class="integration-grid">
+        <div class="integration-card">
+          <div class="int-head">
+            <div class="int-icon">📅</div>
+            <div>
+              <div class="int-name">RealtyCalendar</div>
+            </div>
+          </div>
+          <div class="int-desc">Синхронизация календарей бронирований и управление загрузкой объектов.</div>
+          <div id="realty-actions"></div>
+        </div>
+        <div class="integration-card">
+          <div class="int-head">
+          <div class="int-icon">🏨</div>
+          <div>
+            <div class="int-name">OkiDoki</div>
+            <div class="int-status disconnected" id="okidoki-con-label">Не подключено</div>
+          </div>
+        </div>
+        <div class="int-desc">Управление и синхронизация договоров OkiDoki.</div>
+          <div id="okidoki-actions"></div>
+        </div>
+        <div class="integration-card">
+          <div class="int-head">
+            <div class="int-icon">🏦</div>
+            <div>
+              <div class="int-name">Точка Банк</div>
+              <div class="int-status disconnected" id="tochka-con-label">Не подключено</div>
+            </div>
+          </div>
+          <div class="int-desc">Автоматический учёт платежей и выгрузка финансовых операций.</div>
+          <div id="tochka-actions"></div>
+          <button class="btn" style="width:100%;justify-content:center;">Подключить</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Шаблоны -->
+    <div class="tab-content" id="tab-templates">
+      <div class="section-head">
+        <span class="section-label">Шаблоны сообщений</span>
+        <button class="btn"><i class="ti ti-plus"></i> Создать</button>
+      </div>
+      <div class="template-list">
+        <div class="template-card">
+          <div class="template-head">
+            <span class="template-name">Подтверждение бронирования</span>
+            <div class="person-actions">
+              <button class="btn"><i class="ti ti-pencil"></i></button>
+              <button class="btn btn-danger"><i class="ti ti-trash"></i></button>
+            </div>
+          </div>
+          <div class="template-preview">{{имя}}, ваше бронирование подтверждено! Объект: {{номер}}, заезд {{дата_заезда}}, выезд {{дата_выезда}}. Ждём вас!</div>
+        </div>
+        <div class="template-card">
+          <div class="template-head">
+            <span class="template-name">Приветствие при заезде</span>
+            <div class="person-actions">
+              <button class="btn"><i class="ti ti-pencil"></i></button>
+              <button class="btn btn-danger"><i class="ti ti-trash"></i></button>
+            </div>
+          </div>
+          <div class="template-preview">Здравствуйте, {{имя}}! Рады приветствовать вас. Ваш номер — {{номер}}. Код от двери: {{код}}.</div>
+        </div>
+        <div class="template-card">
+          <div class="template-head">
+            <span class="template-name">Напоминание о выезде</span>
+            <div class="person-actions">
+              <button class="btn"><i class="ti ti-pencil"></i></button>
+              <button class="btn btn-danger"><i class="ti ti-trash"></i></button>
+            </div>
+          </div>
+          <div class="template-preview">{{имя}}, напоминаем, что завтра {{дата}} у вас запланирован выезд до 12:00. Будем рады видеть вас снова!</div>
+        </div>
+        <div class="template-card">
+          <div class="template-head">
+            <span class="template-name">Запрос отзыва</span>
+            <div class="person-actions">
+              <button class="btn"><i class="ti ti-pencil"></i></button>
+              <button class="btn btn-danger"><i class="ti ti-trash"></i></button>
+            </div>
+          </div>
+          <div class="template-preview">Спасибо за ваш визит, {{имя}}! Оставьте, пожалуйста, отзыв о вашем пребывании: {{ссылка}}.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Автоотправка -->
+    <div class="tab-content" id="tab-autosend">
+      <div class="coming-soon">
+        <i class="ti ti-rocket"></i>
+        <div class="coming-soon-title">Скоро</div>
+        <div class="coming-soon-desc">Автоматическая отправка сообщений гостям появится в ближайшем обновлении. Вы сможете настраивать триггеры, время отправки и выбирать шаблоны для каждого события.</div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Модалка прав -->
+<div class="modal-overlay" id="modal-permissions" onclick="handleOverlayClick(event)">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-title">Права — <span id="modal-username"></span> <span class="person-login" id="modal-login"></span></span>
+      <button class="modal-close" onclick="closePermissions()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="permissions-list">
+      <label class="perm-row">
+        <div class="perm-info"><span class="perm-name">Изменение объектов</span><span class="perm-desc">Может добавлять и редактировать объекты</span></div>
+        <label class="toggle-switch"><input type="checkbox" id="perm-manageobjects"><span class="toggle-track"></span></label>
+      </label>
+      <label class="perm-row">
+        <div class="perm-info"><span class="perm-name">Управление горничными</span><span class="perm-desc">Может добавлять и редактировать список горничных</span></div>
+        <label class="toggle-switch"><input type="checkbox" id="perm-managemaids"><span class="toggle-track"></span></label>
+      </label>
+      <label class="perm-row">
+        <div class="perm-info"><span class="perm-name">Управление интеграциями</span><span class="perm-desc">Может подключать и настраивать интеграции</span></div>
+        <label class="toggle-switch"><input type="checkbox" id="perm-manageintegration"><span class="toggle-track"></span></label>
+      </label>
+      <label class="perm-row">
+        <div class="perm-info"><span class="perm-name">Изменение шаблонов</span><span class="perm-desc">Может редактировать шаблоны</span></div>
+        <label class="toggle-switch"><input type="checkbox" id="perm-managetemplates"><span class="toggle-track"></span></label>
+      </label>
+      <label class="perm-row">
+        <div class="perm-info"><span class="perm-name">Управление автосообщениями</span><span class="perm-desc">Может управлять автосообщениями</span></div>
+        <label class="toggle-switch"><input type="checkbox" id="perm-manageautosent"><span class="toggle-track"></span></label>
+      </label>
+      <label class="perm-row">
+        <div class="perm-info"><span class="perm-name">Просмотр рейтинга горничных</span><span class="perm-desc">Может просматривать рейтинг горничных</span></div>
+        <label class="toggle-switch"><input type="checkbox" id="perm-seemaidsrate"><span class="toggle-track"></span></label>
+      </label>
+      <label class="perm-row">
+        <div class="perm-info"><span class="perm-name">Изменение броней</span><span class="perm-desc">Может редактировать брони</span></div>
+        <label class="toggle-switch"><input type="checkbox" id="perm-managebooks"><span class="toggle-track"></span></label>
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closePermissions()">Отмена</button>
+      <button class="btn btn-save" onclick="closePermissions()"><i class="ti ti-check"></i> Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-new-employee" onclick="handleOverlayClick(event)">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-title">Новый сотрудник</span>
+      <button class="modal-close" onclick="closeNewEmployee()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div class="modal-body" style="padding: 20px;">
+
+      <div class="field-group">
+        <label class="field-label" for="new-emp-name">Имя</label>
+        <input class="field-input" id="new-emp-name" type="text" placeholder="Иван Иванов">
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="new-emp-login">Логин</label>
+        <div class="input-with-icon">
+          <i class="ti ti-at input-icon"></i>
+          <input class="field-input" id="new-emp-login" type="text" placeholder="ivan.ivanov">
+        </div>
+        <span class="field-hint">Только латинские буквы, цифры и точки</span>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn" onclick="closeNewEmployee()">Отмена</button>
+      <button class="btn btn-save" onclick="createEmployee('new-emp-name', 'new-emp-login')">
+        <i class="ti ti-user-plus"></i> Создать
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-employee-created" onclick="handleOverlayClick(event)">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-title">Сотрудник создан</span>
+      <button class="modal-close" onclick="closeEmployeeCreated()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div class="modal-body" style="padding: 20px;">
+
+      <div class="created-success">
+        <div class="created-icon">
+          <i class="ti ti-circle-check"></i>
+        </div>
+        <div class="created-name" id="created-emp-name">Иван Иванов</div>
+        <div class="created-subtitle">успешно добавлен в систему</div>
+      </div>
+
+      <div class="creds-box">
+        <div class="cred-row">
+          <span class="cred-label"><i class="ti ti-at"></i> Логин</span>
+          <div class="cred-value-wrap">
+            <span class="cred-value" id="created-emp-login">ivan.ivanov</span>
+            <button class="btn cred-copy" onclick="copyToClipboard('created-emp-login', this)" title="Скопировать">
+              <i class="ti ti-copy"></i>
+            </button>
+          </div>
+        </div>
+        <div class="cred-row">
+          <span class="cred-label"><i class="ti ti-lock"></i> Пароль</span>
+          <div class="cred-value-wrap">
+            <span class="cred-value" id="created-emp-password">p@ssw0rd123</span>
+            <button class="btn cred-copy" onclick="copyToClipboard('created-emp-password', this)" title="Скопировать">
+              <i class="ti ti-copy"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="creds-warning">
+        <i class="ti ti-alert-triangle"></i>
+        Сохраните данные — пароль больше не будет показан
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-save" onclick="closeEmployeeCreated()">
+        <i class="ti ti-check"></i> Готово
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-new-maid" onclick="handleOverlayClick(event)">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-title">Новая горничная</span>
+      <button class="modal-close" onclick="closeNewMaid()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div class="modal-body" style="padding: 20px;">
+      <div class="field-group">
+        <label class="field-label" for="new-maid-name">Имя</label>
+        <input class="field-input" id="new-maid-name" type="text" placeholder="Наталья Сергеева">
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn" onclick="closeNewMaid()">Отмена</button>
+      <button class="btn btn-save" onclick="createMaid()">
+        <i class="ti ti-user-plus"></i> Создать
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-new-object" onclick="handleOverlayClick(event)">
+  <div class="modal-box modal-box-lg">
+    <div class="modal-head">
+      <span class="modal-title">Новый объект</span>
+      <button class="modal-close" onclick="closeNewObject()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div class="modal-body modal-scroll">
+
+      <div class="modal-section-divider">Основное</div>
+
+      <div class="field-group">
+        <label class="field-label" for="obj-name-create">Название в BroneBox*</label>
+        <input class="field-input" id="obj-name-create" type="text" placeholder="Апартаменты на Ленина, 12">
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="obj-location-create">Местоположение*</label>
+        <input class="field-input" id="obj-location-create" type="text" placeholder="г. Москва, ул. Ленина, 12, кв. 34">
+      </div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label" for="obj-lot-create">
+            Лот RC
+            <span class="field-hint-icon" title="Лот объекта из RealtyCalendar — используется для синхронизации календарей бронирований">
+              <i class="ti ti-info-circle"></i>
+            </span>
+          </label>
+          <input class="field-input" id="obj-lot-create" type="text" placeholder="1234567">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="obj-deposit-create">Депозит по умолчанию*</label>
+          <input class="field-input" id="obj-deposit-create" type="number" placeholder="2000">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label" for="obj-checkin-time-create">Время заезда</label>
+          <input class="field-input" id="obj-checkin-time-create" type="time" value="14:00">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="obj-checkout-time-create">Время выезда</label>
+          <input class="field-input" id="obj-checkout-time-create" type="time" value="12:00">
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="obj-map-create">Ссылка на 2GIS</label>
+        <input class="field-input" id="obj-map-create" type="url" placeholder="https://2gis.ru/...">
+      </div>
+
+      <div class="modal-section-divider">Фотографии</div>
+
+      <div class="photos-row" id="obj-photos-row">
+        <div class="photo-add" onclick="addPhoto()">
+          <i class="ti ti-plus"></i>
+          <span>Добавить</span>
+        </div>
+      </div>
+      <script>
+        const objectPhotos = [];
+
+        function addPhoto() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const url = URL.createObjectURL(file);
+                objectPhotos.push({ file, url });
+                renderPhoto(url, objectPhotos.length - 1);
+            };
+            input.click();
+        }
+
+        function renderPhoto(url, index) {
+            const row = document.getElementById('obj-photos-row');
+            const addBtn = row.querySelector('.photo-add');
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'photo-thumb';
+            wrapper.dataset.index = index;
+
+            const img = document.createElement('img');
+            img.src = url;
+
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'photo-remove';
+            removeBtn.innerHTML = '<i class="ti ti-x"></i>';
+            removeBtn.onclick = () => removePhoto(index, wrapper);
+
+            wrapper.appendChild(img);
+            wrapper.appendChild(removeBtn);
+            row.insertBefore(wrapper, addBtn);
+        }
+
+        function removePhoto(index, wrapper) {
+            URL.revokeObjectURL(objectPhotos[index].url);
+            objectPhotos[index] = null; // не смещаем индексы
+            wrapper.remove();
+        }
+      </script>
+      <div class="modal-section-divider">Инструкции*</div>
+
+      <div class="field-group">
+        <label class="field-label" for="obj-instructions-create">Инструкции для объекта</label>
+        <textarea class="field-input" id="obj-instructions-create" rows="4"
+          placeholder="Код от домофона: 1234. Ключи у консьержа на 1 этаже..."></textarea>
+      </div>
+
+      <div class="modal-section-divider">Настройки показа</div>
+
+      <div class="field-group">
+        <label class="field-label" for="obj-show-payment-create">
+          Ссылка для оплаты и депозита
+          <span class="field-hint-icon" title="Когда показывать гостю ссылку для внесения оплаты и депозита">
+            <i class="ti ti-info-circle"></i>
+          </span>
+        </label>
+        <select class="field-input" id="obj-show-payment-create">
+          <option value="IMMEDIATELY">Сразу</option>
+          <option value="AFTER_CHECKIN">После заселения</option>
+          <option value="DAY_BEFORE">За день до заселения</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="obj-show-instructions-create">
+          Инструкция для гостя
+          <span class="field-hint-icon" title="Когда показывать гостю инструкцию по объекту">
+            <i class="ti ti-info-circle"></i>
+          </span>
+        </label>
+        <select class="field-input" id="obj-show-instructions-create">
+          <option value="IMMEDIATELY">Сразу</option>
+          <option value="DAY_BEFORE">За день до заселения</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="obj-show-contract-create">
+          Ссылка на договор
+          <span class="field-hint-icon" title="Когда показывать гостю ссылку на договор">
+            <i class="ti ti-info-circle"></i>
+          </span>
+        </label>
+        <select class="field-input" id="obj-show-contract-create">
+          <option value="IMMEDIATELY">Сразу</option>
+          <option value="AFTER_CHECKIN">После заселения</option>
+          <option value="DAY_BEFORE">За день до заселения</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="obj-show-review-create">
+          Предложение оценить уборку
+          <span class="field-hint-icon" title="Когда предлагать гостю оценить уборку">
+            <i class="ti ti-info-circle"></i>
+          </span>
+        </label>
+        <select class="field-input" id="obj-show-review-create">
+          <option value="IMMEDIATELY">Сразу</option>
+          <option value="AFTER_CHECKIN">После заселения</option>
+          <option value="DAY_BEFORE">За день до заселения</option>
+          <option value="AFTER_CHECKOUT">Сразу после выезда</option>
+        </select>
+      </div>
+
+      <div class="modal-section-divider">OkiDoki</div>
+
+      <label class="field-label">Пожалуйста, устанавливайте значения в соответствии полям из вкладки "Настройки" -> "Интеграция" -> "OkiDoki"</label>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label" for="obj-okidoki-row-create">ID строки названия объекта</label>
+          <input class="field-input" id="obj-okidoki-row-create" type="text" placeholder="12ab3456cd890efg12345">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="obj-okidoki-val-create">Keyword названия объекта</label>
+          <input class="field-input" id="obj-okidoki-val-create" type="text" placeholder="Описание и адрес квартиры">
+        </div>
+      </div>
+      <div class="field-group">
+          <label class="field-label" for="obj-okidoki-name-create">Значение названия объекта</label>
+          <input class="field-input" id="obj-okidoki-name-create" type="text" placeholder="1 комнатная квартира по адресу г. Москва, ул Гоголя, д. 1, кв. 1">
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label" for="obj-okidoki-datein-create">Keyword даты въезда</label>
+          <input class="field-input" id="obj-okidoki-datein-create" type="text" placeholder="Дата заселения">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="obj-okidoki-dateout-create">Keyword даты выезда</label>
+          <input class="field-input" id="obj-okidoki-dateout-create" type="text" placeholder="Дата выселения">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label" for="obj-okidoki-deposit-create">Keyword депозита</label>
+          <input class="field-input" id="obj-okidoki-deposit-create" type="text" placeholder="Обеспечительный платёж">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="obj-okidoki-payed-create">Keyword оплаченой суммы</label>
+          <input class="field-input" id="obj-okidoki-payed-create" type="text" placeholder="Внесённая предоплата при бронировании">
+        </div>
+      </div>
+        <div class="field-group">
+          <label class="field-label" for="obj-okidoki-payperday-create">Keyword стоимости за день</label>
+          <input class="field-input" id="obj-okidoki-payperday-create" type="text" placeholder="Цена в сутки">
+        </div>
+
+      <div class="modal-section-divider">Получение платежей</div>
+
+      <label class="field-label">Пожалуйста, убедитесь, что у вас настроена интеграция с выбраным банком. "Настройки" -> "Интеграция"</label>
+        
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label" for="obj-show-deposit-service-create">
+              Принимать залоги через
+              <span class="field-hint-icon" title="Через какой сервис вы будете принимать залоги от гостей">
+                <i class="ti ti-info-circle"></i>
+              </span>
+            </label>
+            <select class="field-input" id="obj-deposit-service-create">
+              <option value="NONE">Не принимать</option>
+              <option value="TOCHKA">Точка банк</option>
+              <option value="TBANK">Т-Банк бизнес</option>
+              <option value="MONETA">Монета (RealtyCalendar)</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="obj-payment-service-create">
+              Принимать оплату через
+              <span class="field-hint-icon" title="Через какой сервис вы будете принимать оплату от гостей">
+                <i class="ti ti-info-circle"></i>
+              </span>
+            </label>
+            <select class="field-input" id="obj-payment-service-create">
+              <option value="NONE">Не принимать</option>
+              <option value="TOCHKA">Точка банк</option>
+              <option value="TBANK">Т-Банк бизнес</option>
+            </select>
+          </div>
+        </div>
+
+      <div class="modal-section-divider">Статус</div>
+
+      <label class="perm-row">
+        <div class="perm-info">
+          <span class="perm-name">Объект активен</span>
+          <span class="perm-desc">Принимает новые брони и вносит данные в базу данных</span>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="obj-active-create" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </label>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn" onclick="closeNewObject()">Отмена</button>
+      <button class="btn btn-save" onclick="createObject()">
+        <i class="ti ti-plus"></i> Создать
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-edit-object">
+  <div class="modal-box modal-box-lg">
+    <div class="modal-head">
+      <span class="modal-title">Редактировать объект</span>
+      <button class="modal-close" onclick="closeEditObject()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div class="modal-body modal-scroll">
+
+      <div class="modal-section-divider">Основное</div>
+
+      <div class="field-group">
+        <label class="field-label" for="obj-name-edit">Название в BroneBox*</label>
+        <input class="field-input" id="obj-name-edit" type="text" placeholder="Апартаменты на Ленина, 12">
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="obj-location-edit">Местоположение*</label>
+        <input class="field-input" id="obj-location-edit" type="text" placeholder="г. Москва, ул. Ленина, 12, кв. 34">
+      </div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label" for="obj-lot-edit">
+            Лот RC
+            <span class="field-hint-icon" title="Лот объекта из RealtyCalendar — используется для синхронизации календарей бронирований">
+              <i class="ti ti-info-circle"></i>
+            </span>
+          </label>
+          <input class="field-input" id="obj-lot-edit" type="text" placeholder="1234567">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="obj-deposit-edit">Депозит по умолчанию*</label>
+          <input class="field-input" id="obj-deposit-edit" type="number" placeholder="2000">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label" for="obj-checkin-time-edit">Время заезда</label>
+          <input class="field-input" id="obj-checkin-time-edit" type="time" value="14:00">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="obj-checkout-time-edit">Время выезда</label>
+          <input class="field-input" id="obj-checkout-time-edit" type="time" value="12:00">
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="obj-map-edit">Ссылка на 2GIS</label>
+        <input class="field-input" id="obj-map-edit" type="url" placeholder="https://2gis.ru/...">
+      </div>
+
+      <div class="modal-section-divider">Фотографии</div>
+
+      <div class="photos-row" id="obj-photos-row-edit">
+        <div class="photo-add" onclick="addPhotoEdit()">
+          <i class="ti ti-plus"></i>
+          <span>Добавить</span>
+        </div>
+      </div>
+      <script>
+        const editObjectPhotos = [];
+        const photosToDelete = [];
+
+        function addPhotoEdit() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const url = URL.createObjectURL(file);
+        editObjectPhotos.push({ file, url });
+        renderPhotoEdit({ url, isNew: true, index: editObjectPhotos.length - 1 });
+    };
+    input.click();
+}
+
+function renderPhotoEdit({ id, url, isNew, index }) {
+    const row = document.getElementById('obj-photos-row-edit');
+    const addBtn = row.querySelector('.photo-add');
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'photo-thumb';
+
+    const img = document.createElement('img');
+    img.src = url;
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'photo-remove';
+    removeBtn.innerHTML = '<i class="ti ti-x"></i>';
+
+    if (isNew) {
+        removeBtn.onclick = () => {
+            URL.revokeObjectURL(editObjectPhotos[index].url);
+            editObjectPhotos[index] = null;
+            wrapper.remove();
+        };
+    } else {
+        removeBtn.onclick = () => {
+            photosToDelete.push(id);
+            wrapper.remove();
+        };
+    }
+
+    wrapper.appendChild(img);
+    wrapper.appendChild(removeBtn);
+    row.insertBefore(wrapper, addBtn);
+}
+
+function clearEditPhotos() {
+    const row = document.getElementById('obj-photos-row-edit');
+    row.querySelectorAll('.photo-thumb').forEach(el => el.remove());
+    editObjectPhotos.length = 0;
+    photosToDelete.length = 0;
+}
+      </script>
+      <div class="modal-section-divider">Инструкции*</div>
+
+      <div class="field-group">
+        <label class="field-label" for="obj-instructions-edit">Инструкции для объекта</label>
+        <textarea class="field-input" id="obj-instructions-edit" rows="4"
+          placeholder="Код от домофона: 1234. Ключи у консьержа на 1 этаже..."></textarea>
+      </div>
+
+      <div class="modal-section-divider">Настройки показа</div>
+
+      <div class="field-group">
+        <label class="field-label" for="obj-show-payment-edit">
+          Ссылка для оплаты и депозита
+          <span class="field-hint-icon" title="Когда показывать гостю ссылку для внесения оплаты и депозита">
+            <i class="ti ti-info-circle"></i>
+          </span>
+        </label>
+        <select class="field-input" id="obj-show-payment-edit">
+          <option value="IMMEDIATELY">Сразу</option>
+          <option value="AFTER_CHECKIN">После заселения</option>
+          <option value="DAY_BEFORE">За день до заселения</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="obj-show-instructions-edit">
+          Инструкция для гостя
+          <span class="field-hint-icon" title="Когда показывать гостю инструкцию по объекту">
+            <i class="ti ti-info-circle"></i>
+          </span>
+        </label>
+        <select class="field-input" id="obj-show-instructions-edit">
+          <option value="IMMEDIATELY">Сразу</option>
+          <option value="DAY_BEFORE">За день до заселения</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="obj-show-contract-edit">
+          Ссылка на договор
+          <span class="field-hint-icon" title="Когда показывать гостю ссылку на договор">
+            <i class="ti ti-info-circle"></i>
+          </span>
+        </label>
+        <select class="field-input" id="obj-show-contract-edit">
+          <option value="IMMEDIATELY">Сразу</option>
+          <option value="AFTER_CHECKIN">После заселения</option>
+          <option value="DAY_BEFORE">За день до заселения</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="obj-show-review-edit">
+          Предложение оценить уборку
+          <span class="field-hint-icon" title="Когда предлагать гостю оценить уборку">
+            <i class="ti ti-info-circle"></i>
+          </span>
+        </label>
+        <select class="field-input" id="obj-show-review-edit">
+          <option value="IMMEDIATELY">Сразу</option>
+          <option value="AFTER_CHECKIN">После заселения</option>
+          <option value="DAY_BEFORE">За день до заселения</option>
+          <option value="AFTER_CHECKOUT">Сразу после выезда</option>
+        </select>
+      </div>
+
+      <div class="modal-section-divider">OkiDoki</div>
+
+      <label class="field-label">Пожалуйста, устанавливайте значения в соответствии полям из вкладки "Настройки" -> "Интеграция" -> "OkiDoki"</label>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label" for="obj-okidoki-row-edit">ID строки названия объекта</label>
+          <input class="field-input" id="obj-okidoki-row-edit" type="text" placeholder="12ab3456cd890efg12345">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="obj-okidoki-val-edit">Keyword названия объекта</label>
+          <input class="field-input" id="obj-okidoki-val-edit" type="text" placeholder="Описание и адрес квартиры">
+        </div>
+      </div>
+      <div class="field-group">
+          <label class="field-label" for="obj-okidoki-name-edit">Значение названия объекта</label>
+          <input class="field-input" id="obj-okidoki-name-edit" type="text" placeholder="1 комнатная квартира по адресу г. Москва, ул Гоголя, д. 1, кв. 1">
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label" for="obj-okidoki-datein-edit">Keyword даты въезда</label>
+          <input class="field-input" id="obj-okidoki-datein-edit" type="text" placeholder="Дата заселения">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="obj-okidoki-dateout-edit">Keyword даты выезда</label>
+          <input class="field-input" id="obj-okidoki-dateout-edit" type="text" placeholder="Дата выселения">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label" for="obj-okidoki-deposit-edit">Keyword депозита</label>
+          <input class="field-input" id="obj-okidoki-deposit-edit" type="text" placeholder="Обеспечительный платёж">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="obj-okidoki-payed-edit">Keyword оплаченой суммы</label>
+          <input class="field-input" id="obj-okidoki-payed-edit" type="text" placeholder="Внесённая предоплата при бронировании">
+        </div>
+      </div>
+        <div class="field-group">
+          <label class="field-label" for="obj-okidoki-payperday-edit">Keyword стоимости за день</label>
+          <input class="field-input" id="obj-okidoki-payperday-edit" type="text" placeholder="Цена в сутки">
+        </div>
+
+      <div class="modal-section-divider">Получение платежей</div>
+
+      <label class="field-label">Пожалуйста, убедитесь, что у вас настроена интеграция с выбраным банком. "Настройки" -> "Интеграция"</label>
+        
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label" for="obj-show-deposit-service-edit">
+              Принимать залоги через
+              <span class="field-hint-icon" title="Через какой сервис вы будете принимать залоги от гостей">
+                <i class="ti ti-info-circle"></i>
+              </span>
+            </label>
+            <select class="field-input" id="obj-deposit-service-edit">
+              <option value="NONE">Не принимать</option>
+              <option value="TOCHKA">Точка банк</option>
+              <option value="TBANK">Т-Банк бизнес</option>
+              <option value="MONETA">Монета (RealtyCalendar)</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="obj-payment-service-edit">
+              Принимать оплату через
+              <span class="field-hint-icon" title="Через какой сервис вы будете принимать оплату от гостей">
+                <i class="ti ti-info-circle"></i>
+              </span>
+            </label>
+            <select class="field-input" id="obj-payment-service-edit">
+              <option value="NONE">Не принимать</option>
+              <option value="TOCHKA">Точка банк</option>
+              <option value="TBANK">Т-Банк бизнес</option>
+            </select>
+          </div>
+        </div>
+
+      <div class="modal-section-divider">Статус</div>
+
+      <label class="perm-row">
+        <div class="perm-info">
+          <span class="perm-name">Объект активен</span>
+          <span class="perm-desc">Принимает новые брони и вносит данные в базу данных</span>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="obj-active-create" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </label>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn" onclick="closeEditObject()">Отмена</button>
+      <button class="btn btn-save" onclick="saveEditObject()">
+        <i class="ti ti-plus"></i> Обновить
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-rc-integration">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-title">Интеграция с RealtyCalendar</span>
+      <button class="modal-close" onclick="closeODIntegration()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div class="modal-body modal-scroll">
+
+      <div class="modal-section-divider">Webhook</div>
+
+      <div class="field-group">
+        <label class="field-label">
+          Ваш Webhook URL
+          <span class="field-hint-icon" title="Скопируйте эту ссылку и вставьте в настройки RealtyCalendar">
+            <i class="ti ti-info-circle"></i>
+          </span>
+        </label>
+        <div class="field-copy-row">
+          <input class="field-input" id="rc-webhook-url" type="text" readonly>
+          <button class="btn btn-icon" onclick="copyWebhook()" title="Скопировать">
+            <i class="ti ti-copy"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-section-divider">Инструкция</div>
+
+      <div class="integration-steps">
+        <div class="integration-step">
+          <div class="step-num">1</div>
+          <div class="step-text">Войдите в личный кабинет <strong>RealtyCalendar</strong> и перейдите в раздел <strong>Настройки → Webhook</strong></div>
+        </div>
+        <div class="integration-step">
+          <div class="step-num">2</div>
+          <div class="step-text">Нажмите <strong>Добавить Webhook</strong> и вставьте скопированный URL в поле адреса</div>
+        </div>
+        <div class="integration-step">
+          <div class="step-num">3</div>
+          <div class="step-text">Выберите события: <strong>Новое бронирование</strong>, <strong>Отмена бронирования</strong>, <strong>Изменение бронирования</strong></div>
+        </div>
+        <div class="integration-step">
+          <div class="step-num">4</div>
+          <div class="step-text">Сохраните настройки. BroneBox начнёт получать данные автоматически</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn" onclick="closeODIntegration()">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-od-integration">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-title">Интеграция с OkiDoki</span>
+      <button class="modal-close" onclick="closeODIntegration()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div class="modal-body modal-scroll">
+
+      <div class="modal-section-divider">API key</div>
+
+      <div class="field-group">
+        <label class="field-label">
+          Вставьте ваш API key OkiDoki
+          <span class="field-hint-icon" title="Получите ваш ключ и вставьте его в строку ниже.">
+            <i class="ti ti-info-circle"></i>
+          </span>
+        </label>
+        <div class="field-copy-row">
+          <input class="field-input" id="od-webhook-url" type="text">
+        </div>
+      </div>
+
+      <div class="modal-section-divider">Инструкция</div>
+
+      <div class="integration-steps">
+        <div class="integration-step">
+          <div class="step-num">1</div>
+          <div class="step-text">Войдите в личный кабинет <strong>OkiDoki</strong> и перейдите в раздел <strong>Настройки → API</strong></div>
+        </div>
+        <div class="integration-step">
+          <div class="step-num">2</div>
+          <div class="step-text">Скопируйте <strong>API key</strong> и вставьте скопированный ключ в поле</div>
+        </div>
+        <div class="integration-step">
+          <div class="step-num">3</div>
+          <div class="step-text">Перед сохранением - Создайте шаблон договора с полями <strong>"Название и описание объекта", "Дата заезда", "Дата выезда", "Обеспечительный платёж", "Цена за одни сутки", "Предоплата"</strong>. Не забудьте добавить шаблоны для поля <strong>"Название и описание объекта"</strong></div>
+        </div>
+        <div class="integration-step">
+          <div class="step-num">4</div>
+          <div class="step-text">Сохраните настройки. Вы получите список вашегих шаблонов и ID строк</div>
+        </div>
+        <div class="integration-step">
+          <div class="step-num">5</div>
+          <div class="step-text">Вставьте ID строк в настройках объекта или объектов. Договоры начнут формироваться автоматически</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn" onclick="saveODIntegration()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  async function saveODIntegration() {
+    const token = localStorage.getItem('broneboxtoken')
+    const apiKey = document.getElementById('od-webhook-url').value.trim();
+    if (!apiKey) { 
+      showToast('Заполните все поля', 'info')
+      return; 
+    }
+
+    try {
+    // Получаем список шаблонов
+      const res = await fetch(`http://127.0.0.1:3000/integration/okidoki/tryconnect?apiKey=${apiKey}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+
+      if (!res.ok) {
+        showToast('Неверный токен!', 'danger')
+        return
+      }
+    } catch {
+      showToast('Произошла ошибка! Попробуйте позже!', 'danger')
+      return
+    }
+
+    const saveRes = await fetch('http://127.0.0.1:3000/integration/okidoki/save', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey })
+    })
+
+    getIntegrations();
+
+    if (!saveRes.ok) {
+      showToast('Ошибка при сохранении ключа', 'danger')
+      return
+    }
+
+    document.getElementById('modal-od-success').classList.add('open');
+
+    closeODIntegration();
+    await openODSuccess(apiKey);
+  }
+</script>
+
+<div class="modal-overlay" id="modal-od-success">
+  <div class="modal-box" style="width: 520px;">
+    <div class="modal-head">
+      <span class="modal-title">OkiDoki подключён</span>
+      <button class="modal-close" onclick="closeODSuccess()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div class="modal-body modal-scroll" style="max-height: 60vh; overflow-y: auto;">
+
+      <!-- Успех -->
+      <div class="created-success">
+        <div class="created-icon" style="color: var(--accent-green);">
+          <i class="ti ti-circle-check"></i>
+        </div>
+        <div class="created-name">Интеграция успешно подключена</div>
+        <div class="created-subtitle">Ниже — ваши шаблоны договоров из OkiDoki</div>
+      </div>
+
+      <!-- Инструкция -->
+      <div class="modal-section-divider">Что делать дальше</div>
+      <div class="integration-steps">
+        <div class="integration-step">
+          <div class="step-num">1</div>
+          <div class="step-text">Ниже отображены все шаблоны договоров из вашего аккаунта OkiDoki и их поля</div>
+        </div>
+        <div class="integration-step">
+          <div class="step-num">2</div>
+          <div class="step-text">Скопируйте нужные <strong>ID шаблона</strong> и <strong>ID строк</strong>, затем вставьте их в настройках каждого объекта</div>
+        </div>
+        <div class="integration-step">
+          <div class="step-num">3</div>
+          <div class="step-text">После этого договоры будут формироваться <strong>автоматически</strong> при каждой входящей брони</div>
+        </div>
+      </div>
+
+      <!-- Шаблоны -->
+      <div class="modal-section-divider">Шаблоны договоров</div>
+
+      <div id="od-templates-list">
+        <div style="text-align:center; padding: 20px 0; color: var(--text-muted); font-size: 13px;">
+          <i class="ti ti-loader" style="font-size: 20px; display:block; margin-bottom: 8px;"></i>
+          Загружаем шаблоны...
+        </div>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn" onclick="closeODSuccess()">Готово</button>
+    </div>
+  </div>
+</div>
+
+<script>
+async function showODTemplates() {
+  const token = localStorage.getItem('broneboxtoken')
+  try {
+    // Получаем список шаблонов
+    const resOD = await fetch(`http://127.0.0.1:3000/integration/okidoki/get`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    const { res } = await resOD.json();
+
+    let apikey = res.okidokiapi
+
+    loadODTemplates(apikey)
+    document.getElementById('modal-od-success').classList.add('open');
+  } catch {
+    showToast('Ошибка при получении токена', 'danger')
+  }
+}
+
+async function openODSuccess(apiKey) {
+  await loadODTemplates(apiKey);
+}
+
+function closeODSuccess() {
+  document.getElementById('modal-od-success').classList.remove('open');
+}
+
+async function loadODTemplates(apiKey) {
+  const container = document.getElementById('od-templates-list');
+  const token = localStorage.getItem('broneboxtoken')
+
+  try {
+    // Получаем список шаблонов
+    const res = await fetch(`http://127.0.0.1:3000/integration/okidoki/templates?apiKey=${apiKey}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    const { templates } = await res.json();
+
+    if (!templates || templates.length === 0) {
+      container.innerHTML = `<div style="text-align:center; padding: 20px 0; color: var(--text-muted); font-size: 13px;">Шаблоны не найдены</div>`;
+      return;
+    }
+
+    container.innerHTML = '';
+
+    for (const template of templates) {
+      // Получаем поля каждого шаблона
+      let entities = []
+
+      const entRes = await fetch(`http://127.0.0.1:3000/integration/okidoki/entities?apiKey=${apiKey}&templateId=${template.template_id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+
+        if (!entRes.ok) {
+        // таймаут или ошибка — оставляем пустой массив
+      } else {
+        const entData = await entRes.json()
+        entities = entData.entities || []
+      }
+
+      const card = document.createElement('div');
+      card.className = 'template-card';
+      card.style.marginBottom = '8px';
+
+      card.innerHTML = `
+        <div class="template-head">
+          <div>
+            <div class="template-name">${template.template_name}</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${template.template_full_name}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap: 6px;">
+            <span style="font-size: 11px; color: var(--text-muted);">ID:</span>
+            <span style="font-size: 11px; font-family: monospace; color: var(--text-secondary);">${template.template_id}</span>
+            <button class="btn btn-icon" style="width:26px;height:26px;min-width:26px;font-size:13px;" onclick="navigator.clipboard.writeText('${template.template_id}')" title="Скопировать ID шаблона">
+              <i class="ti ti-copy"></i>
+            </button>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 8px;">
+          ${entities && entities.length ? entities.map(e => `
+    <div style="background: var(--surface); border: 0.5px solid var(--border); border-radius: 8px; padding: 7px 10px; margin-bottom: 4px;">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+            <div>
+                <span style="font-size: 12px; color: var(--text-primary);">${e.keyword}</span>
+                <span style="font-size: 11px; color: var(--text-muted); margin-left: 6px;">${e.type}</span>
+            </div>
+            <div style="display:flex; align-items:center; gap: 6px;">
+                <span style="font-size: 11px; font-family: monospace; color: var(--text-secondary);">${e.keyword}</span>
+                <button class="btn btn-icon" style="width:22px;height:22px;min-width:22px;font-size:12px;" onclick="navigator.clipboard.writeText('${e.keyword}')" title="Скопировать keyword">
+                    <i class="ti ti-copy"></i>
+                </button>
+            </div>
+        </div>
+        ${e.list && e.list.length ? `
+            <div style="margin-top: 6px; display: flex; flex-direction: column; gap: 3px;">
+                ${e.list.map(item => `
+                    <div style="display:flex; align-items:center; justify-content:space-between; background: rgba(255,255,255,0.03); border: 0.5px solid var(--border); border-radius: 6px; padding: 5px 8px;">
+                        <span style="font-size: 11px; color: var(--text-secondary);">${item}</span>
+                        <button class="btn btn-icon" style="width:20px;height:20px;min-width:20px;font-size:11px;" onclick="navigator.clipboard.writeText('${item.replace(/'/g, "\\'")}')" title="Скопировать">
+                            <i class="ti ti-copy"></i>
+                        </button>
+                    </div>
+                `).join('')}
+            </div>
+        ` : ''}
+    </div>
+`).join('') : `<div style="font-size: 12px; color: var(--text-muted);">Нет полей</div>`}
+        </div>
+      `;
+
+      container.appendChild(card);
+    }
+
+  } catch (err) {
+    console.error('Ошибка загрузки шаблонов OkiDoki:', err);
+    container.innerHTML = `<div style="text-align:center; padding: 20px 0; color: var(--accent-pink); font-size: 13px;">Не удалось загрузить шаблоны</div>`;
+  }
+}
+</script>
+<script>
+
+    function closeODIntegration() {
+      document.getElementById('modal-od-integration').classList.remove('open');
+    }
+
+    async function addIntegrationRealtyCalendar() {
+        const token = localStorage.getItem('broneboxtoken');
+
+        try {
+            const res = await fetch('http://127.0.0.1:3000/integration/realtycalendar', {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            
+            if (!res.ok) {
+                showToast('Ошибка при добавлении интеграции', 'danger');
+                return;
+            }
+
+            showToast('Интеграция RealtyCalendar добавлена', 'success');
+
+            openRCIntegration(data.finalRealtyCalendar.realtycalendarid);
+        } catch (err) {
+            console.error('Ошибка при добавлении интеграции RealtyCalendar:', err);
+        }
+    }
+
+    async function addIntegrationOkiDoki() {
+      document.getElementById('modal-od-integration').classList.add('open');
+    }
+
+    function openRCIntegration(webhookKey) {
+        document.getElementById('rc-webhook-url').value = `http://127.0.0.1:3000/webhook/rc/${webhookKey}`;
+        document.getElementById('modal-rc-integration').classList.add('open');
+    }
+
+    function closeRCIntegration() {
+        document.getElementById('modal-rc-integration').classList.remove('open');
+    }
+
+    function copyWebhook() {
+        const val = document.getElementById('rc-webhook-url').value;
+        navigator.clipboard.writeText(val).then(() => {
+            showToast('Webhook скопирован', 'success');
+        });
+    }
+
+  async function deleteObject(id) {
+    const token = localStorage.getItem('broneboxtoken');
+
+    if (!confirm('Вы уверены, что хотите удалить этот объект? Это действие нельзя будет отменить.')) {
+      return;
+    }
+    try {
+      const res = await fetch(`http://127.0.0.1:3000/objects/delete`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ objectId: id })
+      });
+
+      showToast('Объект удалён', 'success');
+      loadObjectsList(); // обновляем список если есть такая функция
+    } catch (err) {
+      console.error('Ошибка при удалении объекта:', err);
+      showToast('Ошибка при удалении объекта', 'danger');
+    }
+  }
+
+  function closeEditObject() {
+    document.getElementById('modal-edit-object').classList.remove('open');
+    clearEditPhotos();
+  }
+  
+  async function saveEditObject() {
+    const token = localStorage.getItem('broneboxtoken');
+
+    const name = document.getElementById('obj-name-edit').value.trim();
+    const location = document.getElementById('obj-location-edit').value.trim();
+    const realtyId = document.getElementById('obj-lot-edit').value.trim();
+    const defaultDeposit = document.getElementById('obj-deposit-edit').value.trim();
+    const checkInTime = document.getElementById('obj-checkin-time-edit').value;
+    const checkOutTime = document.getElementById('obj-checkout-time-edit').value;
+    const showPaymentTiming = document.getElementById('obj-show-payment-edit').value;
+    const showInstructionTiming = document.getElementById('obj-show-instructions-edit').value;
+    const showContractTiming = document.getElementById('obj-show-contract-edit').value;
+    const showReviewTiming = document.getElementById('obj-show-review-edit').value;
+    const mapLink = document.getElementById('obj-map-edit').value.trim();
+    const instructions = document.getElementById('obj-instructions-edit').value.trim();
+    const okiDokiRowId = document.getElementById('obj-okidoki-row-edit').value.trim();
+    const okiDokiValueId = document.getElementById('obj-okidoki-val-edit').value.trim();
+    const okiDokiNameId = document.getElementById('obj-okidoki-name-edit').value.trim();
+    const okiDokiDateInId = document.getElementById('obj-okidoki-datein-edit').value.trim();
+    const okiDokiDateOutId = document.getElementById('obj-okidoki-dateout-edit').value.trim();
+    const okiDokiDepositId = document.getElementById('obj-okidoki-deposit-edit').value.trim();
+    const okiDokiPayedId = document.getElementById('obj-okidoki-payed-edit').value.trim();
+    const okiDokiPayPerDayId = document.getElementById('obj-okidoki-payperday-edit').value.trim();
+    const DepositChanel = document.getElementById('obj-deposit-service-edit').value.trim();
+    const PaymentChanel = document.getElementById('obj-payment-service-edit').value.trim();
+    const active = document.getElementById('obj-active-create').checked ? "YES" : "NO";
+
+    try {
+        // 1. Удаляем помеченные фото
+        for (const photoId of photosToDelete) {
+            await fetch(`http://127.0.0.1:3000/objects/photos/${photoId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+        }
+
+        // 2. Загружаем новые фото
+        for (const photo of editObjectPhotos.filter(Boolean)) {
+            const formData = new FormData();
+            formData.append('file', photo.file);
+            await fetch(`http://127.0.0.1:3000/objects/${currentEditingObjectId}/photos/add`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+        }
+
+        // 3. Сохраняем данные объекта
+        const res = await fetch('http://127.0.0.1:3000/objects/edit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({
+                objectId: currentEditingObjectId,
+                realtyId, name, instructions, checkInTime, checkOutTime,
+                showPaymentTiming, showInstructionTiming, showContractTiming, showReviewTiming,
+                location, mapLink, defaultDeposit, okiDokiRowId, okiDokiValueId, okiDokiNameId, okiDokiDateInId, okiDokiDateOutId, okiDokiDepositId, okiDokiPayedId, okiDokiPayPerDayId, DepositChanel, PaymentChanel, active
+            })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+            showToast(data.error || 'Ошибка при сохранении', 'danger');
+            return;
+        }
+
+        showToast('Объект успешно обновлён', 'success');
+        closeEditObject();
+        loadObjectsList(); // обновляем список если есть такая функция
+
+    } catch (err) {
+        console.error('Ошибка при сохранении объекта:', err);
+        showToast('Ошибка при сохранении объекта', 'danger');
+    }
+}
+
+  async function openModalEditObject(id) {
+    const token = localStorage.getItem('broneboxtoken');
+
+    try {
+      const res = await fetch('http://127.0.0.1:3000/objects/get', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ objectId: id })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        showToast("Ошибка при получении данных объекта", 'danger');
+        return;
+      }
+
+      // Заполняем поля данными объекта
+      document.getElementById('obj-lot-edit').value = data.object.realtyid;
+      document.getElementById('obj-name-edit').value = data.object.name;
+      document.getElementById('obj-instructions-edit').value = data.object.instruction;
+      document.getElementById('obj-checkin-time-edit').value = data.object.checkindef;
+      document.getElementById('obj-checkout-time-edit').value = data.object.checkoutdef;
+      document.getElementById('obj-show-payment-edit').value = data.object.sspayanddeposit;
+      document.getElementById('obj-show-instructions-edit').value = data.object.ssinstruction;
+      document.getElementById('obj-show-contract-edit').value = data.object.sscontract;
+      document.getElementById('obj-show-review-edit').value = data.object.ssrateclean;
+      document.getElementById('obj-location-edit').value = data.object.location;
+      document.getElementById('obj-map-edit').value = data.object.maplink;
+      document.getElementById('obj-deposit-edit').value = data.object.deposit;
+      document.getElementById('obj-okidoki-row-edit').value = data.object.odstringid;
+      document.getElementById('obj-okidoki-val-edit').value = data.object.odvalueid;
+      document.getElementById('obj-okidoki-name-edit').value = data.object.odnameid;
+      document.getElementById('obj-okidoki-datein-edit').value = data.object.oddateinid;
+      document.getElementById('obj-okidoki-dateout-edit').value = data.object.oddateoutid;
+      document.getElementById('obj-okidoki-deposit-edit').value = data.object.oddepositid;
+      document.getElementById('obj-okidoki-payed-edit').value = data.object.odpayedid;
+      document.getElementById('obj-okidoki-payperday-edit').value = data.object.odpayperdayid;
+      document.getElementById('obj-deposit-service-edit').value = data.object.depositchanel;
+      document.getElementById('obj-payment-service-edit').value = data.object.paymentchanel;
+
+      if (data.object.active === "YES") {
+        document.getElementById('obj-active-create').checked = true;
+      } else {
+        document.getElementById('obj-active-create').checked = false;
+      }
+
+      currentEditingObjectId = id; // сохраняем ID редактируемого объекта в глобальной переменной
+
+      clearEditPhotos();
+
+      document.getElementById('modal-edit-object').classList.add('open');
+
+      const photosRes = await fetch(`http://127.0.0.1:3000/objects/${id}/photos/get`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+});
+const photosData = await photosRes.json();
+
+for (const photo of photosData.photos) {
+    renderPhotoEdit({
+        id: photo.id,
+        url: `http://127.0.0.1:3000${photo.url}`,
+        isNew: false
+    });
+}
+
+    } catch (err) {
+      console.error('Ошибка при получении данных объекта:', err);
+    }
+  }
+  function openNewObjectModal() {
+    document.getElementById('modal-new-object').classList.add('open');
+  }
+
+  function closeNewObject() {
+    document.getElementById('modal-new-object').classList.remove('open');
+  }
+
+  function openNewMaidModal() {
+   document.getElementById('modal-new-maid').classList.add('open');
+  }
+
+  function closeNewMaid() {
+    document.getElementById('modal-new-maid').classList.remove('open');
+  }
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+  }
+  function switchTab(name, btn) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  async function createObject() {
+    const token = localStorage.getItem('broneboxtoken'); 
+
+    const realtyid = document.getElementById('obj-lot-create').value.trim(); //
+    const name = document.getElementById('obj-name-create').value.trim(); //
+    const instruction = document.getElementById('obj-instructions-create').value.trim(); //
+    const checkindef = document.getElementById('obj-checkin-time-create').value.trim(); //
+    const checkoutdef = document.getElementById('obj-checkout-time-create').value.trim(); //
+    const sspayanddeposit = document.getElementById('obj-show-payment-create').value.trim(); //
+    const ssinstruction = document.getElementById('obj-show-instructions-create').value.trim(); //
+    const sscontract = document.getElementById('obj-show-contract-create').value.trim(); //
+    const ssrateclean = document.getElementById('obj-show-review-create').value.trim();
+    const location = document.getElementById('obj-location-create').value.trim(); //
+    const maplink = document.getElementById('obj-map-create').value.trim(); //
+    const deposit = document.getElementById('obj-deposit-create').value.trim(); //
+    const odstringid = document.getElementById('obj-okidoki-row-create').value.trim(); //
+    const odvalueid = document.getElementById('obj-okidoki-val-create').value.trim(); //
+    const odnameid = document.getElementById('obj-okidoki-name-create').value.trim(); //
+    const oddateinid = document.getElementById('obj-okidoki-datein-create').value.trim(); //
+    const oddateoutid = document.getElementById('obj-okidoki-dateout-create').value.trim(); //
+    const oddepositid = document.getElementById('obj-okidoki-deposit-create').value.trim(); //
+    const odpayedid = document.getElementById('obj-okidoki-payed-create').value.trim(); //
+    const odpayperdayid = document.getElementById('obj-okidoki-payperday-create').value.trim(); //
+    const depositchanel = document.getElementById('obj-deposit-service-create').value.trim();
+    const paymentchanel = document.getElementById('obj-payment-service-create').value.trim();
+
+    const activeChecker = document.getElementById('obj-active-create').checked;
+    let active = ""
+
+    if (activeChecker === true) {
+        active = "YES";
+    } else {
+        active = "NO";
+    }
+
+    if (!name || !instruction || !checkindef || !checkoutdef || !location || !deposit) {
+      showToast("Пожалуйста, заполните все обязательные поля", 'warning');
+      return;
+    }
+
+    try {
+      const res = await fetch('http://127.0.0.1:3000/objects/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ realtyId: realtyid, name: name, instructions: instruction, checkInTime: checkindef, checkOutTime: checkoutdef, showPaymentTiming: sspayanddeposit, showInstructionTiming: ssinstruction, showContractTiming: sscontract, showReviewTiming: ssrateclean, location: location, mapLink: maplink, defaultDeposit: deposit, okiDokiRowId: odstringid, okiDokiValueId: odvalueid, okiDokiNameId: odnameid, okiDokiDateInId: oddateinid, okiDokiDateOutId: oddateoutid, okiDokiDepositId: oddepositid, okiDokiPayedId: odpayedid, okiDokiPayPerDayId: odpayperdayid, DepositChanel: depositchanel, PaymentChanel: paymentchanel, active: active })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        showToast("Ошибка при создании объекта", 'danger');
+        return;
+      }
+
+      const photos = objectPhotos.filter(Boolean); // убираем удалённые
+
+      for (const photo of photos) {
+        const formData = new FormData();
+        formData.append('file', photo.file);
+        await fetch(`http://127.0.0.1:3000/objects/${data.newObject.id}/photos/add`, {
+            method: 'POST',
+            headers: {'Authorization': `Bearer ${token}` },
+            body: formData
+        });
+      }
+
+      closeNewObject();
+        loadObjectsList();
+      showToast('Объект успешно создан', 'success');
+
+    } catch (err) {
+      console.error('Ошибка при создании объекта:', err);
+    }
+  }
+
+  async function createMaid() {
+    const token = localStorage.getItem('broneboxtoken');
+    const name = document.getElementById('new-maid-name').value.trim();
+
+    if (name === '') {
+      showToast("Пожалуйста, введите имя горничной", 'warning');
+      return;
+    }
+
+    try {
+      const res = await fetch('http://127.0.0.1:3000/maids/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ name: name })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast("Ошибка при создании горничной", 'danger');
+        return;
+      }
+      closeNewMaid();
+        loadMaidsList();
+      showToast('Горничная успешно создана', 'success');
+    } catch (err) {
+      console.error('Ошибка при создании горничной:', err);
+    }
+  }
+
+  async function openPermissions(id) {
+
+    const token = localStorage.getItem('broneboxtoken');
+
+    currentEditingStaffId = id;
+
+    try {
+      const res = await fetch(`http://127.0.0.1:3000/staff/get`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ id: id })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showToast("Ошибка при получении информации о сотруднике", 'danger');
+        return;
+      }
+
+        if (data && data.staff) {
+            const permissions = data.staff;
+
+            document.getElementById('perm-manageobjects').checked = (permissions.manageobjects === "YES");
+            document.getElementById('perm-managemaids').checked = (permissions.managemaids === "YES");
+            document.getElementById('perm-manageintegration').checked = (permissions.manageintegration === "YES");
+            document.getElementById('perm-managetemplates').checked = (permissions.managetemplates === "YES");
+            document.getElementById('perm-manageautosent').checked = (permissions.manageautosent === "YES");
+            document.getElementById('perm-seemaidsrate').checked = (permissions.seemaidsrate === "YES");
+            document.getElementById('perm-managebooks').checked = (permissions.managebooks === "YES");
+        }
+
+        document.getElementById('modal-username').textContent = data.name || 'Без имени';
+        document.getElementById('modal-login').textContent = data.login ? `@${data.login}` : '';
+
+      document.getElementById('modal-permissions').classList.add('open');
+    } catch (err) {
+      console.error('Ошибка при получении информации о сотруднике:', err);
+    }
+  }
+  function closePermissions() {
+    document.getElementById('modal-permissions').classList.remove('open');
+    currentEditingStaffId = null;
+  }
+  function handleOverlayClick(e) {
+    if (e.target === document.getElementById('modal-permissions')) closePermissions();
+  }
+  function openNewEmployeeModal() {
+    document.getElementById('modal-new-employee').classList.add('open');
+  }
+  function closeNewEmployee() {
+    document.getElementById('modal-new-employee').classList.remove('open');
+  }
+  function openEmployeeCreated(name, login, password) {
+    document.getElementById('modal-employee-created').classList.add('open');
+    document.getElementById('created-emp-name').textContent = name;
+    document.getElementById('created-emp-login').textContent = login;
+    document.getElementById('created-emp-password').textContent = password;
+  }
+
+  function closeEmployeeCreated() {
+    closeNewEmployee();
+    document.getElementById('modal-employee-created').classList.remove('open');
+  }
+
+  function copyToClipboard(id, btn) {
+    const text = document.getElementById(id).textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.innerHTML = '<i class="ti ti-check"></i>';
+      setTimeout(() => {
+        btn.innerHTML = '<i class="ti ti-copy"></i>';
+      }, 2000);
+    });
+}
+
+    async function createEmployee() {
+
+        const name = document.getElementById('new-emp-name').value.trim();
+        const login = document.getElementById('new-emp-login').value.trim();
+
+        const token = localStorage.getItem('broneboxtoken');
+
+        if (name == '' || login == '') {
+            showToast("Пожалуйста, заполните все поля", 'warning');
+            return;
+        }
+
+
+        try {
+            const res = await fetch('http://127.0.0.1:3000/staff/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ login: login, name: name })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                showToast('Ошибка при создании сотрудника', 'danger');
+                return;
+            }
+      
+            openEmployeeCreated(name, data.login, data.password);
+
+            loadStaffList();
+        } catch (err) {
+            console.error('Ошибка при создании сотрудника:', err);
+        }
+    }
+
+    async function deleteStaff(id) {
+        if (!confirm('Вы уверены, что хотите удалить этого сотрудника?')) return;
+
+        const token = localStorage.getItem('broneboxtoken');
+
+        try {
+            const res = await fetch('http://127.0.0.1:3000/staff/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ id: id })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                showToast('Ошибка при удалении сотрудника', 'danger');
+                return;
+            }
+
+            loadStaffList();
+        } catch (err) {
+            console.error('Ошибка при удалении сотрудника:', err);
+        }
+
+    }
+
+    async function deleteMaid(id) {
+        if (!confirm('Вы уверены, что хотите удалить эту горничную?')) return;
+
+        const token = localStorage.getItem('broneboxtoken');
+
+        try {
+            const res = await fetch('http://127.0.0.1:3000/maids/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ id: id })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                showToast('Ошибка при удалении горничной', 'danger');
+                return;
+            }
+
+            loadMaidsList();
+        } catch (err) {
+            showToast('Ошибка при удалении горничной', 'danger');
+            console.error('Ошибка при удалении горничной:', err);
+        }
+    }
+
+    async function savePermissionToBackend(permission, value) {
+        const token = localStorage.getItem('broneboxtoken');
+
+        if (currentEditingStaffId === null) {
+            console.error('Нет выбранного сотрудника для сохранения прав');
+            return;
+        }
+
+        try {
+            const res = await fetch('http://127.0.0.1:3000/staff/permissionschange', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ id: currentEditingStaffId, permission: permission, value: value })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                showToast('Ошибка при изменении прав сотрудника', 'danger');
+                return;
+            }
+        } catch (err) {
+            console.error('Ошибка при изменении прав сотрудника:', err);
+        }
+    }
+
+    const toastIcons = {
+  success: 'ti-circle-check',
+  danger:  'ti-circle-x',
+  info:    'ti-info-circle',
+  warning: 'ti-alert-triangle'
+};
+
+function showToast(message, type = 'info', duration = 3500) {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `
+    <i class="ti ${toastIcons[type]}" aria-hidden="true"></i>
+    <span class="toast-text">${message}</span>
+    <button class="toast-close" onclick="hideToast(this.parentElement)" aria-label="Закрыть">
+      <i class="ti ti-x"></i>
+    </button>
+  `;
+  container.appendChild(toast);
+  setTimeout(() => hideToast(toast), duration);
+}
+
+function hideToast(toast) {
+  if (!toast || toast.classList.contains('hiding')) return;
+  toast.classList.add('hiding');
+  setTimeout(() => toast.remove(), 400);
+}
+</script>
+<div class="toast-container" id="toast-container"></div>
+</body>
+</html>

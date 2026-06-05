@@ -1,0 +1,540 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg-page: #F5F4F0;
+  --bg-card: #FFFFFF;
+  --bg-secondary: #F0EEE9;
+  --border: #E2DFD8;
+  --border-strong: #C8C4BB;
+  --text-primary: #1A1917;
+  --text-secondary: #6B6760;
+  --text-hint: #A09C96;
+  --accent: #1A1917;
+  --red-bg: #FEF0EF;
+  --red-border: #F8CECA;
+  --red-text: #9B3328;
+  --green-bg: #EDF5E9;
+  --green-border: #C2DDB6;
+  --green-text: #2E6B1F;
+  --green-dark: #1B4012;
+  --amber-bg: #FDF4E3;
+  --amber-border: #F5D898;
+  --amber-text: #7A4E0D;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --font-main: 'DM Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=DM+Mono:wght@400;500&display=swap');
+
+body {
+  font-family: var(--font-main);
+  background: var(--bg-page);
+  color: var(--text-primary);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Page layout ── */
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
+}
+
+/* ── Greeting ── */
+.greeting {
+  margin-bottom: 1.75rem;
+}
+
+.greeting h1 {
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+  line-height: 1.2;
+}
+
+.booking-id {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.booking-id code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--bg-secondary);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+}
+
+/* ── Todo tags ── */
+.todo-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 1.5rem;
+}
+
+.todo-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--red-bg);
+  color: var(--red-text);
+  border: 0.5px solid var(--red-border);
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 12px;
+  line-height: 1;
+}
+
+.todo-tag svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+/* ── Card ── */
+.card {
+  background: var(--bg-card);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.125rem 1.25rem;
+  margin-bottom: 0.875rem;
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-hint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 14px;
+}
+
+.card-title svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* ── Dates ── */
+.dates-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.date-item label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-hint);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.date-item .value {
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.date-item .sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+/* ── Time inputs ── */
+.time-section {
+  border-top: 0.5px solid var(--border);
+  padding-top: 14px;
+}
+
+.time-section > p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin-bottom: 12px;
+}
+
+.time-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.time-field label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-hint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 5px;
+}
+
+.time-field input[type="time"] {
+  width: 100%;
+  font-family: var(--font-main);
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.time-field input[type="time"]:focus {
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 3px rgba(26, 25, 23, 0.07);
+}
+
+.time-field input[type="time"].error {
+  border-color: #E07470;
+  box-shadow: 0 0 0 3px rgba(155, 51, 40, 0.1);
+}
+
+.time-field input[type="time"].success {
+  border-color: #7BBD6A;
+  box-shadow: 0 0 0 3px rgba(46, 107, 31, 0.1);
+}
+
+.btn-save {
+  font-family: var(--font-main);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--bg-card);
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0 18px;
+  height: 38px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+
+.btn-save:hover {
+  opacity: 0.82;
+}
+
+/* ── Photo carousel ── */
+.carousel-track {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-sm);
+}
+
+.carousel-track::-webkit-scrollbar {
+  display: none;
+}
+
+.photo-item {
+  flex: 0 0 200px;
+  scroll-snap-align: start;
+  background: var(--bg-secondary);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  aspect-ratio: 4 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-hint);
+  font-size: 26px;
+}
+
+.photo-item.big {
+  flex: 0 0 300px;
+}
+
+.carousel-hint {
+  font-size: 12px;
+  color: var(--text-hint);
+  text-align: center;
+  margin-top: 9px;
+}
+
+/* ── Instruction text ── */
+.instruction-text {
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--text-primary);
+}
+
+.instruction-text strong {
+  font-weight: 500;
+}
+
+/* ── Payment ── */
+.payment-block {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.price-label {
+  font-size: 11px;
+  color: var(--text-hint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 5px;
+}
+
+.price-total {
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.price-breakdown {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.price-breakdown span {
+  font-size: 13px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.price-breakdown small {
+  font-size: 12px;
+  color: var(--text-hint);
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 9px;
+  white-space: nowrap;
+}
+
+.status-pill.unpaid {
+  background: var(--red-bg);
+  color: var(--red-text);
+  border: 0.5px solid var(--red-border);
+}
+
+.status-pill.partial {
+  background: var(--amber-bg);
+  color: var(--amber-text);
+  border: 0.5px solid var(--amber-border);
+}
+
+.btn-pay {
+  font-family: var(--font-main);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--bg-card);
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 11px 22px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.btn-pay:hover {
+  opacity: 0.82;
+}
+
+/* ── Deposit ── */
+.deposit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.deposit-amount {
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.deposit-status {
+  margin-top: 4px;
+}
+
+.btn-deposit {
+  font-family: var(--font-main);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: transparent;
+  border: 0.5px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 9px 18px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.btn-deposit:hover {
+  background: var(--bg-secondary);
+}
+
+.deposit-note {
+  background: var(--green-bg);
+  border: 0.5px solid var(--green-border);
+  border-radius: var(--radius-sm);
+  padding: 11px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.deposit-note svg {
+  width: 15px;
+  height: 15px;
+  color: var(--green-text);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.deposit-note p {
+  font-size: 12px;
+  color: var(--green-text);
+  line-height: 1.6;
+}
+
+.deposit-note p strong {
+  color: var(--green-dark);
+  font-weight: 500;
+}
+
+/* ── Contract ── */
+.contract-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.contract-info p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.btn-contract {
+  font-family: var(--font-main);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: transparent;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 9px 18px;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.btn-contract:hover {
+  background: var(--bg-secondary);
+}
+
+.btn-contract svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 500px) {
+  .page {
+    padding: 1.5rem 1rem 3rem;
+  }
+
+  .dates-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .time-inputs {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .time-inputs .btn-save {
+    grid-column: span 2;
+    width: 100%;
+  }
+
+  .payment-block {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .btn-pay {
+    width: 100%;
+    text-align: center;
+  }
+
+  .deposit-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .btn-deposit {
+    width: 100%;
+    text-align: center;
+  }
+
+  .contract-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .btn-contract {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.instruction-text {
+  white-space: pre-wrap;
+}

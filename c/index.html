@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title id="page-title">BroneBox | Загрузка...</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="page">
+
+  <!-- Приветствие -->
+  <div class="greeting">
+    <h1>Добро пожаловать, <span id="guest-name">...</span>!</h1>
+    <div class="booking-id">
+      Бронирование <code id="booking-id">...</code>
+    </div>
+  </div>
+
+  <!-- Задачи (красные метки) -->
+  <div class="todo-bar" id="todo-bar"></div>
+
+  <!-- Даты и время -->
+  <div class="card">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      Даты проживания
+    </div>
+    <div class="dates-grid">
+      <div class="date-item">
+        <label>Заезд</label>
+        <div class="value" id="checkin-date">...</div>
+        <div class="sub" id="checkin-day">...</div>
+      </div>
+      <div class="date-item">
+        <label>Выезд</label>
+        <div class="value" id="checkout-date">...</div>
+        <div class="sub" id="checkout-day">...</div>
+      </div>
+    </div>
+    <div class="time-section">
+      <p>Пожалуйста, укажите удобное время заезда и выезда — мы всё подготовим заранее.</p>
+      <div class="time-inputs">
+        <div class="time-field">
+          <label for="ci">Время заезда</label>
+          <input type="time" id="ci" />
+        </div>
+        <div class="time-field">
+          <label for="co">Время выезда</label>
+          <input type="time" id="co" />
+        </div>
+        <button class="btn-save" onclick="saveTimes()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Фотографии -->
+  <div class="card">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      Фотографии объекта
+    </div>
+    <div class="carousel-track" id="photos-carousel"></div>
+    <p class="carousel-hint">← прокрутите, чтобы посмотреть все фото →</p>
+  </div>
+
+  <!-- Инструкция (скрывается если objects.ssinstruction = false) -->
+  <div class="card" id="card-instruction" style="display:none">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 0 0 1 1h3m10-11l2 2m-2-2v10a1 1 0 0 1-1 1h-3m-6 0a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1m-6 0h6"/></svg>
+      Инструкция по заезду
+    </div>
+    <p class="instruction-text" id="checkin-instruction"></p>
+  </div>
+
+  <!-- Оплата (скрывается если objects.sspayanddeposit = false) -->
+  <div class="card" id="card-payment" style="display:none">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+      Стоимость проживания
+    </div>
+    <div class="payment-block">
+      <div class="payment-info">
+        <div class="price-label" id="nights-label">Итого</div>
+        <div class="price-total" id="price-total">...</div>
+        <div class="price-breakdown">
+          <span>
+            Предоплата: <strong id="prepayment-amount">...</strong>
+          </span>
+        </div>
+      </div>
+      <div id="pay-obj-action">
+        <button class="btn-pay" id="btn-pay">Оплатить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Залог (скрывается если objects.sspayanddeposit = false) -->
+  <div class="card" id="card-deposit" style="display:none">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Страховой залог
+    </div>
+    <div class="deposit-row">
+      <div>
+        <div class="deposit-amount" id="deposit-amount">...</div>
+      </div>
+      <div id="deposit-obj-action">
+        <button class="btn-deposit">Внести залог</button>
+      </div>
+    </div>
+    <div class="deposit-note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+      <p><strong>Залог не уходит арендодателю.</strong> Сумма замораживается на вашей карте и автоматически разблокируется в день выезда после проверки объекта. Если всё в порядке — деньги возвращаются полностью.</p>
+    </div>
+  </div>
+
+  <!-- Договор (скрывается если objects.sscontract = false) -->
+  <div class="card" id="card-contract" style="display:none">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Договор аренды
+    </div>
+    <div class="contract-row">
+      <div class="contract-info">
+        <p>Ознакомьтесь с условиями договора и подпишите онлайн. Займёт около минуты.</p>
+      </div>
+      <button class="btn-contract" id="btn-contract">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        Подписать
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ─── Получаем ID из ?id= ──────────────────────────────────────────────
+  function getBookingLink() {
+    return new URLSearchParams(window.location.search).get('id');
+  }
+
+  // ─── Форматирование ───────────────────────────────────────────────────
+  function formatPrice(amount) {
+    return Number(amount).toLocaleString('ru-RU') + ' ₽';
+  }
+
+  function nightsWord(n) {
+    const m10 = n % 10, m100 = n % 100;
+    if (m10 === 1 && m100 !== 11) return 'ночь';
+    if ([2,3,4].includes(m10) && ![12,13,14].includes(m100)) return 'ночи';
+    return 'ночей';
+  }
+
+  // Из "2025-06-12T00:00:00.000Z" → "12 июня 2025" + "Четверг"
+  function formatDate(isoStr) {
+    const d = new Date(isoStr);
+    const date = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+    const day  = d.toLocaleDateString('ru-RU', { weekday: 'long' });
+    // Капитализируем день недели
+    return { date, day: day.charAt(0).toUpperCase() + day.slice(1) };
+  }
+
+  function countNights(beginIso, endIso) {
+    const ms = new Date(endIso) - new Date(beginIso);
+    return Math.round(ms / (1000 * 60 * 60 * 24));
+  }
+
+  function setStatusPill(id, isPaid) {
+    const pill = document.getElementById(id);
+    if (isPaid) {
+      pill.textContent = 'Оплачено';
+      pill.className   = 'status-pill paid';
+    } else {
+      pill.textContent = 'Не оплачено';
+      pill.className   = 'status-pill unpaid';
+    }
+  }
+
+  // ─── Рендер задач ─────────────────────────────────────────────────────
+  const ICONS = {
+    card:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>`,
+    clock:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>`,
+    shield: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+    sign:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+  };
+
+  function renderTodos(booking, objects) {
+    const todos = [];
+
+    // Оплата
+    if (booking.balance_to_be_paid_1 > 0) { //ДОП ПРОВЕРКИ НА БАНКИ
+      todos.push({ label: 'Оплатить', icon: 'card' });
+    }
+    // Время заезда
+    if (!booking.begin_time) {
+      todos.push({ label: 'Указать время заезда', icon: 'clock' });
+    }
+    // Время выезда
+    if (!booking.end_time) {
+      todos.push({ label: 'Указать время выезда', icon: 'clock' });
+    }
+    // Залог
+    if (booking.deposit < objects.deposit) {
+      todos.push({ label: 'Внести залог', icon: 'shield' });
+    }
+    // Договор
+    if (booking.contract_link) {                              //Проверка на подписание договора
+      todos.push({ label: 'Подписать договор', icon: 'sign' });
+    }
+
+    const bar = document.getElementById('todo-bar');
+    bar.innerHTML = '';
+    todos.forEach(function(t) {
+      const div = document.createElement('div');
+      div.className = 'todo-tag';
+      div.innerHTML = ICONS[t.icon] + t.label;
+      bar.appendChild(div);
+    });
+  }
+
+  // ─── Рендер фото ──────────────────────────────────────────────────────
+  function renderPhotos(photos) {
+    const carousel = document.getElementById('photos-carousel');
+    if (!photos || !photos.length) {
+      carousel.innerHTML = '<p style="padding:1rem;opacity:.5">Фото не добавлены</p>';
+      return;
+    }
+    carousel.innerHTML = '';
+    photos.forEach(function(photo, i) {
+      const div = document.createElement('div');
+      div.className = 'photo-item' + (i === 0 ? ' big' : '');
+      const img = document.createElement('img');
+      img.src = "http://127.0.0.1:3000" + photo.url;
+      img.alt = 'Фото ' + (i + 1);
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:inherit';
+      div.appendChild(img);
+      carousel.appendChild(div);
+    });
+  }
+
+  // ─── Основная функция подстановки ─────────────────────────────────────
+  function applyData(booking, objects, photos) {
+    // Заголовок
+    document.getElementById('page-title').textContent =
+      'BroneBox | Бронирование #' + booking.id;
+
+    const firstName = (booking.fio || '').split(' ')[0] || 'Гость';
+    document.getElementById('guest-name').textContent  = firstName;
+    document.getElementById('booking-id').textContent  = '#' + booking.id;
+
+    // Даты
+    const nights   = countNights(booking.begin_date, booking.end_date);
+    const checkin  = formatDate(booking.begin_date);
+    const checkout = formatDate(booking.end_date);
+    document.getElementById('checkin-date').textContent  = checkin.date;
+    document.getElementById('checkin-day').textContent   = checkin.day;
+    document.getElementById('checkout-date').textContent = checkout.date;
+    document.getElementById('checkout-day').textContent  = checkout.day + ' · ' + nights + ' ' + nightsWord(nights);
+
+    // Сохранённое время заезда/выезда
+    if (booking.begin_time) document.getElementById('ci').value = booking.begin_time;
+    if (booking.end_time)   document.getElementById('co').value = booking.end_time;
+
+    // Задачи
+    renderTodos(booking, objects);
+
+    // Фото
+    renderPhotos(photos);
+
+    // Инструкция (objects.ssinstruction — флаг показа)
+    if (objects.ssinstruction) {
+      document.getElementById('card-instruction').style.display = '';
+      document.getElementById('checkin-instruction').innerHTML  = objects.instruction || ''; //ПОКАЗАТЬ ПОСЛЕ ОПЛАТЫ И/ИЛИ ВНЕСЕНИЯ ЗАЛОГА
+    }
+
+    // Оплата + Залог (objects.sspayanddeposit — флаг показа)
+    if (objects.sspayanddeposit) {                          //ЗАМЕНИТЬ НА ЛОГИКУ ПРОВЕРКИ ДНЯ
+      document.getElementById('card-payment').style.display = '';
+      document.getElementById('card-deposit').style.display  = '';
+
+      // Оплата
+      document.getElementById('nights-label').textContent =
+        'Итого за ' + nights + ' ' + nightsWord(nights);
+      document.getElementById('price-total').textContent =
+        formatPrice(booking.amount);
+      document.getElementById('prepayment-amount').textContent =
+        booking.prepayment ? formatPrice(booking.prepayment) : 'не внесена';
+      if (booking.balance_to_be_paid_1 > 0) {
+        const container = document.getElementById('pay-obj-action')
+        container.innerHTML = '<button class="btn-pay" id="btn-pay">Оплатить</button>';                                                           //ПРОВЕРКА ДЛЯ ОПЛАТЫ ТОЧКИ
+        document.getElementById('btn-pay').textContent =
+          'Оплатить ' + formatPrice(booking.balance_to_be_paid_1);
+      } else {
+        const container = document.getElementById('pay-obj-action')
+        container.innerHTML = `<div class="deposit-note">
+          Оплачено!
+          </div>`
+      }
+
+      // Залог
+      document.getElementById('deposit-amount').textContent =
+        formatPrice(objects.deposit);
+      if (booking.deposit < objects.deposit) {
+        const container = document.getElementById('deposit-obj-action')
+        container.innerHTML = '<button class="btn-deposit">Внести залог</button>';                                                           //ПРОВЕРКА ДЛЯ ОПЛАТЫ ТОЧКИ
+      } else {
+        const container = document.getElementById('deposit-obj-action')
+        container.innerHTML = `<div class="deposit-note">
+          Внесено
+          </div>`
+      }
+    }
+
+    // Договор (objects.sscontract — флаг показа)
+    if (booking.contract_link) {                            //ПРОВЕРКА НА ПОДПИСАНИЕ
+      document.getElementById('card-contract').style.display = '';
+      if (booking.contract_link) {
+        document.getElementById('btn-contract').onclick = function() {
+          window.open(booking.contract_link, '_blank');
+        };
+      }
+    }
+  }
+
+  // ─── Загрузка данных ──────────────────────────────────────────────────
+  async function loadData(link) {
+    try {
+      const res = await fetch('http://127.0.0.1:3000/guest/get', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: link }),
+      });
+
+      if (!res.ok) {
+        document.querySelector('.page').innerHTML =
+          '<div style="padding:2rem;text-align:center">' +
+          '<h2>Бронирование не найдено</h2>' +
+          '<p>Проверьте ссылку или обратитесь к арендодателю.</p></div>';
+        return;
+      }
+
+      const { booking, objects, photos } = await res.json();
+      applyData(booking, objects, photos);
+
+    } catch (e) {
+      console.error('Ошибка загрузки:', e);
+    }
+  }
+
+  // ─── Сохранение времени ───────────────────────────────────────────────
+  function saveTimes() {
+    const ci = document.getElementById('ci');
+    const co = document.getElementById('co');
+    let valid = true;
+
+    [ci, co].forEach(function(el) {
+      el.classList.remove('error', 'success');
+      if (!el.value) {
+        el.classList.add('error');
+        setTimeout(function() { el.classList.remove('error'); }, 2000);
+        valid = false;
+      } else {
+        el.classList.add('success');
+        setTimeout(function() { el.classList.remove('success'); }, 2000);
+      }
+    });
+
+    if (!valid) return;
+
+    const link = getBookingLink();
+    fetch('/api/objects/save-times', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: link, begin_time: ci.value, end_time: co.value }),
+    }).catch(function(e) { console.error('Ошибка сохранения времени:', e); });
+  }
+
+  // ─── Запуск ───────────────────────────────────────────────────────────
+  const link = getBookingLink();
+  if (link) {
+    loadData(link);
+  } else {
+    document.querySelector('.page').innerHTML =
+      '<div style="padding:2rem;text-align:center">' +
+      '<h2>Ссылка не содержит ID бронирования</h2></div>';
+  }
+</script>
+
+</body>
+</html>

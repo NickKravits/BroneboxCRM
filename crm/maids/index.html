@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <script>
+    (function() {
+      const token = localStorage.getItem('broneboxtoken');
+      if (!token) window.location.href = '/login';
+    })();
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BroneBox CRM — Горничные</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="maids.css" />
+</head>
+<body>
+
+<div class="ambient ambient-tr"></div>
+<div class="ambient ambient-bl"></div>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="avatar-wrap">
+      <div class="avatar">
+        <div class="person-avatar" id="main_avatar"></div>
+      </div>
+      <div class="avatar-info">
+        <span class="avatar-name">...</span>
+        <span class="avatar-role"></span>
+      </div>
+    </div>
+
+    <nav class="nav-items">
+      <a class="nav-item" href="/crm">
+        <i class="ti ti-layout-dashboard" aria-hidden="true"></i>
+        <span class="nav-label">Главное</span>
+      </a>
+      <a class="nav-item" href="/crm/bookings">
+        <i class="ti ti-calendar-event" aria-hidden="true"></i>
+        <span class="nav-label">Бронирования</span>
+      </a>
+      <a class="nav-item active" href="/crm/maids">
+        <i class="ti ti-user" aria-hidden="true"></i>
+        <span class="nav-label">Горничные</span>
+      </a>
+      <a class="nav-item" href="/crm/chats">
+        <i class="ti ti-message-circle" aria-hidden="true"></i>
+        <span class="nav-label">Чаты</span>
+      </a>
+      <a class="nav-item " href="/crm/notes">
+        <i class="ti ti-note" aria-hidden="true"></i>
+        <span class="nav-label">Задачи</span>
+      </a>
+      <a class="nav-item" href="/crm/settings">
+        <i class="ti ti-settings-2" aria-hidden="true"></i>
+        <span class="nav-label">Настройки</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="toggle-btn" onclick="toggleSidebar()" id="toggle-btn">
+        <i class="ti ti-chevrons-right" aria-hidden="true"></i>
+        <span class="toggle-label">Свернуть</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main" id="main">
+
+    <!-- Page header -->
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1 class="page-title">График уборок</h1>
+        <span class="page-subtitle" id="dateLabel">Загрузка...</span>
+      </div>
+      <div class="page-header-right">
+        <div class="date-picker-wrap">
+          <i class="ti ti-calendar" aria-hidden="true"></i>
+          <input type="date" id="datePicker" onchange="loadForDate(this.value)" />
+        </div>
+        <button class="action-btn" onclick="copySchedule()">
+          <i class="ti ti-copy" aria-hidden="true"></i>
+          <span>Скопировать</span>
+        </button>
+        <button class="action-btn action-btn--primary" onclick="saveSchedule()">
+          <i class="ti ti-device-floppy" aria-hidden="true"></i>
+          <span>Сохранить</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Objects list -->
+    <div class="objects-list" id="objectsList">
+      <!-- rendered by JS -->
+    </div>
+
+  </main>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script src="maids.js"></script>
+<script>
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+  }
+
+  async function getUserData() {
+    const token = localStorage.getItem('broneboxtoken');
+    if (!token) { window.location.href = '/login'; return; }
+    try {
+      const res = await fetch('http://127.0.0.1:3000/users/getme', {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) { localStorage.removeItem('broneboxtoken'); window.location.href = '/login'; return; }
+      const data = await res.json();
+      const roleMap = { ADMINISTRATOR: 'Администратор', STAFF: 'Менеджер' };
+      const initials = data.name ? data.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '??';
+      document.querySelector('.avatar-name').textContent = data.name || 'Без имени';
+      document.querySelector('.avatar-role').textContent = roleMap[data.role] || 'Неизвестная роль';
+      document.getElementById('main_avatar').textContent = initials;
+    } catch (err) {
+      console.error('Ошибка при получении данных пользователя:', err);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    getUserData();
+  });
+</script>
+</body>
+</html>

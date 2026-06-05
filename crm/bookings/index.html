@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <script>
+    (function() {
+      const token = localStorage.getItem('broneboxtoken');
+      if (!token) {
+        localStorage.removeItem('broneboxtoken');
+        window.location.href = '/login';
+      }
+    })();
+  </script>
+
+  <script>
+    async function getUserData() {
+      const token = localStorage.getItem('broneboxtoken');
+      if (!token) { window.location.href = '/login'; return; }
+      try {
+        const res = await fetch('http://127.0.0.1:3000/users/getme', {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+        });
+        if (!res.ok) { localStorage.removeItem('broneboxtoken'); window.location.href = '/login'; }
+        const data = await res.json();
+        let role = data.role === 'ADMINISTRATOR' ? 'Администратор' : data.role === 'STAFF' ? 'Менеджер' : 'Неизвестная роль';
+        const initials = data.name ? data.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '??';
+        document.querySelector('.avatar-name').textContent = data.name || 'Без имени';
+        document.querySelector('.avatar-role').textContent = role;
+        document.getElementById('main_avatar').textContent = initials;
+      } catch (err) { console.error(err); }
+    }
+
+    async function getBookings() {
+        const token = localStorage.getItem('broneboxtoken');
+        const filterObject = document.getElementById('filter-object').value;
+        const filterCheckin = document.getElementById('filter-checkin').value;
+        const filterCheckout = document.getElementById('filter-checkout').value;
+        const filterPhone = document.getElementById('filter-phone').value;
+
+        const container = document.getElementById('bookings-list');
+
+        let counter = 0;
+
+        container.innerHTML = '';
+
+        try {
+            const res = await fetch('http://127.0.0.1:3000/bookings/get', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ object: filterObject, phone: filterPhone, checkin: filterCheckin, checkout: filterCheckout })
+            });
+
+            if (!res.ok) {
+                console.error('Ошибка при получении бронирований:', res.statusText);
+                return;
+            }
+
+            const {permissions, bookings} = await res.json();
+
+            for (const booking of bookings) {
+
+                const getObj = await fetch('http://127.0.0.1:3000/objects/getbyrid', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rId: booking.realty_id })
+                });
+
+                const {object} = await getObj.json();
+
+                const row = document.createElement('div');
+                row.className = 'booking-row';
+                counter++;
+                row.innerHTML = `
+                    <div class="bk-guest">
+                        <div class="bk-name">${booking.fio}</div>
+                        <div class="bk-phone">${booking.phone}</div>
+                    </div>
+                    <div class="bk-divider"></div>
+                    <div class="bk-object">
+                        <div class="bk-object-name">${object.name}</div>
+                        <div class="bk-object-source">${booking.source}</div>
+                    </div>
+                    <div class="bk-divider"></div>
+                    <div class="bk-dates">
+                        <div class="bk-date-range">${formatDate(booking.begin_date)} - ${formatDate(booking.end_date)}</div>
+                        <div class="bk-nights">${nightsCount(booking.begin_date, booking.end_date)} ночей</div>
+                    </div>
+                    <div class="bk-divider"></div>
+                    <div class="bk-payment">
+                        <div class="bk-paid">Долг: ${booking.balance_to_be_paid_1} ₽</div>
+                        <div class="bk-remaining">Оплачено: ${booking.prepayment} ₽</div>
+                    </div>
+                    <div class="bk-actions">
+                        <button class="btn-edit" onclick="editBookingModal(${booking.id})"><i class="ti ti-pencil"></i> Изменить</button>
+                    </div>
+                `;
+
+                container.appendChild(row)
+            };
+
+            document.getElementById('results-meta').textContent = "Показано " + counter + " бронирований";
+
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    function nightsCount(begin, end) {
+        return (new Date(end) - new Date(begin)) / 86400000
+    }
+
+    function formatDate(dateStr) {
+        const [y, m, d] = dateStr.split('-')
+        return `${d}.${m}.${y}`
+    }
+
+    document.addEventListener('DOMContentLoaded', () => { 
+        getUserData(); 
+        getBookings();
+    
+        document.getElementById('filter-phone').addEventListener('input', function (e) {
+        let val = e.target.value.replace(/\D/g, '') // оставляем только цифры
+
+        if (val.startsWith('8')) val = '7' + val.slice(1)
+        if (!val.startsWith('7')) val = '7' + val
+
+        val = val.slice(0, 11)
+
+        let result = '+7'
+        if (val.length > 1) result += ' ' + val.slice(1, 4)
+        if (val.length > 4) result += ' ' + val.slice(4, 7)
+        if (val.length > 7) result += '-' + val.slice(7, 9)
+        if (val.length > 9) result += '-' + val.slice(9, 11)
+
+        e.target.value = result
+    })
+    });
+
+
+    
+  </script>
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BroneBox CRM — Бронирования</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <link rel="stylesheet" href="styles.css">
+
+</head>
+<body>
+
+<div class="ambient ambient-tr"></div>
+<div class="ambient ambient-bl"></div>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="avatar-wrap">
+      <div class="avatar">
+        <span id="main_avatar">??</span>
+      </div>
+      <div class="avatar-info">
+        <span class="avatar-name">...</span>
+        <span class="avatar-role"></span>
+      </div>
+    </div>
+
+    <nav class="nav-items">
+      <a class="nav-item" href="/crm">
+        <i class="ti ti-layout-dashboard" aria-hidden="true"></i>
+        <span class="nav-label">Главное</span>
+      </a>
+      <a class="nav-item active" href="#">
+        <i class="ti ti-calendar-event" aria-hidden="true"></i>
+        <span class="nav-label">Бронирования</span>
+      </a>
+      <a class="nav-item" href="/crm/maids">
+        <i class="ti ti-user" aria-hidden="true"></i>
+        <span class="nav-label">Горничные</span>
+      </a>
+      <a class="nav-item" href="/crm/chats">
+        <i class="ti ti-message-circle" aria-hidden="true"></i>
+        <span class="nav-label">Чаты</span>
+      </a>
+      <a class="nav-item" href="/crm/notes">
+        <i class="ti ti-note" aria-hidden="true"></i>
+        <span class="nav-label">Задачи</span>
+      </a>
+      <a class="nav-item" href="/crm/settings">
+        <i class="ti ti-settings-2" aria-hidden="true"></i>
+        <span class="nav-label">Настройки</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="toggle-btn" onclick="toggleSidebar()" id="toggle-btn">
+        <i class="ti ti-chevrons-right" aria-hidden="true"></i>
+        <span class="toggle-label">Свернуть</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- Header -->
+    <div class="page-header">
+      <h1 class="page-title">Бронирования</h1>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-bar">
+      <div class="filter-group">
+        <span class="filter-label">Объект</span>
+        <select class="filter-select" id="filter-object">
+          <option value="">Все объекты</option>
+          <option>Тверская 18</option>
+          <option>Арбат 12</option>
+          <option>Пушкинская 5</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <span class="filter-label">Дата заезда</span>
+        <input class="filter-input" type="date" id="filter-checkin" />
+      </div>
+
+      <div class="filter-group">
+        <span class="filter-label">Дата выезда</span>
+        <input class="filter-input" type="date" id="filter-checkout" />
+      </div>
+
+      <div class="filter-group">
+        <span class="filter-label">Телефон</span>
+        <input class="filter-input" type="tel" id="filter-phone" placeholder="+7 999 000-00-00" />
+      </div>
+
+      <button class="btn-apply" onclick="getBookings()">
+        <i class="ti ti-search"></i>
+        Найти
+      </button>
+    </div>
+
+    <!-- Results -->
+    <div class="results-meta" id="results-meta">Показано ~ бронирования</div>
+
+    <div class="bookings-list" id="bookings-list">
+    </div>
+  </main>
+</div>
+
+<script>
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+    }
+
+    function applyFilters() {
+        const object = document.getElementById('filter-object').value;
+        const checkin = document.getElementById('filter-checkin').value;
+        const checkout = document.getElementById('filter-checkout').value;
+        const phone = document.getElementById('filter-phone').value;
+
+        // Здесь будет реальный запрос к API
+        console.log('Фильтры:', { object, checkin, checkout, phone });
+    }
+
+    function closeBookingModal(event) {
+        if (event.target.id === 'booking-modal') {
+            closeModal();
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('booking-modal').classList.remove('active');
+    }
+
+    async function deleteBooking() {
+        const token = localStorage.getItem('broneboxtoken');
+        const bookingId = document.getElementById('modal-booking-id').textContent.replace('#', '');
+        try {
+            const res = await fetch('http://127.0.0.1:3000/bookings/delete', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: bookingId })
+            });
+            if (!res.ok) {
+                console.error('Ошибка при удалении бронирования:', res.statusText);
+                return;
+            }
+            closeModal();
+            getBookings();
+        } catch (err) {
+            console.error(err);
+            return;
+        }
+    }
+
+    async function editBooking() {
+        const token = localStorage.getItem('broneboxtoken');
+
+        const bookingId = document.getElementById('modal-booking-id').textContent.replace('#', '');
+        const checkin = document.getElementById('m-begin-time').value;
+        const checkout = document.getElementById('m-end-time').value;
+        const channel = document.getElementById('m-channel').value;
+        const maidId = document.getElementById('m-maid').value;
+        try {
+            const res = await fetch('http://127.0.0.1:3000/bookings/update', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: bookingId, checkin: checkin, checkout: checkout, channel: channel, maidid: maidId })
+            });
+
+            if (!res.ok) {
+                console.error('Ошибка при обновлении бронирования:', res.statusText);
+                return;
+            }
+
+            closeModal();
+        } catch (err) {
+            console.error(err);
+            return;
+        }
+    }
+
+    async function editBookingModal(bookingId) {
+        const token = localStorage.getItem('broneboxtoken');
+        try {
+            const res = await fetch('http://127.0.0.1:3000/bookings/get-by-id', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: bookingId })
+            });
+
+            if (!res.ok) {
+                console.error('Ошибка при получении бронирований:', res.statusText);
+                return;
+            }
+
+            const {booking} = await res.json();
+
+            document.getElementById('modal-booking-id').textContent = '#' + booking.id;
+
+            if (booking.status == 'booked') {
+                document.getElementById('m-status').textContent = "Забронировано";
+            } else if (booking.status == 'deleted') {
+                document.getElementById('m-status').textContent = "Удалено";
+            } else if (booking.status == 'canceled') {
+                document.getElementById('m-status').textContent = "Отменено";
+            } else if (booking.status == 'request') {
+                document.getElementById('m-status').textContent = "Запрос";
+            } else {
+                document.getElementById('m-status').textContent = booking.status;
+            }
+
+            const res_obj = await fetch('http://127.0.0.1:3000/objects/getbyrid', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ rId: booking.realty_id })
+            });
+
+            const {object} = await res_obj.json();
+
+            if (object) {
+                document.getElementById('m-object').textContent = object.name || booking.realty_id;
+            } else {
+                document.getElementById('m-object').textContent = booking.realty_id;
+            }
+
+            document.getElementById('m-begin-date').textContent = formatDate(booking.begin_date);
+            document.getElementById('m-end-date').textContent = formatDate(booking.end_date);
+
+            document.getElementById('m-begin-time').value = booking.begin_time || '';
+            document.getElementById('m-end-time').value = booking.end_time || '';
+
+            document.getElementById('m-source').textContent = booking.source || '—';
+
+            const createdAt = new Date(booking.created_at);
+            document.getElementById('m-created-at').textContent = `${createdAt.getDate().toString().padStart(2, '0')}.${(createdAt.getMonth()+1).toString().padStart(2, '0')}.${createdAt.getFullYear()} ${createdAt.getHours().toString().padStart(2, '0')}:${createdAt.getMinutes().toString().padStart(2, '0')}`;
+            const updatedAt = new Date(booking.updated_at);
+            document.getElementById('m-updated-at').textContent = `${updatedAt.getDate().toString().padStart(2, '0')}.${(updatedAt.getMonth()+1).toString().padStart(2, '0')}.${updatedAt.getFullYear()} ${updatedAt.getHours().toString().padStart(2, '0')}:${updatedAt.getMinutes().toString().padStart(2, '0')}`;
+            document.getElementById('m-notes').textContent = booking.notes || '—';
+
+            document.getElementById('m-amount').textContent = booking.amount + ' ₽';
+            document.getElementById('m-price-per-day').textContent = booking.price_per_day + ' ₽';
+            document.getElementById('m-prepayment').textContent = booking.prepayment + ' ₽';
+            document.getElementById('m-balance').textContent = booking.balance_to_be_paid_1 + ' ₽';
+            document.getElementById('m-deposit').textContent = booking.deposit + ' ₽';
+
+            document.getElementById('m-fio').textContent = booking.fio || '—';
+            document.getElementById('m-email').textContent = booking.email || '—';
+            document.getElementById('m-phone').textContent = booking.phone || '—';
+            document.getElementById('m-additional-phone').textContent = booking.additional_phone || '—';
+
+            document.getElementById('m-channel').value = booking.channel || '';
+
+            document.getElementById('m-maid').value = booking.maid_id || '';
+
+            document.getElementById('m-review').textContent = booking.review_score ? booking.review_score + ' / 5' : '—';
+
+            document.getElementById('m-contract-id').value = booking.contract_id || '';
+            document.getElementById('m-contract-link').value = booking.contract_link || '';
+
+        } catch (err) {
+            console.error(err);
+            return;
+        }
+
+        document.getElementById('booking-modal').classList.add('active')
+  }
+</script>
+
+<div class="modal-overlay" id="booking-modal" onclick="closeBookingModal(event)">
+  <div class="modal" id="booking-modal-inner">
+ 
+    <!-- Header -->
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <span class="modal-label">Бронирование</span>
+        <span class="modal-id" id="modal-booking-id">#—</span>
+      </div>
+      <button class="modal-close" onclick="closeModal()"><i class="ti ti-x"></i></button>
+    </div>
+ 
+    <!-- Scrollable body -->
+    <div class="modal-body">
+ 
+      <!-- ── Блок 1: Бронирование ── -->
+      <div class="modal-section">
+        <div class="modal-section-title">Бронирование</div>
+        <div class="modal-grid">
+ 
+          <div class="modal-field readonly">
+            <span class="field-label">Статус</span>
+            <span class="field-value" id="m-status">—</span>
+          </div>
+ 
+          <div class="modal-field readonly">
+            <span class="field-label">Объект</span>
+            <span class="field-value" id="m-object">—</span>
+          </div>
+ 
+          <div class="modal-field readonly">
+            <span class="field-label">Дата заезда</span>
+            <span class="field-value" id="m-begin-date">—</span>
+          </div>
+ 
+          <div class="modal-field readonly">
+            <span class="field-label">Дата выезда</span>
+            <span class="field-value" id="m-end-date">—</span>
+          </div>
+ 
+          <div class="modal-field">
+            <span class="field-label">Время заезда</span>
+            <input class="field-input" type="time" id="m-begin-time" placeholder="Не указано" />
+          </div>
+ 
+          <div class="modal-field">
+            <span class="field-label">Время выезда</span>
+            <input class="field-input" type="time" id="m-end-time" placeholder="Не указано" />
+          </div>
+ 
+          <div class="modal-field readonly">
+            <span class="field-label">Источник</span>
+            <span class="field-value" id="m-source">—</span>
+          </div>
+ 
+          <div class="modal-field readonly">
+            <span class="field-label">Дата создания</span>
+            <span class="field-value" id="m-created-at">—</span>
+          </div>
+ 
+          <div class="modal-field readonly">
+            <span class="field-label">Последнее редактирование</span>
+            <span class="field-value" id="m-updated-at">—</span>
+          </div>
+ 
+          <div class="modal-field readonly">
+            <span class="field-label">Заметки</span>
+            <span class="field-value" id="m-notes">—</span>
+          </div>
+ 
+        </div>
+      </div>
+ 
+      <!-- ── Блок 2: Финансы ── -->
+      <div class="modal-section">
+        <div class="modal-section-title">Финансы</div>
+        <div class="modal-grid">
+ 
+          <div class="modal-field readonly">
+            <span class="field-label">Стоимость</span>
+            <span class="field-value" id="m-amount">—</span>
+          </div>
+ 
+          <div class="modal-field readonly">
+            <span class="field-label">Стоимость 1 суток</span>
+            <span class="field-value" id="m-price-per-day">—</span>
+          </div>
+ 
+          <div class="modal-field readonly">
+            <span class="field-label">Оплачено через RealtyCalendar</span>
+            <span class="field-value" id="m-prepayment">—</span>
+          </div>
+ 
+          <div class="modal-field readonly">
+            <span class="field-label">Долг с учётом оплаты RC</span>
+            <span class="field-value debt" id="m-balance">—</span>
+          </div>
+ 
+          <div class="modal-field readonly">
+            <span class="field-label">Залог через Монету</span>
+            <span class="field-value" id="m-deposit">—</span>
+          </div>
+ 
+        </div>
+      </div>
+ 
+      <!-- ── Блок 3: Клиент ── -->
+      <div class="modal-section">
+        <div class="modal-section-title">Клиент</div>
+        <div class="modal-grid">
+ 
+          <div class="modal-field readonly">
+            <span class="field-label">ФИО</span>
+            <span class="field-value" id="m-fio">—</span>
+          </div>
+ 
+          <div class="modal-field readonly">
+            <span class="field-label">Email</span>
+            <span class="field-value" id="m-email">—</span>
+          </div>
+ 
+          <div class="modal-field readonly">
+            <span class="field-label">Телефон</span>
+            <span class="field-value" id="m-phone">—</span>
+          </div>
+ 
+          <div class="modal-field readonly">
+            <span class="field-label">Доп. телефон</span>
+            <span class="field-value" id="m-additional-phone">—</span>
+          </div>
+ 
+          <!-- Кнопки связи -->
+          <div class="modal-field full-width">
+            <span class="field-label">Связаться</span>
+            <div class="contact-btns">
+              <button class="contact-btn max" id="btn-max" onclick="contactMax()">
+                <i class="ti ti-brand-maxcdn"></i> Max
+              </button>
+              <button class="contact-btn tg" id="btn-tg" onclick="contactTelegram()">
+                <i class="ti ti-brand-telegram"></i> Telegram
+              </button>
+            </div>
+          </div>
+ 
+          <div class="modal-field">
+            <span class="field-label">Канал связи</span>
+            <select class="field-input" id="m-channel">
+              <option value=" ">Не выбран</option>
+              <option value="Max">Max</option>
+              <option value="Telegram">Telegram</option>
+              <option value="Whatsapp">Whatsapp</option>
+              <option value="Unknown">Неизвестно</option>
+            </select>
+          </div>
+ 
+          <div class="modal-field" id="channel-custom-wrap" style="display:none">
+            <span class="field-label">Канал (произвольно)</span>
+            <input class="field-input" type="text" id="m-channel-custom" placeholder="Введите канал" />
+          </div>
+ 
+        </div>
+      </div>
+ 
+      <!-- ── Блок 4: Обслуживание ── -->
+      <div class="modal-section">
+        <div class="modal-section-title">Обслуживание</div>
+        <div class="modal-grid">
+ 
+          <div class="modal-field">
+            <span class="field-label">Горничная</span>
+            <select class="field-input" id="m-maid">
+              <option value="">Не назначена</option>
+              <!-- Заполняется динамически -->
+            </select>
+          </div>
+ 
+          <div class="modal-field readonly">
+            <span class="field-label">Оценка уборки от гостя</span>
+            <span class="field-value" id="m-review">—</span>
+          </div>
+ 
+        </div>
+      </div>
+ 
+      <!-- ── Блок 5: Договор ── -->
+      <div class="modal-section">
+        <div class="modal-section-title">Договор</div>
+        <div class="modal-grid">
+ 
+          <div class="modal-field">
+            <span class="field-label">Номер договора</span>
+            <input class="field-input" type="text" id="m-contract-id" placeholder="Не указан" />
+          </div>
+ 
+          <div class="modal-field">
+            <span class="field-label">Ссылка на договор</span>
+            <input class="field-input" type="url" id="m-contract-link" placeholder="https://..." />
+          </div>
+ 
+        </div>
+      </div>
+ 
+    </div>
+ 
+    <!-- Footer -->
+    <div class="modal-footer">
+      <button class="modal-btn save" onclick="editBooking()">
+        <i class="ti ti-device-floppy"></i> Сохранить
+      </button>
+      <button class="modal-btn task" onclick="addTask()">
+        <i class="ti ti-checkbox"></i> Добавить задачу
+      </button>
+      <button class="modal-btn delete" onclick="deleteBooking()">
+        <i class="ti ti-trash"></i> Удалить
+      </button>
+    </div>
+ 
+  </div>
+</div>
+
+</body>
+</html>
