@@ -1918,13 +1918,15 @@ async function loadODTemplates(apiKey) {
             });
         }
 
+        const realtyIdInt = Number(realtyId);
+
         // 3. Сохраняем данные объекта
         const res = await fetch('http://127.0.0.1:3000/objects/edit', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({
                 objectId: currentEditingObjectId,
-                realtyId, name, instructions, checkInTime, checkOutTime,
+                realtyId: realtyIdInt, name, instructions, checkInTime, checkOutTime,
                 showPaymentTiming, showInstructionTiming, showContractTiming, showReviewTiming,
                 location, mapLink, defaultDeposit, okiDokiRowId, okiDokiValueId, okiDokiNameId, okiDokiDateInId, okiDokiDateOutId, okiDokiDepositId, okiDokiPayedId, okiDokiPayPerDayId, DepositChanel, PaymentChanel, active
             })

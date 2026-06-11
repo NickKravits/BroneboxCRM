@@ -59,16 +59,48 @@
     async function getBookings() {
   const token = localStorage.getItem('broneboxtoken');
 
+  const data = await fetch('http://127.0.0.1:3000/users/getme', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+    if (!data.ok) {
+      console.error('Ошибка при получении таймзоны:', res.statusText);
+      return;
+    }
+
+    const dataRes = await data.json();
+    
+    const userTimezone = dataRes.cabinet.Timezone || 'Europe/Moscow';
+
   const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
+  const todayStr = new Intl.DateTimeFormat('en-CA', {
+    timeZone: userTimezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+}).format(today);
 
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+  const tomorrowStr = new Intl.DateTimeFormat('en-CA', {
+    timeZone: userTimezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(tomorrow);
 
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = yesterday.toISOString().split('T')[0];
+  const yesterdayStr = new Intl.DateTimeFormat('en-CA', {
+    timeZone: userTimezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(yesterday);
 
   let counter = 0;
 
@@ -105,8 +137,6 @@
     const { bookings } = await res.json();
 
     for (const booking of bookings) {
-
-      counter++
       const getObj = await fetch('http://127.0.0.1:3000/objects/getbyrid', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -139,9 +169,9 @@
           <div class="card-tags-group">
             <span class="guest-tag">${nightsCount(booking.begin_date, booking.end_date)} ночей</span>
           </div>
-          <div class="card-footer-row">
+          ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row">
             <span class="channel-tag">${booking.channel}</span>
-          </div>
+          </div>`}
         `;
         tomorrowInContainer.appendChild(card);
 
@@ -163,9 +193,9 @@
           <div class="card-tags-group">
             <span class="guest-tag">${nightsCount(booking.begin_date, booking.end_date)} ночей</span>
           </div>
-          <div class="card-footer-row">
+          ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row">
             <span class="channel-tag">${booking.channel}</span>
-          </div>
+          </div>`}
         `;
         todayInContainer.appendChild(card);
 
@@ -187,9 +217,9 @@
           <div class="card-tags-group">
             <span class="guest-tag">${nightsCount(booking.begin_date, booking.end_date)} ночей</span>
           </div>
-          <div class="card-footer-row">
+          ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row">
             <span class="channel-tag">${booking.channel}</span>
-          </div>
+          </div>`}
         `;
         todayOutContainer.appendChild(card);
 
@@ -211,9 +241,9 @@
           <div class="card-tags-group">
             <span class="guest-tag">${nightsCount(booking.begin_date, booking.end_date)} ночей</span>
           </div>
-          <div class="card-footer-row">
+          ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row">
             <span class="channel-tag">${booking.channel}</span>
-          </div>
+          </div>`}
         `;
         tomorrowOutContainer.appendChild(card);
 
@@ -232,11 +262,17 @@
           <div class="card-tags-group">
             <span class="guest-tag">${nightsCount(booking.begin_date, booking.end_date)} ночей</span>
           </div>
-          <div class="card-footer-row">
+          ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row">
             <span class="channel-tag">${booking.channel}</span>
-          </div>
+          </div>`}
         `;
         livingContainer.appendChild(card);
+      }
+
+      if (beginStr <= todayStr && endStr > todayStr) {
+        counter++
+      } else if (beginStr >= tomorrowStr) {
+        counter++
       }
     }
 
@@ -265,6 +301,7 @@ function formatDate(dateStr) {
 
     async function getAvailableObjects() {
       const token = localStorage.getItem('broneboxtoken');
+      const availableDiv = document.getElementById('section-title');
       const availableList = document.getElementById("objects-list")
       availableList.innerHTML = '';
 
@@ -284,7 +321,8 @@ function formatDate(dateStr) {
         
 
         if (AvailableObjects.length === 0) {
-          availableList.innerHTML = `<div class="object-name">Все объекты на сегодня сданы!</div>`;
+          availableList.remove();
+          availableDiv.remove();
           return;
         }
         for (const object of AvailableObjects) {
@@ -371,8 +409,8 @@ function formatDate(dateStr) {
     <!-- Top row -->
     <div class="top-row">
       <div class="stat-pill">
-        <span class="num" id="num-container">24</span>
-        <span class="lbl">брони</span>
+        <span class="num" id="num-container">...</span>
+        <span class="lbl">будущие брони</span>
       </div>
     </div>
 
@@ -502,15 +540,8 @@ function formatDate(dateStr) {
     </div>
 
     <!-- Unsurrendered objects -->
-    <div class="section-title">Несданные объекты сегодня</div>
+    <div class="section-title" id="section-title">Несданные объекты сегодня</div>
     <div class="objects-list" id="objects-list">
-      <div class="object-row">
-        <div>
-          <div class="object-name">Гус 4, 71</div>
-          <div class="object-meta">Вчера никто не жил</div>
-        </div>
-        <span class="badge-warn">Не сдан</span>
-      </div>
     </div>
 
   </main>
