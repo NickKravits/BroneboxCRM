@@ -336,7 +336,7 @@
         } else {
           if (permissions == true) {
               document.getElementById('tochka-actions').innerHTML = `
-                <button class="btn" style="width:100%;justify-content:center;">Подключить</button>
+                <button class="btn" onClick="openTochkaIntegration()" style="width:100%;justify-content:center;">Подключить</button>
             `;
             } else {
               document.getElementById('tochka-actions').innerHTML = ``;
@@ -390,17 +390,9 @@
         <i class="ti ti-calendar-event" aria-hidden="true"></i>
         <span class="nav-label">Бронирования</span>
       </a>
-      <a class="nav-item" href="/crm/maids">
-        <i class="ti ti-user" aria-hidden="true"></i>
-        <span class="nav-label">Горничные</span>
-      </a>
-      <a class="nav-item" href="/crm/chats">
-        <i class="ti ti-message-circle" aria-hidden="true"></i>
-        <span class="nav-label">Чаты</span>
-      </a>
-      <a class="nav-item" href="/crm/notes">
-        <i class="ti ti-note" aria-hidden="true"></i>
-        <span class="nav-label">Задачи</span>
+      <a class="nav-item" href="/crm/logs">
+        <i class="ti ti-info-circle" aria-hidden="true"></i>
+        <span class="nav-label">Логи</span>
       </a>
       <a class="nav-item active" href="#">
         <i class="ti ti-settings-2"></i>
@@ -489,7 +481,6 @@
           </div>
           <div class="int-desc">Автоматический учёт платежей и выгрузка финансовых операций.</div>
           <div id="tochka-actions"></div>
-          <button class="btn" style="width:100%;justify-content:center;">Подключить</button>
         </div>
       </div>
     </div>
@@ -1270,7 +1261,7 @@ function clearEditPhotos() {
   <div class="modal-box">
     <div class="modal-head">
       <span class="modal-title">Интеграция с RealtyCalendar</span>
-      <button class="modal-close" onclick="closeODIntegration()"><i class="ti ti-x"></i></button>
+      <button class="modal-close" onclick="closeRCIntegration()"><i class="ti ti-x"></i></button>
     </div>
 
     <div class="modal-body modal-scroll">
@@ -1316,7 +1307,7 @@ function clearEditPhotos() {
     </div>
 
     <div class="modal-footer">
-      <button class="btn" onclick="closeODIntegration()">Закрыть</button>
+      <button class="btn" onclick="closeRCIntegration()">Закрыть</button>
     </div>
   </div>
 </div>
@@ -1377,7 +1368,218 @@ function clearEditPhotos() {
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-tochka-integration">
+  <div class="modal-box modal-box-lg">
+    <div class="modal-head">
+      <span class="modal-title">Интеграция с Точка Банком</span>
+      <button class="modal-close" onclick="closeTochkaIntegration()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div class="modal-body modal-scroll">
+
+      <div class="modal-section-divider">Реквизиты организации</div>
+
+      <div>
+        <div class="field-group">
+          <label class="field-label">Телефон поставщика</label>
+          <div class="input-with-icon">
+            <i class="input-icon ti ti-phone"></i>
+            <input class="field-input" id="tochka-supplier-phone" type="tel" placeholder="+7 (999) 123-45-67">
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-section-divider">Доступ к API</div>
+
+      <div class="field-group">
+        <label class="field-label">
+          Токен
+          <span class="field-hint-icon" title="Токен, зарегистрированный в интернет-эквайринге Точка Банка">
+            <i class="ti ti-info-circle"></i>
+          </span>
+        </label>
+        <input class="field-input" id="tochka-token" type="password" placeholder="Вставьте ваш токен">
+        <span class="field-hint">
+          <a href="https://rel.tochka.com/internetacquiring?msg=AcquiringInternetRetailerIsReadyNew&aggr_id=c316ad29-0ec9-45d8-85e5-db6dd45b9646&cl=8192c337de785be88d8673a599a9c903&source_id=&t_channel=CHAT#tlection=1474677561_5"
+             target="_blank" class="hint-link">
+            Инструкция по получению токена <i class="ti ti-arrow-up-right" style="font-size:11px"></i>
+          </a>
+        </span>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">
+          Идентификатор торговой точки
+          <span style="color:var(--text-muted);font-weight:400;font-size:11px">необязательно</span>
+        </label>
+        <input class="field-input" id="tochka-merchant-id" type="text" placeholder="Оставьте пустым, если не требуется">
+      </div>
+
+      <div class="modal-section-divider">Настройки платежа</div>
+
+      <div class="field-group">
+        <label class="field-label">
+          Способы оплаты
+          <span style="color:var(--accent-pink);font-size:11px;font-weight:400">минимум один</span>
+        </label>
+        <div class="payment-methods-grid">
+          <label class="payment-method-item">
+            <input type="checkbox" id="sbp" value="sbp">
+            <span class="payment-method-box">
+              <i class="ti ti-qrcode"></i>
+              <span>СБП</span>
+            </span>
+          </label>
+          <label class="payment-method-item">
+            <input type="checkbox" id="card" value="card">
+            <span class="payment-method-box">
+              <i class="ti ti-credit-card"></i>
+              <span>Карта</span>
+            </span>
+          </label>
+          <label class="payment-method-item">
+            <input type="checkbox" id="tinkoff" value="tinkoff">
+            <span class="payment-method-box">
+              <i class="ti ti-building-bank"></i>
+              <span>Т-Банк</span>
+            </span>
+          </label>
+          <label class="payment-method-item">
+            <input type="checkbox" id="dolyame" value="dolyame">
+            <span class="payment-method-box">
+              <i class="ti ti-clock-dollar"></i>
+              <span>Долями</span>
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Ставка НДС</label>
+        <select class="field-input" id="tochka-vat">
+          <option value="none">Без НДС</option>
+          <option value="vat0">0%</option>
+          <option value="vat5">5%</option>
+          <option value="vat7">7%</option>
+          <option value="vat10">10%</option>
+          <option value="vat22">22%</option>
+          <option value="vat105">10/110 (расчётная)</option>
+          <option value="vat107">7/107 (расчётная)</option>
+          <option value="vat110">10/110</option>
+          <option value="vat122">20/120 (расчётная)</option>
+        </select>
+      </div>
+
+      <div class="modal-section-divider">Шаблоны текстов</div>
+
+      <div class="field-group">
+        <label class="field-label">Назначение платежа</label>
+        <textarea class="field-input" id="tochka-payment-desc" rows="3"
+          placeholder="Аренда {apartment_name}, {address}. Заезд: {checkin}, выезд: {checkout}"></textarea>
+        <div class="vars-row">
+          <span class="field-hint">Переменные:</span>
+          <span class="var-chip" onclick="insertVar('tochka-payment-desc','{apartment_name}')">{название квартиры}</span>
+          <span class="var-chip" onclick="insertVar('tochka-payment-desc','{address}')">{адрес}</span>
+          <span class="var-chip" onclick="insertVar('tochka-payment-desc','{created_at}')">{дата создания}</span>
+          <span class="var-chip" onclick="insertVar('tochka-payment-desc','{checkin}')">{дата заезда}</span>
+          <span class="var-chip" onclick="insertVar('tochka-payment-desc','{checkout}')">{дата выезда}</span>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Название услуги</label>
+        <input class="field-input" id="tochka-service-name" type="text"
+          placeholder="Аренда {apartment_name}">
+        <div class="vars-row">
+          <span class="field-hint">Переменные:</span>
+          <span class="var-chip" onclick="insertVar('tochka-service-name','{apartment_name}')">{название квартиры}</span>
+          <span class="var-chip" onclick="insertVar('tochka-service-name','{address}')">{адрес}</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn" onclick="closeTochkaIntegration()">Отмена</button>
+      <button class="btn btn-save" onclick="saveTochkaIntegration()">
+        <i class="ti ti-check"></i> Сохранить
+      </button>
+    </div>
+  </div>
+</div>
+
 <script>
+  function insertVar(fieldId, variable) {
+    const el = document.getElementById(fieldId);
+    if (!el) return;
+    const start = el.selectionStart ?? el.value.length;
+    const end   = el.selectionEnd   ?? el.value.length;
+    el.value = el.value.slice(0, start) + variable + el.value.slice(end);
+    el.focus();
+    el.selectionStart = el.selectionEnd = start + variable.length;
+  }
+
+  function closeTochkaIntegration() {
+    document.getElementById('modal-tochka-integration').classList.remove('open');
+  }
+
+  function openTochkaIntegration() {
+    document.getElementById('modal-tochka-integration').classList.add('open');
+  }
+
+  async function saveTochkaIntegration() {
+    const pmIds = ['sbp', 'card', 'tinkoff', 'dolyame'];
+    const hasMethod = pmIds.some(id => document.getElementById(id)?.checked);
+    if (!hasMethod) {
+      showToast('Нужно выбрать хотя бы один метод оплаты!', 'info')
+      return;
+    }
+
+    const phone = document.getElementById('tochka-supplier-phone').value.trim();
+    const apiKey = document.getElementById('tochka-token').value.trim();
+    const consumerId = document.getElementById('tochka-merchant-id').value.trim();
+    const paymentMode = pmIds.filter(id => document.getElementById(id)?.checked);
+    const vatType = document.getElementById('tochka-vat').value;
+    const purpose = document.getElementById('tochka-payment-desc').value.trim();
+    const name = document.getElementById('tochka-service-name').value.trim();
+    
+    try {
+      const token = localStorage.getItem('broneboxtoken')
+      const res = await fetch(`http://127.0.0.1:3000/integration/tochka/save`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+         },
+        body: JSON.stringify({ phone, apiKey, consumerId, paymentMode, vatType, purpose, name })
+      })
+
+      if (!res.ok) {
+        // 2. ИСПРАВЛЕНО: Безопасно вытаскиваем текст ошибки
+        try {
+          const errorData = await res.json();
+          // У Fastify текст ошибки всегда лежит в поле .message
+          const errorMessage = errorData.error || 'Что-то пошло не так';
+          showToast(errorMessage, 'danger');
+        } catch {
+          // Сюда код попадет, если сервер вернул НЕ JSON (например, 404 текст или HTML)
+          showToast(`Ошибка сервера: ${res.status} (${res.statusText})`, 'danger');
+        }
+        return; // Выходим из функции
+      } else {
+        const messageData = await res.json();
+        const Message = messageData.message || 'Что-то пошло не так, обновите страницу';
+        showToast(`${Message}`, 'success')
+      }
+    } catch {
+      showToast('Произошла ошибка! Попробуйте позже!', 'danger')
+      return
+    }
+
+    closeTochkaIntegration();
+    getIntegrations();
+  }
+  
   async function saveODIntegration() {
     const token = localStorage.getItem('broneboxtoken')
     const apiKey = document.getElementById('od-webhook-url').value.trim();

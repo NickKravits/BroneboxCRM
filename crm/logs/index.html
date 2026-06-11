@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <script>
+    (function() {
+      const token = localStorage.getItem('broneboxtoken');
+      if (!token) window.location.href = '/login';
+    })();
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BroneBox CRM — Логи</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="maids.css" />
+</head>
+<body>
+
+<div class="ambient ambient-tr"></div>
+<div class="ambient ambient-bl"></div>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="avatar-wrap">
+      <div class="avatar">
+        <div class="person-avatar" id="main_avatar"></div>
+      </div>
+      <div class="avatar-info">
+        <span class="avatar-name">...</span>
+        <span class="avatar-role"></span>
+      </div>
+    </div>
+
+    <nav class="nav-items">
+      <a class="nav-item" href="/crm">
+        <i class="ti ti-layout-dashboard" aria-hidden="true"></i>
+        <span class="nav-label">Главное</span>
+      </a>
+      <a class="nav-item" href="/crm/bookings">
+        <i class="ti ti-calendar-event" aria-hidden="true"></i>
+        <span class="nav-label">Бронирования</span>
+      </a>
+      <a class="nav-item active" href="#">
+        <i class="ti ti-info-circle" aria-hidden="true"></i>
+        <span class="nav-label">Логи</span>
+      </a>
+      <a class="nav-item" href="/crm/settings">
+        <i class="ti ti-settings-2" aria-hidden="true"></i>
+        <span class="nav-label">Настройки</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="toggle-btn" onclick="toggleSidebar()" id="toggle-btn">
+        <i class="ti ti-chevrons-right" aria-hidden="true"></i>
+        <span class="toggle-label">Свернуть</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main" id="main">
+
+    <!-- Page header -->
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1 class="page-title">Логи</h1>
+        <span class="page-subtitle" id="logs-subtitle">Загрузка...</span>
+      </div>
+      <div class="page-header-right">
+        <span class="unread-pill" id="unread-pill" style="display:none"></span>
+      </div>
+    </div>
+
+    <!-- Logs -->
+    <div id="logs-container">
+      <!-- skeleton / empty / list — рендерится из JS -->
+    </div>
+
+  </main>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+    let readQueue    = new Set();  // ID логов к отправке
+    let flushTimeout = null;
+
+    function scheduleFlush() {
+        if (flushTimeout) return;
+        flushTimeout = setTimeout(flushReadQueue, 300); // батч раз в секунду
+    }
+
+    async function flushReadQueue() {
+        flushTimeout = null;
+        if (readQueue.size === 0) return;
+
+        const ids = [...readQueue];
+        readQueue.clear();
+
+        try {
+            const token = localStorage.getItem('broneboxtoken');
+            const res = await fetch(`${API_BASE}/logs/read`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ids }),
+                keepalive: true  // ← вот это спасёт запрос при обновлении
+            });
+
+            if (!res.ok) {
+                // Если сервер вернул ошибку — возвращаем ID обратно в очередь
+                ids.forEach(id => readQueue.add(id));
+                console.error('Ошибка отметки логов:', res.status);
+            }
+        } catch (err) {
+            ids.forEach(id => readQueue.add(id));
+            console.error('Ошибка отметки логов:', err);
+        }
+    }
+
+    function observeUnreadLogs() {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const row = entry.target;
+
+                if (!entry.isIntersecting) {
+                    if (row._readTimer) {
+                        clearTimeout(row._readTimer);
+                        row._readTimer = null;
+                    }
+                    return;
+                }
+
+                const id = Number(row.dataset.id);
+                row._readTimer = setTimeout(() => {
+                    if (!document.contains(row)) return;
+                    row.querySelector('.log-unread-dot').style.visibility = 'hidden';
+                    row.classList.remove('unread');
+                    readQueue.add(id);
+                    scheduleFlush();
+                    observer.unobserve(row);
+                    updateUnreadPill();
+                }, 600);
+            });
+        }, { threshold: 0.5 });
+
+        document.querySelectorAll('.log-row.unread').forEach(row => {
+            observer.observe(row);
+        });
+    }
+
+    function updateUnreadPill() {
+        const pill        = document.getElementById('unread-pill');
+        const unreadCount = document.querySelectorAll('.log-row.unread').length;
+
+        if (unreadCount > 0) {
+            pill.textContent = `${unreadCount} непрочитанных`;
+            pill.style.display = '';
+        } else {
+            pill.style.display = 'none';
+        }
+    }
+
+    window.addEventListener('beforeunload', () => {
+        if (readQueue.size === 0) return;
+            const token = localStorage.getItem('broneboxtoken');
+            // keepalive: true — запрос завершится даже после закрытия/обновления страницы
+            fetch(`${API_BASE}/logs/read`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ids: [...readQueue] }),
+                keepalive: true
+        });
+    });
+</script>
+<script>
+  const API_BASE = 'http://127.0.0.1:3000';
+
+  const STATUS_CONFIG = {
+    INFO:    { icon: 'ti-info-circle',  cls: 'info',    label: 'Инфо' },
+    ERROR:   { icon: 'ti-alert-circle', cls: 'error',   label: 'Ошибка' },
+    SUCCESS: { icon: 'ti-circle-check', cls: 'success', label: 'Успешно' }
+  };
+
+  function formatDate(str) {
+    const d = new Date(str);
+    return d.toLocaleString('ru-RU', {
+      day:    'numeric',
+      month:  'long',
+      year:   'numeric',
+      hour:   '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  function renderLogRow(log) {
+    const cfg     = STATUS_CONFIG[log.status] ?? STATUS_CONFIG.INFO;
+    const isUnread = log.readed === 'NO';
+
+    return `
+      <div class="log-row${isUnread ? ' unread' : ''}" data-id="${log.id}">
+        <div class="log-unread-dot"></div>
+        <div class="log-status-icon log-status-icon--${cfg.cls}">
+          <i class="ti ${cfg.icon}"></i>
+        </div>
+        <div class="log-content">
+          <div class="log-message">${escapeHtml(log.message)}</div>
+          <div class="log-date">${formatDate(log.date)}</div>
+        </div>
+        <span class="log-badge log-badge--${cfg.cls}">${cfg.label}</span>
+      </div>
+    `;
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function renderEmpty() {
+    return `
+      <div class="empty-state">
+        <i class="ti ti-clipboard-off"></i>
+        <div class="empty-state-title">Логов пока нет</div>
+        <div class="empty-state-desc">События из интеграций и системы будут отображаться здесь</div>
+      </div>
+    `;
+  }
+
+  async function loadLogs() {
+    const token = localStorage.getItem('broneboxtoken');
+    const container = document.getElementById('logs-container');
+    const subtitle  = document.getElementById('logs-subtitle');
+    const pill      = document.getElementById('unread-pill');
+
+    try {
+      const res = await fetch(`${API_BASE}/logs/get`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!res.ok) {
+        subtitle.textContent = 'Не удалось загрузить логи';
+        container.innerHTML  = renderEmpty();
+        return;
+      }
+
+      const { logs } = await res.json();
+
+      if (!logs || logs.length === 0) {
+        subtitle.textContent = 'Нет записей';
+        container.innerHTML  = renderEmpty();
+        return;
+      }
+
+      const unreadCount = logs.filter(l => l.readed === 'NO').length;
+
+      subtitle.textContent = `${plural(logs.length, 'запись', 'записи', 'записей')}`;
+
+      if (unreadCount > 0) {
+        pill.textContent  = `${unreadCount} непрочитанных`;
+        pill.classList.add('has-unread');
+        pill.style.display = '';
+      }
+
+      container.innerHTML = `<div class="logs-list">${logs.map(renderLogRow).join('')}</div>`;
+      observeUnreadLogs();
+
+    } catch (err) {
+      console.error('Ошибка при загрузке логов:', err);
+      subtitle.textContent = 'Ошибка загрузки';
+      container.innerHTML  = renderEmpty();
+    }
+  }
+
+  // Склонение числительных
+  function plural(n, one, few, many) {
+    const mod10  = n % 10;
+    const mod100 = n % 100;
+    if (mod100 >= 11 && mod100 <= 19) return `${n} ${many}`;
+    if (mod10 === 1)                   return `${n} ${one}`;
+    if (mod10 >= 2 && mod10 <= 4)     return `${n} ${few}`;
+    return `${n} ${many}`;
+  }
+
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+  }
+
+  async function getUserData() {
+    const token = localStorage.getItem('broneboxtoken');
+    if (!token) { window.location.href = '/login'; return; }
+    try {
+      const res = await fetch(`${API_BASE}/users/getme`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (!res.ok) {
+        localStorage.removeItem('broneboxtoken');
+        window.location.href = '/login';
+        return;
+      }
+      const data = await res.json();
+      const roleMap  = { ADMINISTRATOR: 'Администратор', STAFF: 'Менеджер' };
+      const initials = data.name
+        ? data.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+        : '??';
+      document.querySelector('.avatar-name').textContent = data.name || 'Без имени';
+      document.querySelector('.avatar-role').textContent = roleMap[data.role] || 'Неизвестная роль';
+      document.getElementById('main_avatar').textContent = initials;
+    } catch (err) {
+      console.error('Ошибка при получении данных пользователя:', err);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    getUserData();
+    loadLogs();
+  });
+</script>
+</body>
+</html>

@@ -263,9 +263,52 @@ function formatDate(dateStr) {
         return (new Date(end) - new Date(begin)) / 86400000
     }
 
+    async function getAvailableObjects() {
+      const token = localStorage.getItem('broneboxtoken');
+      const availableList = document.getElementById("objects-list")
+      availableList.innerHTML = '';
+
+      try {
+        const res = await fetch('http://127.0.0.1:3000/objects/check-availability', {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+        });
+
+        if (!res.ok) {
+          console.error('Ошибка при получении объектов:', res.statusText);
+          return;
+        }
+
+        const { AvailableObjects } = await res.json();
+        
+        
+
+        if (AvailableObjects.length === 0) {
+          availableList.innerHTML = `<div class="object-name">Все объекты на сегодня сданы!</div>`;
+          return;
+        }
+        for (const object of AvailableObjects) {
+          const card = document.createElement('div');
+          card.className = 'object-row';
+          card.innerHTML = `
+            <div>
+              <div class="object-name">${object.name}</div>
+              <div class="object-meta">${object.location}</div>
+            </div>
+            <span class="badge-warn">Не сдан</span>
+            `;
+          availableList.appendChild(card);
+        }
+
+      } catch (err) {
+        console.error('Ошибка при получении объектов:', err);
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', () => { 
       getUserData();
       getBookings();
+      getAvailableObjects();
     });
   </script>
   <meta charset="UTF-8" />
@@ -304,17 +347,9 @@ function formatDate(dateStr) {
       <i class="ti ti-calendar-event" aria-hidden="true"></i>
       <span class="nav-label">Бронирования</span>
     </a>
-    <a class="nav-item" href="/crm/maids">
-      <i class="ti ti-user" aria-hidden="true"></i>
-      <span class="nav-label">Горничные</span>
-    </a>
-    <a class="nav-item" href="/crm/chats">
-      <i class="ti ti-message-circle" aria-hidden="true"></i>
-      <span class="nav-label">Чаты</span>
-    </a>
-    <a class="nav-item" href="/crm/notes">
-      <i class="ti ti-note" aria-hidden="true"></i>
-      <span class="nav-label">Задачи</span>
+    <a class="nav-item" href="/crm/logs">
+      <i class="ti ti-info-circle" aria-hidden="true"></i>
+      <span class="nav-label">Логи</span>
     </a>
     <a class="nav-item" href="/crm/settings">
       <i class="ti ti-settings-2" aria-hidden="true"></i>
@@ -468,7 +503,7 @@ function formatDate(dateStr) {
 
     <!-- Unsurrendered objects -->
     <div class="section-title">Несданные объекты сегодня</div>
-    <div class="objects-list">
+    <div class="objects-list" id="objects-list">
       <div class="object-row">
         <div>
           <div class="object-name">Гус 4, 71</div>
