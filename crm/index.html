@@ -422,65 +422,20 @@ function formatDate(dateStr) {
             <div class="col-header">
                 <span class="col-dot" style="background:var(--accent-amber)"></span>
                 Завтра заезд
-                <span class="col-count" id="col-count-tomorrow-in">1</span>
+                <span class="col-count" id="col-count-tomorrow-in">...</span>
             </div>
             <div id="tomorrow-in-container">
-              <div class="guest-card">
-                <div class="card-header-row">
-                    <div class="guest-name">Петрова Анна</div>
-                    <span class="booking-source src-sutochno">sutochno</span>
-                </div>
-                <div class="guest-room">Гус 4, 71</div>
-  
-                <div class="guest-dates">
-                    Заезд: 19 мая (<span class="tm-unconfirmed">14:00</span>)
-                </div>
-  
-                <div class="card-tags-group">
-                    <span class="guest-tag">1 ночь</span>
-                    <span class="warn-tag">Залог</span>
-                    <span class="warn-tag">Оплата</span>
-                    <span class="warn-tag">Договор</span>
-                    <span class="warn-more-badge">+2</span>
-                </div>
-
-                <div class="card-footer-row">
-                <span class="channel-tag ch-telegram">Telegram</span>
-              </div>
             </div>
         </div>
-      </div>
 
       <!-- Сегодня заезд -->
         <div>
             <div class="col-header">
                 <span class="col-dot" style="background:var(--accent-blue)"></span>
                 Сегодня заезд
-                <span class="col-count" id="col-count-today-in">1</span>
+                <span class="col-count" id="col-count-today-in">...</span>
+                <div id="today-in-container"></div>
             </div>
-            <div id="today-in-container">
-              <div class="guest-card">
-                <div class="card-header-row">
-                    <div class="guest-name">Морозова Елена</div>
-                    <span class="booking-source src-sutochno">Avito</span>
-                </div>
-                <div class="guest-room">Гус 2, 52
-                </div>
-  
-                <div class="guest-dates">
-                    Заезд: 20 мая (<span class="tm-confirmed">19:30</span>)
-                </div>
-  
-                <div class="card-tags-group">
-                    <span class="guest-tag">2 ночи</span>
-                    <span class="warn-tag">Договор</span>
-                </div>
-
-                <div class="card-footer-row">
-                <span class="channel-tag ch-telegram">MAX</span>
-              </div>
-            </div>
-        </div>
       </div>
 
 
@@ -489,7 +444,7 @@ function formatDate(dateStr) {
         <div class="col-header">
           <span class="col-dot" style="background:var(--accent-green)"></span>
           Живут
-          <span class="col-count" id="col-count-living">0</span>
+          <span class="col-count" id="col-count-living">...</span>
         </div>
         <div id="living-container">
         </div>
@@ -500,7 +455,7 @@ function formatDate(dateStr) {
         <div class="col-header">
           <span class="col-dot" style="background:var(--accent-orange)"></span>
           Сегодня выезд
-          <span class="col-count" id="col-count-today-out">0</span>
+          <span class="col-count" id="col-count-today-out">...</span>
         </div>
         <div id="today-out-container">
         </div>
@@ -511,29 +466,9 @@ function formatDate(dateStr) {
         <div class="col-header">
           <span class="col-dot" style="background:var(--accent-gray)"></span>
           Завтра выезд
-          <span class="col-count" id="col-count-tomorrow-out">1</span>
+          <span class="col-count" id="col-count-tomorrow-out">...</span>
         </div>
         <div id="tomorrow-out-container">
-          <div class="guest-card">
-                <div class="card-header-row">
-                    <div class="guest-name">Куркина Альбина</div>
-                    <span class="booking-source src-sutochno">Avito</span>
-                </div>
-                <div class="guest-room">Гус 2, 52
-                </div>
-  
-                <div class="guest-dates">
-                    Выезд: 21 мая (<span class="tm-confirmed">11:30</span>)
-                </div>
-  
-                <div class="card-tags-group">
-                    <span class="guest-tag">2 ночи</span>
-                </div>
-
-                <div class="card-footer-row">
-                <span class="channel-tag ch-telegram">MAX</span>
-            </div>
-          </div>
         </div>
       </div>
 

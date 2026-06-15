@@ -627,3 +627,115 @@ select.field-input option {
   transition: opacity 0.15s;
 }
 .hint-link:hover { opacity: 0.75; }
+
+.retailer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  flex: 1;
+}
+ 
+.retailer-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.retailer-row:hover { background: var(--surface-hover); }
+.retailer-row.selected {
+  border-color: rgba(29,158,117,0.4);
+  background: rgba(29,158,117,0.07);
+}
+ 
+.retailer-radio {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-mid);
+  margin-top: 2px;
+  position: relative;
+  transition: border-color 0.15s;
+}
+.retailer-row.selected .retailer-radio { border-color: #2ed19d; }
+.retailer-row.selected .retailer-radio::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: #2ed19d;
+}
+ 
+.retailer-info { flex: 1; min-width: 0; }
+ 
+.retailer-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.retailer-name { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+ 
+.retailer-meta {
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.retailer-meta span { display: flex; align-items: center; gap: 4px; }
+ 
+.retailer-ids {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: 'Courier New', monospace;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+ 
+.retailer-modes { display: flex; gap: 6px; flex-wrap: wrap; }
+.retailer-mode-chip {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.04);
+  border: 0.5px solid var(--border);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.retailer-mode-chip i { font-size: 13px; }
+ 
+.badge-status {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.badge-status.reg {
+  background: rgba(29,158,117,0.1);
+  color: #2ed19d;
+  border: 0.5px solid rgba(29,158,117,0.25);
+}
+.badge-status.other {
+  background: rgba(255,255,255,0.05);
+  color: var(--text-secondary);
+  border: 0.5px solid var(--border);
+}
+.badge-status.inactive {
+  background: rgba(212,83,126,0.07);
+  color: #ff87a8;
+  border: 0.5px solid rgba(212,83,126,0.25);
+}

@@ -316,7 +316,7 @@
             `;
         }
 
-        if (tochka) {
+        if (tochka == "CONNECTED") {
             document.getElementById('tochka-con-label').textContent = 'Подключено';
             document.getElementById('tochka-con-label').classList.replace('disconnected', 'connected');
             if (permissions == true) {
@@ -325,7 +325,31 @@
                     <button class="btn" style="flex:1; justify-content:center;" onclick="">
                         <i class="ti ti-file-text"></i> Редактировать
                     </button>
-                    <button class="btn btn-danger" onclick="disconnectOkiDoki()">
+                    <button class="btn btn-danger" onclick="deleteTochkaIntegration()">
+                        <i class="ti ti-trash"></i>
+                    </button>
+                </div>
+            `;
+            } else {
+              document.getElementById('tochka-actions').innerHTML = ``;
+            }
+        } else if (tochka == "NOT_CONNECTED") {
+          if (permissions == true) {
+              document.getElementById('tochka-actions').innerHTML = `
+                <button class="btn" onClick="openTochkaIntegration()" style="width:100%;justify-content:center;">Подключить</button>
+            `;
+            } else {
+              document.getElementById('tochka-actions').innerHTML = ``;
+            }
+        } else if (tochka == "NOT_READY") {
+          document.getElementById('tochka-con-label').textContent = 'Не готово';
+            if (permissions == true) {
+              document.getElementById('tochka-actions').innerHTML = `
+                <div style="display:flex; gap:8px;">
+                    <button class="btn" style="flex:1; justify-content:center;" onclick="">
+                        <i class="ti ti-file-text"></i> Закончить интеграцию
+                    </button>
+                    <button class="btn btn-danger" onclick="deleteTochkaIntegration()">
                         <i class="ti ti-trash"></i>
                     </button>
                 </div>
@@ -1407,52 +1431,7 @@ function clearEditPhotos() {
         </span>
       </div>
 
-      <div class="field-group">
-        <label class="field-label">
-          Идентификатор торговой точки
-          <span style="color:var(--text-muted);font-weight:400;font-size:11px">необязательно</span>
-        </label>
-        <input class="field-input" id="tochka-merchant-id" type="text" placeholder="Оставьте пустым, если не требуется">
-      </div>
-
       <div class="modal-section-divider">Настройки платежа</div>
-
-      <div class="field-group">
-        <label class="field-label">
-          Способы оплаты
-          <span style="color:var(--accent-pink);font-size:11px;font-weight:400">минимум один</span>
-        </label>
-        <div class="payment-methods-grid">
-          <label class="payment-method-item">
-            <input type="checkbox" id="sbp" value="sbp">
-            <span class="payment-method-box">
-              <i class="ti ti-qrcode"></i>
-              <span>СБП</span>
-            </span>
-          </label>
-          <label class="payment-method-item">
-            <input type="checkbox" id="card" value="card">
-            <span class="payment-method-box">
-              <i class="ti ti-credit-card"></i>
-              <span>Карта</span>
-            </span>
-          </label>
-          <label class="payment-method-item">
-            <input type="checkbox" id="tinkoff" value="tinkoff">
-            <span class="payment-method-box">
-              <i class="ti ti-building-bank"></i>
-              <span>Т-Банк</span>
-            </span>
-          </label>
-          <label class="payment-method-item">
-            <input type="checkbox" id="dolyame" value="dolyame">
-            <span class="payment-method-box">
-              <i class="ti ti-clock-dollar"></i>
-              <span>Долями</span>
-            </span>
-          </label>
-        </div>
-      </div>
 
       <div class="field-group">
         <label class="field-label">Ставка НДС</label>
@@ -1508,6 +1487,153 @@ function clearEditPhotos() {
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-tochka-retailer-select">
+  <div class="modal-box modal-box-lg">
+    <div class="modal-head">
+      <span class="modal-title">Выбор торговой точки</span>
+      <button class="modal-close" onclick="closeTochkaRetailerSelect()"><i class="ti ti-x"></i></button>
+    </div>
+ 
+    <div class="modal-body modal-scroll">
+      <div class="field-hint" style="margin-top:-4px;">
+        К указанному токену привязано несколько торговых точек. Выберите ту, которую нужно подключить к BroneBox.
+      </div>
+ 
+      <div class="retailer-list" id="tochka-retailer-list">
+        <!-- строки рендерятся через JS -->
+      </div>
+    </div>
+ 
+    <div class="modal-footer">
+      <button class="btn" onclick="closeTochkaRetailerSelect()">Отмена</button>
+      <button class="btn btn-save" id="tochka-retailer-confirm" disabled onclick="confirmTochkaRetailerSelection()">
+        <i class="ti ti-check"></i> Подключить
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOCHKA_PAYMENT_MODE_LABELS = {
+  sbp: { 
+    icon: 'ti-qrcode', // иконка QR-кода для СБП
+    label: 'СБП' 
+  },
+  card: { 
+    icon: 'ti-credit-card', // иконка карты
+    label: 'Банковские карты' 
+  },
+  tinkoff: { 
+    icon: 'ti-wallet', // иконка кошелька
+    label: 'Tinkoff Pay' 
+  },
+  dolyame: { 
+    icon: 'ti-pie-chart', // иконка долей/диаграммы
+    label: 'Сервис "Долями"' 
+  }
+};
+
+function openTochkaRetailerSelect(responseJson) {
+  tochkaRetailers = responseJson?.Data?.Retailer || [];
+  selectedTochkaRetailer = null;
+ 
+  const listEl = document.getElementById('tochka-retailer-list');
+  listEl.innerHTML = '';
+ 
+  tochkaRetailers.forEach((retailer, index) => {
+    const row = document.createElement('div');
+    row.className = 'retailer-row';
+    row.onclick = () => selectTochkaRetailer(index);
+ 
+    const statusClass = retailer.status === 'REG' ? 'reg' : 'other';
+    const statusLabel = retailer.status === 'REG' ? 'Зарегистрирована' : (retailer.status || '—');
+ 
+    const modesHtml = (retailer.paymentModes || []).map(mode => {
+      const info = TOCHKA_PAYMENT_MODE_LABELS[mode] || { icon: 'ti-point', label: mode };
+      return `<span class="retailer-mode-chip"><i class="ti ${info.icon}"></i>${info.label}</span>`;
+    }).join('');
+ 
+    row.innerHTML = `
+      <div class="retailer-radio"></div>
+      <div class="retailer-info">
+        <div class="retailer-name-row">
+          <span class="retailer-name">${escapeHtml(retailer.name || 'Без названия')}</span>
+          <span class="badge-status ${statusClass}">${escapeHtml(statusLabel)}</span>
+          ${retailer.isActive === false ? '<span class="badge-status inactive">Неактивна</span>' : ''}
+        </div>
+        <div class="retailer-meta">
+          <span><i class="ti ti-tag"></i> MCC ${escapeHtml(retailer.mcc ?? '—')}</span>
+          <span><i class="ti ti-percentage"></i> Тариф ${retailer.rate ?? '—'}%</span>
+          ${retailer.url ? `<span><i class="ti ti-world"></i> ${escapeHtml(retailer.url)}</span>` : ''}
+          ${retailer.cashbox ? `<span><i class="ti ti-device-desktop"></i> ${escapeHtml(retailer.cashbox)}</span>` : ''}
+        </div>
+        <div class="retailer-ids">
+          <span>merchantId: ${escapeHtml(retailer.merchantId || '—')}</span>
+          <span>terminalId: ${escapeHtml(retailer.terminalId || '—')}</span>
+        </div>
+        <div class="retailer-modes">${modesHtml}</div>
+      </div>
+    `;
+ 
+    listEl.appendChild(row);
+  });
+ 
+  document.getElementById('tochka-retailer-confirm').disabled = true;
+  document.getElementById('modal-tochka-retailer-select').classList.add('open');
+}
+
+function selectTochkaRetailer(index) {
+  selectedTochkaRetailer = tochkaRetailers[index];
+ 
+  document.querySelectorAll('#tochka-retailer-list .retailer-row').forEach((row, i) => {
+    row.classList.toggle('selected', i === index);
+  });
+ 
+  document.getElementById('tochka-retailer-confirm').disabled = false;
+}
+ 
+function closeTochkaRetailerSelect() {
+  document.getElementById('modal-tochka-retailer-select').classList.remove('open');
+}
+
+async function confirmTochkaRetailerSelection() {
+  if (!selectedTochkaRetailer) {
+    showToast('Укажите торговую точку!', 'info')
+    return;
+  }
+ 
+  try {
+    const token = localStorage.getItem('broneboxtoken')
+    const res = await fetch('http://127.0.0.1:3000/integration/tochka/select-merchant', {
+      method: 'POST',
+      headers: { 
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json' 
+      },
+      body: JSON.stringify({
+        merchantId: selectedTochkaRetailer.merchantId
+      })
+    });
+ 
+    if (!res.ok) throw new Error('Ошибка сохранения торговой точки');
+ 
+    showToast('Торговая точка подключена', 'success');
+    getIntegrations();
+    closeTochkaRetailerSelect();
+  } catch (e) {
+    showToast(e.message || 'Не удалось подключить торговую точку', 'danger');
+  }
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+</script>
+
 <script>
   function insertVar(fieldId, variable) {
     const el = document.getElementById(fieldId);
@@ -1527,18 +1653,31 @@ function clearEditPhotos() {
     document.getElementById('modal-tochka-integration').classList.add('open');
   }
 
-  async function saveTochkaIntegration() {
-    const pmIds = ['sbp', 'card', 'tinkoff', 'dolyame'];
-    const hasMethod = pmIds.some(id => document.getElementById(id)?.checked);
-    if (!hasMethod) {
-      showToast('Нужно выбрать хотя бы один метод оплаты!', 'info')
-      return;
+  async function deleteTochkaIntegration() {
+    const token = localStorage.getItem('broneboxtoken')
+    try {
+      const res = await fetch(`http://127.0.0.1:3000/integration/tochka/disconnect`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+
+      if (!res.ok) {
+        showToast('Ошибка при удалении интеграции', 'danger')
+        return
+      } else {
+        showToast('Интеграция удалена', 'success')
+      }
+    } catch {
+      showToast('Произошла ошибка! Попробуйте позже!', 'danger')
+      return
     }
+    getIntegrations();
+  }
+
+  async function saveTochkaIntegration() {
 
     const phone = document.getElementById('tochka-supplier-phone').value.trim();
     const apiKey = document.getElementById('tochka-token').value.trim();
-    const consumerId = document.getElementById('tochka-merchant-id').value.trim();
-    const paymentMode = pmIds.filter(id => document.getElementById(id)?.checked);
     const vatType = document.getElementById('tochka-vat').value;
     const purpose = document.getElementById('tochka-payment-desc').value.trim();
     const name = document.getElementById('tochka-service-name').value.trim();
@@ -1551,7 +1690,7 @@ function clearEditPhotos() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
          },
-        body: JSON.stringify({ phone, apiKey, consumerId, paymentMode, vatType, purpose, name })
+        body: JSON.stringify({ phone, apiKey, vatType, purpose, name })
       })
 
       if (!res.ok) {
@@ -1569,9 +1708,16 @@ function clearEditPhotos() {
       } else {
         const messageData = await res.json();
         const Message = messageData.message || 'Что-то пошло не так, обновите страницу';
-        showToast(`${Message}`, 'success')
+        const MerchantData = messageData.merchantResult || "";
+        if (MerchantData == "MULTIPLE") {
+          openTochkaRetailerSelect(messageData.dataMerchant);
+          showToast(`Завершите интеграцию выбрав торговую точку`, 'info')
+        } else {
+          showToast(`${Message}`, 'success')
+        }
       }
-    } catch {
+    } catch (error) {
+      console.error("Вот настоящая ошибка из-за которой всё падает:", error); // <-- Это покажет точную строку и причину в консоли браузера (F12)
       showToast('Произошла ошибка! Попробуйте позже!', 'danger')
       return
     }
