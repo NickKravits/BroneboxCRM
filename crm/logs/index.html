@@ -2,6 +2,16 @@
 <html lang="ru">
 <head>
   <script>
+    (function () {
+      try {
+        if (localStorage.getItem('bronebox-theme') === 'light') {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      } catch (e) {}
+    })();
+  </script>
+
+  <script>
     (function() {
       const token = localStorage.getItem('broneboxtoken');
       if (!token) window.location.href = '/login';
@@ -15,6 +25,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="maids.css" />
+  <link rel="stylesheet" href="app-shell.css" />
 </head>
 <body>
 
@@ -336,5 +347,6 @@
     loadLogs();
   });
 </script>
+<script src="app-shell.js"></script>
 </body>
 </html>

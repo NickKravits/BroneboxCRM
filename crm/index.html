@@ -2,6 +2,16 @@
 <html lang="ru">
 <head>
     <script>
+      (function () {
+        try {
+          if (localStorage.getItem('bronebox-theme') === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+          }
+        } catch (e) {}
+      })();
+    </script>
+
+    <script>
   // Мгновенная проверка токена до загрузки интерфейса
   (function() {
         const token = localStorage.getItem('broneboxtoken');
@@ -356,6 +366,7 @@ function formatDate(dateStr) {
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="app-shell.css">
 </head>
 <body>
 
@@ -434,8 +445,8 @@ function formatDate(dateStr) {
                 <span class="col-dot" style="background:var(--accent-blue)"></span>
                 Сегодня заезд
                 <span class="col-count" id="col-count-today-in">...</span>
-                <div id="today-in-container"></div>
             </div>
+            <div id="today-in-container"></div>
       </div>
 
 
@@ -487,6 +498,8 @@ function formatDate(dateStr) {
     document.getElementById('sidebar').classList.toggle('open');
   }
 </script>
+
+<script src="app-shell.js"></script>
 
 </body>
 </html>

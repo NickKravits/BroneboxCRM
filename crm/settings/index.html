@@ -2,6 +2,16 @@
 <html lang="ru">
 <head>
     <script>
+      (function () {
+        try {
+          if (localStorage.getItem('bronebox-theme') === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+          }
+        } catch (e) {}
+      })();
+    </script>
+
+    <script>
         let currentEditingStaffId = null;
         let currentEditingObjectId = null;
   // Мгновенная проверка токена до загрузки интерфейса
@@ -346,7 +356,7 @@
             if (permissions == true) {
               document.getElementById('tochka-actions').innerHTML = `
                 <div style="display:flex; gap:8px;">
-                    <button class="btn" style="flex:1; justify-content:center;" onclick="">
+                    <button class="btn" onclick="selectmerchantfunc()" style="flex:1; justify-content:center;">
                         <i class="ti ti-file-text"></i> Закончить интеграцию
                     </button>
                     <button class="btn btn-danger" onclick="deleteTochkaIntegration()">
@@ -387,6 +397,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="app-shell.css">
 </head>
 <body>
 
@@ -1514,6 +1525,27 @@ function clearEditPhotos() {
 </div>
 
 <script>
+  async function selectmerchantfunc() {
+    try {
+      const token = localStorage.getItem('broneboxtoken');
+      const res = await fetch('http://127.0.0.1:3000/integration/tochka/get-merchants', {
+        method: 'GET',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json' 
+        }
+      });
+
+      if (!res.ok) throw new Error('Ошибка получения торговых точек');
+      const data = await res.json();
+      openTochkaRetailerSelect(data.dataMerchant);
+    } catch (e) {
+        showToast('Не удалось получить список торговых точек. Удалите интеграцию и попробуйте снова', 'danger');
+    }
+  }
+</script>
+
+<script>
 const TOCHKA_PAYMENT_MODE_LABELS = {
   sbp: { 
     icon: 'ti-qrcode', // иконка QR-кода для СБП
@@ -1611,7 +1643,8 @@ async function confirmTochkaRetailerSelection() {
         'Content-Type': 'application/json' 
       },
       body: JSON.stringify({
-        merchantId: selectedTochkaRetailer.merchantId
+        merchantId: selectedTochkaRetailer.merchantId,
+        paymentModes: selectedTochkaRetailer.paymentModes
       })
     });
  
@@ -2507,5 +2540,6 @@ function hideToast(toast) {
 }
 </script>
 <div class="toast-container" id="toast-container"></div>
+<script src="app-shell.js"></script>
 </body>
 </html>
