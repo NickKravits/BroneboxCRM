@@ -10,19 +10,54 @@
 
 <div class="page">
 
-  <!-- Приветствие -->
-  <div class="greeting">
+  <!-- ── Не найдено ─────────────────────────────────────────────────────── -->
+  <div class="state-screen" id="state-error" style="display:none">
+    <div class="state-icon state-icon-error">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <circle cx="12" cy="12" r="9"/>
+        <path d="M9 9l6 6M15 9l-6 6"/>
+      </svg>
+    </div>
+    <div class="state-title">Бронирование не найдено</div>
+    <div class="state-desc">Ссылка устарела или запись была удалена.<br>Обратитесь к своему менеджеру.</div>
+  </div>
+
+  <!-- ── Шапка ──────────────────────────────────────────────────────────── -->
+  <div class="greeting" id="greeting">
     <h1>Добро пожаловать, <span id="guest-name">...</span>!</h1>
     <div class="booking-id">
       Бронирование <code id="booking-id">...</code>
     </div>
   </div>
 
-  <!-- Задачи (красные метки) -->
+  <!-- ── Завершено ──────────────────────────────────────────────────────── -->
+  <div class="card card-completed" id="card-completed" style="display:none">
+    <div class="completed-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="M20 6L9 17l-5-5"/>
+      </svg>
+    </div>
+    <div class="completed-body">
+      <div class="completed-title" id="completed-title">Бронирование завершено</div>
+      <div class="completed-dates" id="completed-dates"></div>
+    </div>
+  </div>
+
+  <!-- ── Задачи ─────────────────────────────────────────────────────────── -->
   <div class="todo-bar" id="todo-bar"></div>
 
-  <!-- Даты и время -->
-  <div class="card">
+  <!-- ── Фотографии (выше дат) ─────────────────────────────────────────── -->
+  <div class="card" id="card-photos" style="display:none">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      Фотографии
+    </div>
+    <div class="carousel-track" id="photos-carousel"></div>
+    <p class="carousel-hint">← прокрутите, чтобы посмотреть все фото →</p>
+  </div>
+
+  <!-- ── Даты и время ───────────────────────────────────────────────────── -->
+  <div class="card" id="card-dates">
     <div class="card-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
       Даты проживания
@@ -55,68 +90,26 @@
     </div>
   </div>
 
-  <!-- Фотографии -->
-  <div class="card">
+  <!-- ── Адрес и источник ───────────────────────────────────────────────── -->
+  <div class="card" id="card-location" style="display:none">
     <div class="card-title">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-      Фотографии объекта
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+      Адрес
     </div>
-    <div class="carousel-track" id="photos-carousel"></div>
-    <p class="carousel-hint">← прокрутите, чтобы посмотреть все фото →</p>
-  </div>
-
-  <!-- Инструкция (скрывается если objects.ssinstruction = false) -->
-  <div class="card" id="card-instruction" style="display:none">
-    <div class="card-title">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 0 0 1 1h3m10-11l2 2m-2-2v10a1 1 0 0 1-1 1h-3m-6 0a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1m-6 0h6"/></svg>
-      Инструкция по заезду
+    <div class="location-row">
+      <div class="location-addr" id="location-addr">...</div>
+      <a id="location-map" href="#" target="_blank" class="location-map-link" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Открыть карту
+      </a>
     </div>
-    <p class="instruction-text" id="checkin-instruction"></p>
-  </div>
-
-  <!-- Оплата (скрывается если objects.sspayanddeposit = false) -->
-  <div class="card" id="card-payment" style="display:none">
-    <div class="card-title">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
-      Стоимость проживания
-    </div>
-    <div class="payment-block">
-      <div class="payment-info">
-        <div class="price-label" id="nights-label">Итого</div>
-        <div class="price-total" id="price-total">...</div>
-        <div class="price-breakdown">
-          <span>
-            Предоплата: <strong id="prepayment-amount">...</strong>
-          </span>
-        </div>
-      </div>
-      <div id="pay-obj-action">
-        <button class="btn-pay" id="btn-pay">Оплатить</button>
-      </div>
+    <div class="source-row" id="source-row" style="display:none">
+      <span class="source-label">Источник бронирования</span>
+      <span class="source-value" id="source-value"></span>
     </div>
   </div>
 
-  <!-- Залог (скрывается если objects.sspayanddeposit = false) -->
-  <div class="card" id="card-deposit" style="display:none">
-    <div class="card-title">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      Страховой залог
-    </div>
-    <div class="deposit-row">
-      <div>
-        <div class="deposit-amount" id="deposit-amount">...</div>
-      </div>
-      <div id="deposit-obj-action">
-        <button class="btn-deposit">Внести залог</button>
-      </div>
-    </div>
-    <div class="deposit-note">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-      <p><strong>Залог не уходит арендодателю.</strong> Сумма замораживается на вашей карте и автоматически разблокируется в день выезда после проверки объекта. Если всё в порядке — деньги возвращаются полностью.</p>
-    </div>
-  </div>
-
-  <!-- Договор (скрывается если objects.sscontract = false) -->
+  <!-- ── Договор ────────────────────────────────────────────────────────── -->
   <div class="card" id="card-contract" style="display:none">
     <div class="card-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -133,258 +126,431 @@
     </div>
   </div>
 
-</div>
+  <!-- ── Инструкция ─────────────────────────────────────────────────────── -->
+  <div class="card" id="card-instruction" style="display:none">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 0 0 1 1h3m10-11l2 2m-2-2v10a1 1 0 0 1-1 1h-3m-6 0a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1m-6 0h6"/></svg>
+      Инструкция по заезду
+    </div>
+    <p class="instruction-text" id="checkin-instruction"></p>
+  </div>
+
+  <!-- ── Оплата ─────────────────────────────────────────────────────────── -->
+  <div class="card" id="card-payment" style="display:none">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+      Стоимость проживания
+    </div>
+    <div class="payment-block">
+      <div class="payment-info">
+        <div class="price-label" id="nights-label">Итого</div>
+        <div class="price-total" id="price-total">...</div>
+        <div class="price-breakdown">
+          <span>Предоплата: <strong id="prepayment-amount">...</strong></span>
+        </div>
+      </div>
+      <div id="pay-obj-action"></div>
+    </div>
+    <div class="channel-tag" id="payment-channel-tag" style="display:none"></div>
+  </div>
+
+  <!-- ── Залог ──────────────────────────────────────────────────────────── -->
+  <div class="card" id="card-deposit" style="display:none">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Страховой залог
+    </div>
+    <div class="deposit-row">
+      <div>
+        <div class="deposit-amount" id="deposit-amount">...</div>
+      </div>
+      <div id="deposit-obj-action"></div>
+    </div>
+    <div class="deposit-note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+      <p><strong>Залог не уходит арендодателю.</strong> Сумма замораживается на вашей карте и автоматически разблокируется после проверки объекта. Если всё в порядке — деньги возвращаются полностью.</p>
+    </div>
+    <div class="channel-tag" id="deposit-channel-tag" style="display:none"></div>
+  </div>
+
+  <!-- ── Оценка уборки ──────────────────────────────────────────────────── -->
+  <div class="card" id="card-review" style="display:none">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      Оценка уборки
+    </div>
+    <div id="review-content"></div>
+  </div>
+
+</div><!-- /.page -->
 
 <script>
-  // ─── Получаем ID из ?id= ──────────────────────────────────────────────
+  const API = 'http://127.0.0.1:3000'
+
+  // ── Утилиты ───────────────────────────────────────────────────────────
   function getBookingLink() {
-    return new URLSearchParams(window.location.search).get('id');
+    return new URLSearchParams(window.location.search).get('id')
   }
 
-  // ─── Форматирование ───────────────────────────────────────────────────
   function formatPrice(amount) {
-    return Number(amount).toLocaleString('ru-RU') + ' ₽';
+    return Number(amount).toLocaleString('ru-RU') + ' ₽'
   }
 
   function nightsWord(n) {
-    const m10 = n % 10, m100 = n % 100;
-    if (m10 === 1 && m100 !== 11) return 'ночь';
-    if ([2,3,4].includes(m10) && ![12,13,14].includes(m100)) return 'ночи';
-    return 'ночей';
+    const m10 = n % 10, m100 = n % 100
+    if (m10 === 1 && m100 !== 11) return 'ночь'
+    if ([2,3,4].includes(m10) && ![12,13,14].includes(m100)) return 'ночи'
+    return 'ночей'
   }
 
-  // Из "2025-06-12T00:00:00.000Z" → "12 июня 2025" + "Четверг"
   function formatDate(isoStr) {
-    const d = new Date(isoStr);
-    const date = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
-    const day  = d.toLocaleDateString('ru-RU', { weekday: 'long' });
-    // Капитализируем день недели
-    return { date, day: day.charAt(0).toUpperCase() + day.slice(1) };
+    const d    = new Date(isoStr)
+    const date = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+    const day  = d.toLocaleDateString('ru-RU', { weekday: 'long' })
+    return { date, day: day.charAt(0).toUpperCase() + day.slice(1) }
   }
 
   function countNights(beginIso, endIso) {
-    const ms = new Date(endIso) - new Date(beginIso);
-    return Math.round(ms / (1000 * 60 * 60 * 24));
+    return Math.round((new Date(endIso) - new Date(beginIso)) / 86400000)
   }
 
-  function setStatusPill(id, isPaid) {
-    const pill = document.getElementById(id);
-    if (isPaid) {
-      pill.textContent = 'Оплачено';
-      pill.className   = 'status-pill paid';
-    } else {
-      pill.textContent = 'Не оплачено';
-      pill.className   = 'status-pill unpaid';
-    }
+  function capitalizeFirst(str) {
+    if (!str) return ''
+    return str.charAt(0).toUpperCase() + str.slice(1)
   }
 
-  // ─── Рендер задач ─────────────────────────────────────────────────────
+  // ── Экран «не найдено» ────────────────────────────────────────────────
+  function showNotFound() {
+    document.getElementById('greeting').style.display    = 'none'
+    document.getElementById('todo-bar').style.display    = 'none'
+    document.getElementById('card-dates').style.display  = 'none'
+    document.getElementById('state-error').style.display = ''
+  }
+
+  // ── Рендер задач ──────────────────────────────────────────────────────
   const ICONS = {
     card:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>`,
     clock:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>`,
     shield: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
     sign:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
-  };
-
-  function renderTodos(booking, objects) {
-    const todos = [];
-
-    // Оплата
-    if (booking.balance_to_be_paid_1 > 0) { //ДОП ПРОВЕРКИ НА БАНКИ
-      todos.push({ label: 'Оплатить', icon: 'card' });
-    }
-    // Время заезда
-    if (!booking.begin_time) {
-      todos.push({ label: 'Указать время заезда', icon: 'clock' });
-    }
-    // Время выезда
-    if (!booking.end_time) {
-      todos.push({ label: 'Указать время выезда', icon: 'clock' });
-    }
-    // Залог
-    if (booking.deposit < objects.deposit) {
-      todos.push({ label: 'Внести залог', icon: 'shield' });
-    }
-    // Договор
-    if (booking.contract_link) {                              //Проверка на подписание договора
-      todos.push({ label: 'Подписать договор', icon: 'sign' });
-    }
-
-    const bar = document.getElementById('todo-bar');
-    bar.innerHTML = '';
-    todos.forEach(function(t) {
-      const div = document.createElement('div');
-      div.className = 'todo-tag';
-      div.innerHTML = ICONS[t.icon] + t.label;
-      bar.appendChild(div);
-    });
   }
 
-  // ─── Рендер фото ──────────────────────────────────────────────────────
+  function renderTodos(booking, objects, show) {
+    const todos = []
+
+    if (show.payanddeposit) {
+      if (booking.balance_to_be_paid_1 > 0 && objects?.paymentchanel !== 'NONE') {
+        todos.push({ label: 'Оплатить', icon: 'card' })
+      }
+      if ((booking.deposit ?? 0) < (parseInt(objects?.deposit) || 0) && objects?.depositchanel !== 'NONE') {
+        todos.push({ label: 'Внести залог', icon: 'shield' })
+      }
+    }
+    if (!booking.begin_time) todos.push({ label: 'Указать время заезда',  icon: 'clock' })
+    if (!booking.end_time)   todos.push({ label: 'Указать время выезда',  icon: 'clock' })
+    if (show.contract && booking.contract_link) {
+      todos.push({ label: 'Подписать договор', icon: 'sign' })
+    }
+
+    const bar = document.getElementById('todo-bar')
+    bar.innerHTML = ''
+    todos.forEach(t => {
+      const div = document.createElement('div')
+      div.className = 'todo-tag'
+      div.innerHTML = ICONS[t.icon] + t.label
+      bar.appendChild(div)
+    })
+  }
+
+  // ── Рендер фото ───────────────────────────────────────────────────────
   function renderPhotos(photos) {
-    const carousel = document.getElementById('photos-carousel');
+    const carousel = document.getElementById('photos-carousel')
+    const card     = document.getElementById('card-photos')
     if (!photos || !photos.length) {
-      carousel.innerHTML = '<p style="padding:1rem;opacity:.5">Фото не добавлены</p>';
-      return;
+      card.style.display = 'none'
+      return
     }
-    carousel.innerHTML = '';
-    photos.forEach(function(photo, i) {
-      const div = document.createElement('div');
-      div.className = 'photo-item' + (i === 0 ? ' big' : '');
-      const img = document.createElement('img');
-      img.src = "http://127.0.0.1:3000" + photo.url;
-      img.alt = 'Фото ' + (i + 1);
-      img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:inherit';
-      div.appendChild(img);
-      carousel.appendChild(div);
-    });
+    card.style.display = ''
+    carousel.innerHTML = ''
+    photos.forEach((photo, i) => {
+      const div = document.createElement('div')
+      div.className = 'photo-item' + (i === 0 ? ' big' : '')
+      const img = document.createElement('img')
+      img.src = API + photo.url
+      img.alt = 'Фото ' + (i + 1)
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:inherit'
+      div.appendChild(img)
+      carousel.appendChild(div)
+    })
   }
 
-  // ─── Основная функция подстановки ─────────────────────────────────────
-  function applyData(booking, objects, photos) {
-    // Заголовок
-    document.getElementById('page-title').textContent =
-      'BroneBox | Бронирование #' + booking.id;
+  // ── Блок адреса и источника ───────────────────────────────────────────
+  function renderLocation(objects, booking) {
+    if (!objects?.location) return
+    document.getElementById('card-location').style.display = ''
+    document.getElementById('location-addr').textContent = objects.location
 
-    const firstName = (booking.fio || '').split(' ')[0] || 'Гость';
-    document.getElementById('guest-name').textContent  = firstName;
-    document.getElementById('booking-id').textContent  = '#' + booking.id;
-
-    // Даты
-    const nights   = countNights(booking.begin_date, booking.end_date);
-    const checkin  = formatDate(booking.begin_date);
-    const checkout = formatDate(booking.end_date);
-    document.getElementById('checkin-date').textContent  = checkin.date;
-    document.getElementById('checkin-day').textContent   = checkin.day;
-    document.getElementById('checkout-date').textContent = checkout.date;
-    document.getElementById('checkout-day').textContent  = checkout.day + ' · ' + nights + ' ' + nightsWord(nights);
-
-    // Сохранённое время заезда/выезда
-    if (booking.begin_time) document.getElementById('ci').value = booking.begin_time;
-    if (booking.end_time)   document.getElementById('co').value = booking.end_time;
-
-    // Задачи
-    renderTodos(booking, objects);
-
-    // Фото
-    renderPhotos(photos);
-
-    // Инструкция (objects.ssinstruction — флаг показа)
-    if (objects.ssinstruction) {
-      document.getElementById('card-instruction').style.display = '';
-      document.getElementById('checkin-instruction').innerHTML  = objects.instruction || ''; //ПОКАЗАТЬ ПОСЛЕ ОПЛАТЫ И/ИЛИ ВНЕСЕНИЯ ЗАЛОГА
+    if (objects.maplink) {
+      const link = document.getElementById('location-map')
+      link.href = objects.maplink
+      link.style.display = ''
     }
 
-    // Оплата + Залог (objects.sspayanddeposit — флаг показа)
-    if (objects.sspayanddeposit) {                          //ЗАМЕНИТЬ НА ЛОГИКУ ПРОВЕРКИ ДНЯ
-      document.getElementById('card-payment').style.display = '';
-      document.getElementById('card-deposit').style.display  = '';
-
-      // Оплата
-      document.getElementById('nights-label').textContent =
-        'Итого за ' + nights + ' ' + nightsWord(nights);
-      document.getElementById('price-total').textContent =
-        formatPrice(booking.amount);
-      document.getElementById('prepayment-amount').textContent =
-        booking.prepayment ? formatPrice(booking.prepayment) : 'не внесена';
-      if (booking.balance_to_be_paid_1 > 0) {
-        const container = document.getElementById('pay-obj-action')
-        container.innerHTML = '<button class="btn-pay" id="btn-pay">Оплатить</button>';                                                           //ПРОВЕРКА ДЛЯ ОПЛАТЫ ТОЧКИ
-        document.getElementById('btn-pay').textContent =
-          'Оплатить ' + formatPrice(booking.balance_to_be_paid_1);
-      } else {
-        const container = document.getElementById('pay-obj-action')
-        container.innerHTML = `<div class="deposit-note">
-          Оплачено!
-          </div>`
-      }
-
-      // Залог
-      document.getElementById('deposit-amount').textContent =
-        formatPrice(objects.deposit);
-      if (booking.deposit < objects.deposit) {
-        const container = document.getElementById('deposit-obj-action')
-        container.innerHTML = '<button class="btn-deposit">Внести залог</button>';                                                           //ПРОВЕРКА ДЛЯ ОПЛАТЫ ТОЧКИ
-      } else {
-        const container = document.getElementById('deposit-obj-action')
-        container.innerHTML = `<div class="deposit-note">
-          Внесено
-          </div>`
-      }
-    }
-
-    // Договор (objects.sscontract — флаг показа)
-    if (booking.contract_link) {                            //ПРОВЕРКА НА ПОДПИСАНИЕ
-      document.getElementById('card-contract').style.display = '';
-      if (booking.contract_link) {
-        document.getElementById('btn-contract').onclick = function() {
-          window.open(booking.contract_link, '_blank');
-        };
-      }
+    if (booking.source) {
+      document.getElementById('source-row').style.display  = ''
+      document.getElementById('source-value').textContent = capitalizeFirst(booking.source)
     }
   }
 
-  // ─── Загрузка данных ──────────────────────────────────────────────────
+  // ── Метка канала оплаты ───────────────────────────────────────────────
+  const CHANNEL_NAMES = {
+    TOCHKA: 'Точка Банк',
+    TBANK:  'Т-Банк',
+    MONETA: 'Moneta',
+  }
+
+  function renderChannelTag(elId, channel, prefix) {
+    if (!channel || channel === 'NONE') return
+    const el = document.getElementById(elId)
+    el.textContent = prefix + ' · ' + (CHANNEL_NAMES[channel] || channel)
+    el.style.display = ''
+  }
+
+  // ── Блок оплаты ───────────────────────────────────────────────────────
+  function renderPayment(booking, objects) {
+    if (!objects || objects.paymentchanel === 'NONE') return
+
+    document.getElementById('card-payment').style.display = ''
+    const nights = countNights(booking.begin_date, booking.end_date)
+    document.getElementById('nights-label').textContent       = 'Итого за ' + nights + ' ' + nightsWord(nights)
+    document.getElementById('price-total').textContent        = formatPrice(booking.amount)
+    document.getElementById('prepayment-amount').textContent  = booking.prepayment
+      ? formatPrice(booking.prepayment) : 'не внесена'
+
+    const action = document.getElementById('pay-obj-action')
+    if (booking.balance_to_be_paid_1 > 0) {
+      action.innerHTML = `<button class="btn-pay">Оплатить ${formatPrice(booking.balance_to_be_paid_1)}</button>`
+    } else {
+      action.innerHTML = `<div class="paid-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+        Оплачено
+      </div>`
+    }
+
+    renderChannelTag('payment-channel-tag', objects.paymentchanel, 'Оплата через')
+  }
+
+  // ── Блок залога ───────────────────────────────────────────────────────
+  function renderDeposit(booking, objects) {
+    if (!objects || objects.depositchanel === 'NONE') return
+
+    document.getElementById('card-deposit').style.display = ''
+    document.getElementById('deposit-amount').textContent  = formatPrice(objects.deposit)
+
+    const action = document.getElementById('deposit-obj-action')
+    if ((booking.deposit ?? 0) < (parseInt(objects.deposit) || 0)) {
+      action.innerHTML = `<button class="btn-deposit">Внести залог</button>`
+    } else {
+      action.innerHTML = `<div class="paid-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+        Внесён
+      </div>`
+    }
+
+    renderChannelTag('deposit-channel-tag', objects.depositchanel, 'Принимается через')
+  }
+
+  // ── Блок оценки ───────────────────────────────────────────────────────
+  let _selectedRating = 0
+
+  function renderReview(existingReview) {
+    const el = document.getElementById('review-content')
+    if (existingReview) {
+      const stars = Array.from({ length: 5 }, (_, i) =>
+        `<span class="star-display${i < existingReview ? ' filled' : ''}">★</span>`
+      ).join('')
+      el.innerHTML = `
+        <div class="review-thanks">
+          <div class="review-stars-row">${stars}</div>
+          <p>Спасибо за оценку!</p>
+        </div>`
+    } else {
+      el.innerHTML = `
+        <p class="review-prompt">Как вам уборка в апартаментах? Это поможет нам стать лучше.</p>
+        <div class="star-rating" id="star-rating">
+          ${[1,2,3,4,5].map(v =>
+            `<button class="star" data-v="${v}" onclick="selectStar(${v})" aria-label="${v} звезда">★</button>`
+          ).join('')}
+        </div>
+        <button class="btn-review" id="btn-review" onclick="submitReview()" disabled>
+          Отправить оценку
+        </button>`
+    }
+  }
+
+  function selectStar(value) {
+    _selectedRating = value
+    document.querySelectorAll('.star').forEach((s, i) => {
+      s.classList.toggle('active', i < value)
+    })
+    const btn = document.getElementById('btn-review')
+    if (btn) btn.disabled = false
+  }
+
+  async function submitReview() {
+    if (!_selectedRating) return
+    const btn  = document.getElementById('btn-review')
+    const link = getBookingLink()
+    btn.disabled    = true
+    btn.textContent = 'Сохраняем...'
+    try {
+      const res = await fetch(API + '/guest/review', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ id: link, rating: _selectedRating })
+      })
+      if (res.ok) {
+        renderReview(_selectedRating)
+      } else {
+        btn.disabled    = false
+        btn.textContent = 'Отправить оценку'
+      }
+    } catch {
+      btn.disabled    = false
+      btn.textContent = 'Отправить оценку'
+    }
+  }
+
+  // ── Применение данных ─────────────────────────────────────────────────
+  function applyData(booking, objects, photos, show, completed) {
+    document.getElementById('page-title').textContent = 'BroneBox | Бронирование #' + booking.id
+    document.getElementById('booking-id').textContent = '#' + booking.id
+
+    const firstName = (booking.fio || '').split(' ')[0] || 'Гость'
+
+    if (completed) {
+      // Изменяем приветствие
+      const greet = document.querySelector('.greeting h1')
+      greet.innerHTML = 'Надеемся, всё прошло хорошо, <span id="guest-name">' + firstName + '</span>!'
+
+      // Завершённый баннер
+      const nights  = countNights(booking.begin_date, booking.end_date)
+      const cin     = formatDate(booking.begin_date)
+      const cout    = formatDate(booking.end_date)
+      const isCancelled = booking.status === 'canceled'
+      document.getElementById('completed-title').textContent =
+        isCancelled ? 'Бронирование отменено' : 'Бронирование завершено'
+      document.getElementById('completed-dates').textContent =
+        cin.date + ' — ' + cout.date + ' · ' + nights + ' ' + nightsWord(nights)
+      document.getElementById('card-completed').style.display = ''
+
+      // Скрываем лишнее
+      document.getElementById('todo-bar').style.display   = 'none'
+      document.getElementById('card-dates').style.display = 'none'
+    } else {
+      document.getElementById('guest-name').textContent = firstName
+
+      // Даты
+      const nights  = countNights(booking.begin_date, booking.end_date)
+      const checkin  = formatDate(booking.begin_date)
+      const checkout = formatDate(booking.end_date)
+      document.getElementById('checkin-date').textContent  = checkin.date
+      document.getElementById('checkin-day').textContent   = checkin.day
+      document.getElementById('checkout-date').textContent = checkout.date
+      document.getElementById('checkout-day').textContent  = checkout.day + ' · ' + nights + ' ' + nightsWord(nights)
+
+      if (booking.begin_time) document.getElementById('ci').value = booking.begin_time
+      if (booking.end_time)   document.getElementById('co').value = booking.end_time
+
+      renderTodos(booking, objects, show)
+    }
+
+    // Фото (всегда)
+    renderPhotos(photos)
+
+    // Адрес + источник (всегда)
+    renderLocation(objects, booking)
+
+    // Договор
+    if (show.contract && booking.contract_link) {
+      document.getElementById('card-contract').style.display = ''
+      document.getElementById('btn-contract').onclick = () =>
+        window.open(booking.contract_link, '_blank')
+    }
+
+    // Инструкция
+    if (show.instruction && objects?.instruction) {
+      document.getElementById('card-instruction').style.display = ''
+      document.getElementById('checkin-instruction').innerHTML  = objects.instruction
+    }
+
+    // Оплата + Залог
+    if (show.payanddeposit) {
+      renderPayment(booking, objects)
+      renderDeposit(booking, objects)
+    }
+
+    // Оценка уборки
+    if (show.rateclean) {
+      document.getElementById('card-review').style.display = ''
+      renderReview(booking.review)
+    }
+  }
+
+  // ── Загрузка данных ───────────────────────────────────────────────────
   async function loadData(link) {
     try {
-      const res = await fetch('http://127.0.0.1:3000/guest/get', {
-        method: 'POST',
+      const res = await fetch(API + '/guest/get', {
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: link }),
-      });
+        body:    JSON.stringify({ id: link })
+      })
 
-      if (!res.ok) {
-        document.querySelector('.page').innerHTML =
-          '<div style="padding:2rem;text-align:center">' +
-          '<h2>Бронирование не найдено</h2>' +
-          '<p>Проверьте ссылку или обратитесь к арендодателю.</p></div>';
-        return;
-      }
+      if (res.status === 404) { showNotFound(); return }
+      if (!res.ok)            { showNotFound(); return }
 
-      const { booking, objects, photos } = await res.json();
-      applyData(booking, objects, photos);
+      const { booking, objects, photos, show, completed } = await res.json()
+      applyData(booking, objects, photos, show, completed)
 
     } catch (e) {
-      console.error('Ошибка загрузки:', e);
+      console.error('Ошибка загрузки:', e)
+      showNotFound()
     }
   }
 
-  // ─── Сохранение времени ───────────────────────────────────────────────
+  // ── Сохранение времени ────────────────────────────────────────────────
   function saveTimes() {
-    const ci = document.getElementById('ci');
-    const co = document.getElementById('co');
-    let valid = true;
+    const ci    = document.getElementById('ci')
+    const co    = document.getElementById('co')
+    let valid   = true
 
-    [ci, co].forEach(function(el) {
-      el.classList.remove('error', 'success');
+    ;[ci, co].forEach(el => {
+      el.classList.remove('error', 'success')
       if (!el.value) {
-        el.classList.add('error');
-        setTimeout(function() { el.classList.remove('error'); }, 2000);
-        valid = false;
+        el.classList.add('error')
+        setTimeout(() => el.classList.remove('error'), 2000)
+        valid = false
       } else {
-        el.classList.add('success');
-        setTimeout(function() { el.classList.remove('success'); }, 2000);
+        el.classList.add('success')
+        setTimeout(() => el.classList.remove('success'), 2000)
       }
-    });
+    })
+    if (!valid) return
 
-    if (!valid) return;
-
-    const link = getBookingLink();
-    fetch('/api/objects/save-times', {
-      method: 'POST',
+    const link = getBookingLink()
+    fetch(API + '/guest/save-times', {
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: link, begin_time: ci.value, end_time: co.value }),
-    }).catch(function(e) { console.error('Ошибка сохранения времени:', e); });
+      body:    JSON.stringify({ id: link, begin_time: ci.value, end_time: co.value })
+    }).catch(e => console.error('Ошибка сохранения времени:', e))
   }
 
-  // ─── Запуск ───────────────────────────────────────────────────────────
-  const link = getBookingLink();
+  // ── Запуск ───────────────────────────────────────────────────────────
+  const link = getBookingLink()
   if (link) {
-    loadData(link);
+    loadData(link)
   } else {
-    document.querySelector('.page').innerHTML =
-      '<div style="padding:2rem;text-align:center">' +
-      '<h2>Ссылка не содержит ID бронирования</h2></div>';
+    showNotFound()
   }
 </script>
 

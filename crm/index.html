@@ -160,6 +160,7 @@
 
       const card = document.createElement('div');
       card.className = 'guest-card';
+      card.onclick = () => quickModal(booking.id);
 
       // Завтра заезд
       if (beginStr === tomorrowStr) {
@@ -353,8 +354,13 @@ function formatDate(dateStr) {
       }
     }
 
-    document.addEventListener('DOMContentLoaded', () => { 
+    document.addEventListener('DOMContentLoaded', () => {
       getUserData();
+      getBookings();
+      getAvailableObjects();
+    });
+
+    window.addEventListener('bronebox:reload', () => {
       getBookings();
       getAvailableObjects();
     });
@@ -496,6 +502,384 @@ function formatDate(dateStr) {
 <script>
   function toggleSidebar() {
     document.getElementById('sidebar').classList.toggle('open');
+  }
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     Quick-view modal
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="qm-overlay" id="quick-modal" onclick="closeQuickModal(event)">
+  <div class="qm-box">
+
+    <!-- Header: ФИО + объект + статус -->
+    <div class="qm-header">
+      <div class="qm-header-main">
+        <div class="qm-name" id="qm-fio">...</div>
+        <div class="qm-meta">
+          <span id="qm-object"></span>
+          <span class="qm-sep">·</span>
+          <span id="qm-status"></span>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeQuickModal()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <!-- Body -->
+    <div class="qm-body">
+
+      <!-- Контакты -->
+      <div class="qm-block">
+        <div class="qm-contact-row">
+          <div class="qm-phone-group">
+            <span class="qm-phone-val" id="qm-phone">—</span>
+            <button class="btn-copy-qm" onclick="copyQPhone('qm-phone')" title="Копировать"><i class="ti ti-copy"></i></button>
+          </div>
+          <button class="qm-call-btn qm-desktop-only" id="qm-contact-btn" onclick="openContact()">
+            <i class="ti ti-phone" id="qm-contact-icon"></i>
+            <span id="qm-contact-label">Позвонить</span>
+          </button>
+        </div>
+        <div class="qm-contact-row" id="qm-addphone-row" style="display:none">
+          <div class="qm-phone-group">
+            <span class="qm-phone-lbl">Доп.</span>
+            <span class="qm-phone-val" id="qm-addphone">—</span>
+            <button class="btn-copy-qm" onclick="copyQPhone('qm-addphone')" title="Копировать"><i class="ti ti-copy"></i></button>
+          </div>
+        </div>
+        <!-- Канал связи -->
+        <div class="qm-channel-pills">
+          <button class="qm-channel-pill" data-ch="Phone" onclick="setQmChannel('Phone')">
+            <i class="ti ti-phone"></i> Звонок
+          </button>
+          <button class="qm-channel-pill" data-ch="Telegram" onclick="setQmChannel('Telegram')">
+            <i class="ti ti-brand-telegram"></i> Telegram
+          </button>
+          <button class="qm-channel-pill" data-ch="Max" onclick="setQmChannel('Max')">
+            <i class="ti ti-message-circle"></i> Max
+          </button>
+          <button class="qm-channel-pill" data-ch="Whatsapp" onclick="setQmChannel('Whatsapp')">
+            <i class="ti ti-brand-whatsapp"></i> WhatsApp
+          </button>
+        </div>
+      </div>
+
+      <!-- Детали -->
+      <div class="qm-block">
+        <div class="qm-info-row" id="qm-location-row" style="display:none">
+          <span class="qm-lbl"><i class="ti ti-map-pin"></i></span>
+          <span id="qm-location">—</span>
+        </div>
+        <div class="qm-info-row">
+          <span class="qm-lbl">Заезд</span>
+          <span id="qm-checkin">—</span>
+        </div>
+        <div class="qm-info-row">
+          <span class="qm-lbl">Выезд</span>
+          <span id="qm-checkout">—</span>
+        </div>
+        <div class="qm-info-row">
+          <span class="qm-lbl">Источник</span>
+          <span id="qm-source">—</span>
+        </div>
+        <div class="qm-info-row" id="qm-notes-row" style="display:none">
+          <span class="qm-lbl">Заметки</span>
+          <span class="qm-notes-val" id="qm-notes">—</span>
+        </div>
+      </div>
+
+      <!-- Финансы -->
+      <div class="qm-block">
+        <div class="qm-finance-row">
+          <div class="qm-finance-item">
+            <span class="qm-lbl">Сумма</span>
+            <span class="qm-finance-val" id="qm-amount">—</span>
+            <span class="qm-finance-sub" id="qm-prepayment"></span>
+          </div>
+          <span class="qm-channel-badge" id="qm-pay-channel" style="display:none"></span>
+        </div>
+        <div class="qm-finance-row" id="qm-deposit-row" style="display:none">
+          <div class="qm-finance-item">
+            <span class="qm-lbl">Залог</span>
+            <span class="qm-finance-val" id="qm-deposit">—</span>
+          </div>
+          <span class="qm-channel-badge" id="qm-dep-channel" style="display:none"></span>
+        </div>
+      </div>
+
+      <!-- Горничная -->
+      <div class="qm-block">
+        <div class="qm-info-row">
+          <span class="qm-lbl">Горничная</span>
+          <select class="qm-select" id="qm-maid" onchange="assignMaid()">
+            <option value="">Не назначена</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Ссылки (только desktop) -->
+      <div class="qm-block qm-desktop-only" id="qm-links-block">
+        <div class="qm-links">
+          <a class="qm-link-btn" id="qm-booking-link" href="#" target="_blank" style="display:none">
+            <i class="ti ti-external-link"></i> Гостевая ссылка
+          </a>
+          <a class="qm-link-btn" id="qm-contract-link" href="#" target="_blank" style="display:none">
+            <i class="ti ti-file-description"></i> Договор
+          </a>
+        </div>
+      </div>
+
+    </div><!-- /qm-body -->
+
+    <!-- Mobile bottom bar -->
+    <div class="qm-mob-bar">
+      <button class="qm-mob-contact" id="qm-mob-contact" onclick="openContact()">
+        <i class="ti ti-phone" id="qm-mob-contact-icon"></i>
+        <span id="qm-mob-contact-label">Позвонить</span>
+      </button>
+      <a class="qm-mob-link" id="qm-mob-booking" href="#" target="_blank" title="Гостевая ссылка" style="display:none">
+        <i class="ti ti-external-link"></i>
+      </a>
+      <a class="qm-mob-link" id="qm-mob-contract" href="#" target="_blank" title="Договор" style="display:none">
+        <i class="ti ti-file-description"></i>
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let _qmBookingId      = null
+  let _qmPhone          = ''
+  let _qmContactChannel = 'Phone'
+
+  const QM_CHANNEL = { TOCHKA: 'Точка Банк', TBANK: 'Т-Банк', MONETA: 'Moneta' }
+  const QM_STATUS  = { booked: 'Забронировано', canceled: 'Отменено', deleted: 'Удалено', request: 'Запрос' }
+
+  const QM_CH_ICONS  = { Phone: 'ti-phone', Telegram: 'ti-brand-telegram', Max: 'ti-message-circle', Whatsapp: 'ti-brand-whatsapp' }
+  const QM_CH_LABELS = { Phone: 'Позвонить', Telegram: 'Telegram', Max: 'Max', Whatsapp: 'WhatsApp' }
+
+  function openContact() {
+    const digits = _qmPhone.replace(/\D/g, '')
+    const links = {
+      Telegram: 'https://t.me/+' + digits,
+      Max:      'https://vk.me/+' + digits,
+      Whatsapp: 'https://wa.me/' + digits,
+    }
+    window.open(links[_qmContactChannel] || 'tel:+' + digits)
+  }
+
+  async function setQmChannel(ch, save = true) {
+    _qmContactChannel = ch
+    document.querySelectorAll('.qm-channel-pill').forEach(p => {
+      p.classList.toggle('active', p.dataset.ch === ch)
+    })
+    const icon  = QM_CH_ICONS[ch]  || 'ti-phone'
+    const label = QM_CH_LABELS[ch] || 'Позвонить'
+    document.getElementById('qm-contact-icon').className        = `ti ${icon}`
+    document.getElementById('qm-contact-label').textContent     = label
+    document.getElementById('qm-mob-contact-icon').className    = `ti ${icon}`
+    document.getElementById('qm-mob-contact-label').textContent = label
+    if (!save) return
+    const token = localStorage.getItem('broneboxtoken')
+    try {
+      await fetch('http://127.0.0.1:3000/bookings/update', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: _qmBookingId, channel: ch === 'Phone' ? ' ' : ch })
+      })
+      const active = document.querySelector('.qm-channel-pill.active')
+      if (active) {
+        active.classList.add('saved')
+        setTimeout(() => active.classList.remove('saved'), 1500)
+      }
+    } catch (err) {
+      console.error('setQmChannel error:', err)
+    }
+  }
+
+  async function quickModal(bookingId) {
+    const token = localStorage.getItem('broneboxtoken')
+    _qmBookingId  = bookingId
+
+    // Показываем сразу
+    document.getElementById('quick-modal').classList.add('active')
+    document.getElementById('qm-fio').textContent = '...'
+    document.getElementById('qm-object').textContent = ''
+    document.getElementById('qm-status').textContent = ''
+
+    try {
+      const [bRes, mRes] = await Promise.all([
+        fetch('http://127.0.0.1:3000/bookings/get-by-id', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: bookingId })
+        }),
+        fetch('http://127.0.0.1:3000/maids/getall', {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+        })
+      ])
+
+      const { booking } = await bRes.json()
+      const { maids }   = await mRes.json()
+
+      const oRes = await fetch('http://127.0.0.1:3000/objects/getbyrid', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rId: booking.realty_id })
+      })
+      const { object } = await oRes.json()
+
+      // ── Шапка ────────────────────────────────────────────
+      document.getElementById('qm-fio').textContent    = booking.fio || '—'
+      document.getElementById('qm-object').textContent = object?.name || booking.realty_id
+      document.getElementById('qm-status').textContent = QM_STATUS[booking.status] || booking.status
+
+      // ── Контакты ──────────────────────────────────────────
+      _qmPhone = booking.phone || ''
+      document.getElementById('qm-phone').textContent = _qmPhone || '—'
+
+      const addphoneRow = document.getElementById('qm-addphone-row')
+      if (booking.additional_phone) {
+        document.getElementById('qm-addphone').textContent = booking.additional_phone
+        addphoneRow.style.display = ''
+      } else {
+        addphoneRow.style.display = 'none'
+      }
+
+      // Канал связи — инициализация без сохранения
+      const rawCh = (booking.channel || '').trim()
+      setQmChannel(['Telegram', 'Max', 'Whatsapp'].includes(rawCh) ? rawCh : 'Phone', false)
+
+      // ── Детали ────────────────────────────────────────────
+      const locationRow = document.getElementById('qm-location-row')
+      if (object?.location) {
+        document.getElementById('qm-location').textContent = object.location
+        locationRow.style.display = ''
+      } else {
+        locationRow.style.display = 'none'
+      }
+
+      const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) : '—'
+      const cinTime  = booking.begin_time || (object?.checkindef  ? `~${object.checkindef}`  : '')
+      const coutTime = booking.end_time   || (object?.checkoutdef ? `~${object.checkoutdef}` : '')
+      document.getElementById('qm-checkin').textContent  = fmtDate(booking.begin_date) + (cinTime  ? ', ' + cinTime  : '')
+      document.getElementById('qm-checkout').textContent = fmtDate(booking.end_date)   + (coutTime ? ', ' + coutTime : '')
+
+      document.getElementById('qm-source').textContent = booking.source || '—'
+
+      const notesRow = document.getElementById('qm-notes-row')
+      if (booking.notes) {
+        document.getElementById('qm-notes').textContent = booking.notes
+        notesRow.style.display = ''
+      } else {
+        notesRow.style.display = 'none'
+      }
+
+      // ── Финансы ───────────────────────────────────────────
+      document.getElementById('qm-amount').textContent     = Number(booking.amount || 0).toLocaleString('ru-RU') + ' ₽'
+      document.getElementById('qm-prepayment').textContent = 'Оплачено: ' + Number(booking.prepayment || 0).toLocaleString('ru-RU') + ' ₽'
+
+      const payCh    = object?.paymentchanel
+      const payChanEl = document.getElementById('qm-pay-channel')
+      if (payCh && payCh !== 'NONE') {
+        payChanEl.textContent    = QM_CHANNEL[payCh] || payCh
+        payChanEl.style.display  = ''
+      } else {
+        payChanEl.style.display  = 'none'
+      }
+
+      const depRow   = document.getElementById('qm-deposit-row')
+      const depCh    = object?.depositchanel
+      if (booking.deposit > 0 || (depCh && depCh !== 'NONE')) {
+        document.getElementById('qm-deposit').textContent = Number(booking.deposit || 0).toLocaleString('ru-RU') + ' ₽'
+        const depChanEl = document.getElementById('qm-dep-channel')
+        if (depCh && depCh !== 'NONE') {
+          depChanEl.textContent   = QM_CHANNEL[depCh] || depCh
+          depChanEl.style.display = ''
+        } else {
+          depChanEl.style.display = 'none'
+        }
+        depRow.style.display = ''
+      } else {
+        depRow.style.display = 'none'
+      }
+
+      // ── Горничная ─────────────────────────────────────────
+      const maidSel = document.getElementById('qm-maid')
+      maidSel.innerHTML = '<option value="">Не назначена</option>'
+      ;(maids || []).forEach(m => {
+        const opt    = document.createElement('option')
+        opt.value    = m.id
+        opt.textContent = m.name
+        if (m.id === booking.maid_id) opt.selected = true
+        maidSel.appendChild(opt)
+      })
+
+      // ── Ссылки ────────────────────────────────────────────
+      const bookLink   = booking.link ? `/c?id=${booking.link}` : null
+      const contrLink  = booking.contract_link || null
+
+      const qBL  = document.getElementById('qm-booking-link')
+      const qCL  = document.getElementById('qm-contract-link')
+      const qMBL = document.getElementById('qm-mob-booking')
+      const qMCL = document.getElementById('qm-mob-contract')
+
+      if (bookLink) {
+        qBL.href  = bookLink;  qBL.style.display  = ''
+        qMBL.href = bookLink;  qMBL.style.display = ''
+      } else {
+        qBL.style.display  = 'none'
+        qMBL.style.display = 'none'
+      }
+
+      if (contrLink) {
+        qCL.href  = contrLink; qCL.style.display  = ''
+        qMCL.href = contrLink; qMCL.style.display = ''
+      } else {
+        qCL.style.display  = 'none'
+        qMCL.style.display = 'none'
+      }
+
+    } catch (err) {
+      console.error('quickModal error:', err)
+    }
+  }
+
+  function closeQuickModal(event) {
+    if (!event || event.target.id === 'quick-modal') {
+      document.getElementById('quick-modal').classList.remove('active')
+    }
+  }
+
+  async function assignMaid() {
+    const token  = localStorage.getItem('broneboxtoken')
+    const maidId = document.getElementById('qm-maid').value
+    try {
+      await fetch('http://127.0.0.1:3000/bookings/update', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: _qmBookingId, maidid: maidId || null })
+      })
+      const sel = document.getElementById('qm-maid')
+      sel.classList.add('saved')
+      setTimeout(() => sel.classList.remove('saved'), 1600)
+    } catch (err) {
+      console.error('assignMaid error:', err)
+    }
+  }
+
+  function copyQPhone(elemId) {
+    const phone = document.getElementById(elemId)?.textContent?.trim()
+    if (!phone || phone === '—') return
+    navigator.clipboard.writeText(phone).then(() => {
+      const btn = document.getElementById(elemId).closest('.qm-phone-group')?.querySelector('.btn-copy-qm')
+      if (!btn) return
+      const orig = btn.innerHTML
+      btn.innerHTML = '<i class="ti ti-check"></i>'
+      btn.classList.add('copied')
+      setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('copied') }, 1500)
+    })
   }
 </script>
 

@@ -538,3 +538,262 @@ body {
 .instruction-text {
   white-space: pre-wrap;
 }
+
+/* ── Экраны состояния (не найдено) ── */
+.state-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 3rem 1rem 2rem;
+  gap: 12px;
+}
+
+.state-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.state-icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.state-icon-error {
+  background: var(--red-bg);
+  border: 0.5px solid var(--red-border);
+  color: var(--red-text);
+}
+
+.state-title {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.state-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.65;
+}
+
+/* ── Карточка «завершено» ── */
+.card-completed {
+  background: var(--green-bg);
+  border-color: var(--green-border);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.completed-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fff;
+  border: 0.5px solid var(--green-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--green-text);
+}
+
+.completed-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.completed-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--green-dark);
+  margin-bottom: 3px;
+}
+
+.completed-dates {
+  font-size: 13px;
+  color: var(--green-text);
+}
+
+/* ── Адрес ── */
+.location-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.location-addr {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+
+.location-map-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding: 5px 0;
+  transition: color 0.15s;
+}
+
+.location-map-link:hover { color: var(--text-primary); }
+
+.location-map-link svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* ── Источник бронирования ── */
+.source-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 0.5px solid var(--border);
+}
+
+.source-label {
+  font-size: 12px;
+  color: var(--text-hint);
+}
+
+.source-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* ── Метка канала оплаты ── */
+.channel-tag {
+  margin-top: 10px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  border: 0.5px solid var(--border);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ── Значок «оплачено» ── */
+.paid-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  background: var(--green-bg);
+  border: 0.5px solid var(--green-border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--green-text);
+}
+
+.paid-badge svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── Оценка уборки ── */
+.review-prompt {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin-bottom: 14px;
+}
+
+.star-rating {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.star {
+  font-size: 32px;
+  line-height: 1;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--border-strong);
+  padding: 0;
+  transition: color 0.12s, transform 0.1s;
+}
+
+.star:hover,
+.star.active {
+  color: #F0A500;
+}
+
+.star:hover { transform: scale(1.12); }
+
+.btn-review {
+  font-family: var(--font-main);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--bg-card);
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 11px 24px;
+  cursor: pointer;
+  width: 100%;
+  transition: opacity 0.15s;
+}
+
+.btn-review:hover    { opacity: 0.82; }
+.btn-review:disabled { opacity: 0.4; cursor: default; }
+
+.review-thanks {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.review-stars-row {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.star-display {
+  font-size: 26px;
+  color: var(--border-strong);
+}
+
+.star-display.filled { color: #F0A500; }
+
+.review-thanks p {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* ── Responsive дополнения ── */
+@media (max-width: 500px) {
+  .location-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .card-completed {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}

@@ -4,6 +4,8 @@
    - Builds a theme-toggle button in the desktop sidebar
    - Builds a mobile top bar (title + theme toggle)
    - Builds a mobile bottom tab bar, cloned from the sidebar nav
+   - Toast notification helper (window.showToast / window.hideToast)
+   - SSE connection for real-time booking notifications
 
    Pairs with: app-shell.css
    The actual theme *application* on first paint happens via a tiny
@@ -129,10 +131,142 @@
     document.body.appendChild(nav);
   }
 
+  // ── Toast notifications ──────────────────────────────────────────
+  var TOAST_ICONS = {
+    success: 'ti-circle-check',
+    danger:  'ti-circle-x',
+    info:    'ti-info-circle',
+    warning: 'ti-alert-triangle'
+  };
+
+  function getToastContainer() {
+    var el = document.getElementById('toast-container');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'toast-container';
+      el.id = 'toast-container';
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+
+  window.showToast = function (message, type, duration) {
+    type = type || 'info';
+    duration = duration || 3500;
+    var container = getToastContainer();
+    var toast = document.createElement('div');
+    toast.className = 'toast toast-' + type;
+    toast.innerHTML =
+      '<i class="ti ' + (TOAST_ICONS[type] || 'ti-info-circle') + '" aria-hidden="true"></i>' +
+      '<span class="toast-text">' + message + '</span>' +
+      '<button class="toast-close" aria-label="Закрыть"><i class="ti ti-x"></i></button>';
+    toast.querySelector('.toast-close').addEventListener('click', function () {
+      window.hideToast(toast);
+    });
+    container.appendChild(toast);
+    setTimeout(function () { window.hideToast(toast); }, duration);
+  };
+
+  window.hideToast = function (toast) {
+    if (!toast || toast.classList.contains('hiding')) return;
+    toast.classList.add('hiding');
+    setTimeout(function () { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 400);
+  };
+
+  // ── SSE — real-time booking notifications ────────────────────────
+  var _sseActive = false;
+
+  function parseSSE(chunk, onEvent) {
+    var blocks = chunk.split('\n\n');
+    var rest = blocks.pop();
+    blocks.forEach(function (block) {
+      var lines = block.split('\n');
+      var evType = 'message';
+      var evData = '';
+      lines.forEach(function (line) {
+        if (line.indexOf('event:') === 0) {
+          evType = line.slice(6).trim();
+        } else if (line.indexOf('data:') === 0) {
+          evData += (evData ? '\n' : '') + line.slice(5).trim();
+        }
+      });
+      if (evData) onEvent(evType, evData);
+    });
+    return rest;
+  }
+
+  function fmtDate(str) {
+    if (!str || str.length < 10) return str;
+    return str.slice(8, 10) + '.' + str.slice(5, 7) + '.' + str.slice(0, 4);
+  }
+
+  var SSE_TOASTS = {
+    new_booking:    { text: 'Новое бронирование',     type: 'info' },
+    update_booking: { text: 'Бронирование обновлено', type: 'warning' },
+    delete_booking: { text: 'Бронирование удалено',   type: 'danger' }
+  };
+
+  function handleSSEEvent(type, rawData) {
+    var cfg = SSE_TOASTS[type];
+    if (cfg) {
+      try {
+        var d = JSON.parse(rawData);
+        var msg = cfg.text;
+        if (d.objectName) msg += ' — ' + d.objectName;
+        if (d.checkin && d.checkout) msg += ' · ' + fmtDate(d.checkin) + ' – ' + fmtDate(d.checkout);
+        window.showToast(msg, cfg.type, 7000);
+      } catch (e) {
+        window.showToast(cfg.text, cfg.type, 7000);
+      }
+      window.dispatchEvent(new CustomEvent('bronebox:reload'));
+    }
+  }
+
+  function connectSSE() {
+    var token;
+    try { token = localStorage.getItem('broneboxtoken'); } catch (e) {}
+    if (!token) return;
+
+    _sseActive = true;
+
+    fetch('http://127.0.0.1:3000/events', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    }).then(function (res) {
+      if (!res.ok || !res.body) {
+        _sseActive = false;
+        setTimeout(connectSSE, 10000);
+        return;
+      }
+      var reader = res.body.getReader();
+      var decoder = new TextDecoder();
+      var buf = '';
+
+      function read() {
+        reader.read().then(function (ref) {
+          if (ref.done) {
+            _sseActive = false;
+            setTimeout(connectSSE, 5000);
+            return;
+          }
+          buf = parseSSE(buf + decoder.decode(ref.value, { stream: true }), handleSSEEvent);
+          read();
+        }).catch(function () {
+          _sseActive = false;
+          setTimeout(connectSSE, 5000);
+        });
+      }
+      read();
+    }).catch(function () {
+      _sseActive = false;
+      setTimeout(connectSSE, 10000);
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     applyTheme(getTheme());
     buildSidebarToggle();
     buildTopbar();
     buildTabbar();
+    connectSSE();
   });
 })();

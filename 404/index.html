@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>404 — Не найдено</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { overflow: hidden; }
+
+    body {
+      background: #0d0d0c;
+      font-family: 'Sora', sans-serif;
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ── Canvases ── */
+    #stars, #citylight {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    #citylight { z-index: 1; }
+
+    /* ── Horizon glow ── */
+    .horizon {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 38vh;
+      pointer-events: none;
+      z-index: 1;
+      background: linear-gradient(
+        to top,
+        rgba(239,159,39,0.035) 0%,
+        rgba(239,159,39,0.012) 30%,
+        transparent 100%
+      );
+    }
+    .horizon-line {
+      position: fixed;
+      bottom: 36vh; left: 0; right: 0;
+      height: 1px;
+      pointer-events: none;
+      z-index: 1;
+      background: linear-gradient(
+        to right,
+        transparent 0%,
+        rgba(255,255,255,0.04) 20%,
+        rgba(239,159,39,0.06) 50%,
+        rgba(255,255,255,0.04) 80%,
+        transparent 100%
+      );
+    }
+
+    /* ── Ambient glows ── */
+    .amb {
+      position: fixed;
+      pointer-events: none;
+      border-radius: 50%;
+      z-index: 0;
+    }
+    .amb-a {
+      width: 800px; height: 800px;
+      top: -320px; right: -200px;
+      background: radial-gradient(circle, rgba(239,159,39,0.07) 0%, transparent 60%);
+      animation: breathe 9s ease-in-out infinite;
+    }
+    .amb-g {
+      width: 600px; height: 600px;
+      bottom: -260px; left: -140px;
+      background: radial-gradient(circle, rgba(29,158,117,0.055) 0%, transparent 60%);
+      animation: breathe 12s ease-in-out infinite reverse;
+    }
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50%       { transform: scale(1.08); opacity: 1; }
+    }
+
+    /* ── Moon ── */
+    .moon {
+      position: fixed;
+      top: 56px; right: 72px;
+      z-index: 2;
+      pointer-events: none;
+      opacity: 0.55;
+      animation: moon-drift 15s ease-in-out infinite;
+    }
+    @keyframes moon-drift {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-7px); }
+    }
+
+    /* ── Page ── */
+    .page {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 0 24px 48px;
+      animation: fade-in 0.7s ease both;
+    }
+    @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+    /* ── Badge ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 13px;
+      background: rgba(239,159,39,0.08);
+      border: 0.5px solid rgba(239,159,39,0.18);
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 400;
+      color: #EF9F27;
+      margin-bottom: 26px;
+      letter-spacing: 0.3px;
+      animation: fade-up 0.5s 0.1s ease both;
+    }
+    .bdot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: #EF9F27;
+      animation: pulse-dot 2.2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.15} }
+
+    /* ── Flight zone (404 + plane) ── */
+    .fz {
+      position: relative;
+      width: min(500px, 88vw);
+      height: 185px;
+      margin-bottom: 22px;
+      animation: fade-up 0.6s 0.05s ease both;
+    }
+
+    /* ── 404 text ── */
+    .n404 {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(88px, 17vw, 148px);
+      font-weight: 600;
+      letter-spacing: -4px;
+      line-height: 1;
+      user-select: none;
+      pointer-events: none;
+    }
+    .nd { color: transparent; -webkit-text-stroke: 1.5px rgba(255,255,255,0.1); }
+    .na { -webkit-text-stroke: 1.5px rgba(239,159,39,0.33); }
+
+    /* ── Plane SVG layer ── */
+    .fsv {
+      position: absolute;
+      top: -44px; bottom: -44px;
+      left: -64px; right: -64px;
+      overflow: visible;
+      pointer-events: none;
+    }
+
+    /* ── Heading ── */
+    .title {
+      font-size: clamp(18px, 3.5vw, 22px);
+      font-weight: 600;
+      color: #f0efea;
+      letter-spacing: -0.3px;
+      margin-bottom: 8px;
+      animation: fade-up 0.5s 0.28s ease both;
+    }
+
+    /* ── Subtitle ── */
+    .sub {
+      font-size: 14px;
+      font-weight: 300;
+      color: rgba(240,239,234,0.36);
+      line-height: 1.65;
+      max-width: 300px;
+      margin-bottom: 28px;
+      animation: fade-up 0.5s 0.4s ease both;
+    }
+
+    /* ── Contact block ── */
+    .contact-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      animation: fade-up 0.5s 0.52s ease both;
+    }
+
+    .contact-hint {
+      font-size: 12px;
+      font-weight: 300;
+      color: rgba(240,239,234,0.22);
+      letter-spacing: 0.1px;
+    }
+
+    .btn-contact {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 22px;
+      background: transparent;
+      color: #f0efea;
+      border: 0.5px solid rgba(255,255,255,0.14);
+      border-radius: 10px;
+      font-family: 'Sora', sans-serif;
+      font-size: 14px;
+      font-weight: 400;
+      cursor: pointer;
+      text-decoration: none;
+      letter-spacing: 0.1px;
+      transition: border-color 0.18s, color 0.18s, background 0.18s;
+    }
+    .btn-contact:hover {
+      border-color: rgba(239,159,39,0.35);
+      color: #EF9F27;
+      background: rgba(239,159,39,0.05);
+    }
+    .btn-contact:active { transform: scale(0.97); }
+
+    /* ── Animations ── */
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Tablet ── */
+    @media (max-width: 640px) {
+      .moon svg { width: 28px; height: 28px; }
+      .moon { opacity: 0.42; }
+    }
+
+    /* ── Mobile ── */
+    @media (max-width: 480px) {
+      .page {
+        padding: 0 20px 36px;
+        /* push content up slightly so city lights stay at bottom */
+        padding-bottom: max(36px, env(safe-area-inset-bottom, 0px));
+      }
+
+      .badge {
+        font-size: 10px;
+        padding: 4px 10px;
+        margin-bottom: 18px;
+      }
+
+      .fz {
+        height: 132px;
+        margin-bottom: 16px;
+      }
+
+      /* Reduce SVG overflow so plane arc stays within screen bounds */
+      .fsv {
+        top: -26px; bottom: -26px;
+        left: -18px; right: -18px;
+      }
+
+      .title { font-size: 17px; margin-bottom: 6px; }
+
+      .sub {
+        font-size: 13px;
+        max-width: 260px;
+        margin-bottom: 22px;
+      }
+
+      .contact-hint {
+        font-size: 11px;
+        max-width: 240px;
+        line-height: 1.55;
+      }
+
+      .btn-contact {
+        padding: 14px 20px;
+        min-height: 48px; /* comfortable touch target */
+        width: 100%;
+        max-width: 300px;
+        justify-content: center;
+        font-size: 14px;
+      }
+
+      .moon { top: 28px; right: 16px; }
+      .moon svg { width: 24px; height: 24px; }
+    }
+
+    /* ── Small phones (SE, Galaxy A) ── */
+    @media (max-width: 360px) {
+      .badge { font-size: 9.5px; letter-spacing: 0; gap: 5px; }
+      .fz    { height: 112px; }
+      .n404  { font-size: 78px; letter-spacing: -3px; }
+      .sub   { font-size: 12.5px; }
+      .contact-block { gap: 10px; }
+      .moon  { display: none; }
+    }
+
+    /* ── Landscape mobile ── */
+    @media (max-height: 500px) and (orientation: landscape) {
+      .page  { padding: 0 28px 20px; }
+      .badge { margin-bottom: 10px; }
+      .fz    { height: 110px; margin-bottom: 10px; }
+      .n404  { font-size: clamp(72px, 14vw, 110px); }
+      .sub   { margin-bottom: 16px; font-size: 12px; max-width: 380px; }
+      .moon  { top: 16px; right: 20px; }
+      .contact-block { gap: 10px; }
+      .btn-contact   { padding: 10px 20px; min-height: 40px; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+<canvas id="citylight"></canvas>
+<div class="amb amb-a"></div>
+<div class="amb amb-g"></div>
+<div class="horizon"></div>
+<div class="horizon-line"></div>
+
+<!-- Moon -->
+<div class="moon">
+  <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+    <path d="M26 17c0 6.63-5.37 12-12 12a12 12 0 0 1-1.48-.09C16.32 27.34 20 22.58 20 17s-3.68-10.34-7.48-11.91A12 12 0 0 1 14 5c6.63 0 12 5.37 12 12Z"
+      fill="rgba(255,218,148,0.52)" stroke="rgba(255,200,110,0.25)" stroke-width="0.5"/>
+  </svg>
+</div>
+
+<main class="page">
+
+  <div class="badge">
+    <span class="bdot"></span>
+    BroneBox · Управление бронированием
+  </div>
+
+  <!-- 404 + animated plane -->
+  <div class="fz">
+    <div class="n404">
+      <span class="nd na">4</span>
+      <span class="nd">0</span>
+      <span class="nd na">4</span>
+    </div>
+
+    <svg class="fsv" viewBox="0 0 628 273" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+      <defs>
+        <filter id="pglow" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <!-- Dashed flight arc -->
+      <path id="fpath"
+        d="M -55 255 Q 314 -30 683 245"
+        stroke="rgba(255,255,255,0.05)"
+        stroke-width="1.5"
+        stroke-dasharray="5 9"
+        fill="none"
+      />
+
+      <!-- Plane: follows arc, fades at edges -->
+      <g>
+        <animateMotion dur="8s" repeatCount="indefinite" rotate="auto">
+          <mpath href="#fpath"/>
+        </animateMotion>
+        <animate
+          attributeName="opacity"
+          values="0;1;1;0"
+          keyTimes="0;0.06;0.94;1"
+          dur="8s"
+          repeatCount="indefinite"
+        />
+        <g transform="scale(1.9)" filter="url(#pglow)">
+          <!-- Fuselage -->
+          <path d="M -11 0 Q -6 -2.2 2 -2.2 L 13 0 L 2 2.2 Q -6 2.2 -11 0 Z" fill="#EF9F27"/>
+          <!-- Main wings -->
+          <path d="M 1.5 -0.3 L -4.5 -11 L 0 -11 L 7 -0.3 Z" fill="#EF9F27" opacity="0.88"/>
+          <path d="M 1.5  0.3 L -4.5  11 L 0  11 L 7  0.3 Z" fill="#EF9F27" opacity="0.88"/>
+          <!-- Horizontal stabilizers -->
+          <path d="M -11 0 L -8.5 -5.5 L -5.5 -4.5 L -7.5 0 Z" fill="#EF9F27" opacity="0.72"/>
+          <path d="M -11 0 L -8.5  5.5 L -5.5  4.5 L -7.5 0 Z" fill="#EF9F27" opacity="0.72"/>
+          <!-- Vertical stabilizer -->
+          <path d="M -11 0 L -8 -8 L -6 -7 L -7.5 0 Z" fill="#EF9F27" opacity="0.6"/>
+          <!-- Engine -->
+          <path d="M 1 2 L 8 2 Q 9 2 9 3.5 Q 9 5 8 5 L 1 5 Z" fill="#EF9F27" opacity="0.5"/>
+          <!-- Nose light -->
+          <circle cx="13" cy="0" r="1.8" fill="rgba(255,224,130,0.9)"/>
+        </g>
+      </g>
+    </svg>
+  </div>
+
+  <h1 class="title">Страница или бронирование не найдены</h1>
+  <p class="sub">Ссылка устарела, запись была удалена или&nbsp;никогда не&nbsp;существовала.</p>
+
+  <div class="contact-block">
+    <span class="contact-hint">Если вы уверены, что ссылка верна — свяжитесь с менеджером</span>
+  </div>
+
+</main>
+
+<script>
+/* ═══════════════════════════════
+   Stars (upper 65% of screen)
+═══════════════════════════════ */
+const sc  = document.getElementById('stars');
+const sctx = sc.getContext('2d');
+const STARS = [];
+
+function resizeSc() { sc.width = window.innerWidth; sc.height = window.innerHeight; }
+resizeSc();
+window.addEventListener('resize', () => { resizeSc(); initLights(); });
+
+for (let i = 0; i < 170; i++) {
+  STARS.push({
+    x:     Math.random(),
+    y:     Math.random() * 0.60,
+    r:     0.2 + Math.random() * 1.25,
+    phase: Math.random() * Math.PI * 2,
+    spd:   0.25 + Math.random() * 0.9
+  });
+}
+
+/* ═══════════════════════════════
+   City lights (lower 40%)
+   — seen from above through clouds,
+     tiny pinpoints like a city at night
+═══════════════════════════════ */
+const lc   = document.getElementById('citylight');
+const lctx = lc.getContext('2d');
+const LIGHTS = [];
+
+const LIGHT_COLORS = [
+  [239, 159,  39],  // amber (street lamps)
+  [255, 210, 140],  // warm white (apartments)
+  [255, 255, 255],  // white
+  [ 33, 150, 243],  // blue (offices/screens)
+  [200, 220, 255],  // cool white
+];
+
+function initLights() {
+  lc.width  = window.innerWidth;
+  lc.height = window.innerHeight;
+  LIGHTS.length = 0;
+  const count = Math.floor(window.innerWidth * 0.065); // density scales with width
+  for (let i = 0; i < count; i++) {
+    const [r, g, b] = LIGHT_COLORS[Math.floor(Math.random() * LIGHT_COLORS.length)];
+    LIGHTS.push({
+      x:     Math.random(),
+      y:     0.62 + Math.random() * 0.38,   // lower 38% of screen
+      r:     0.4 + Math.random() * 1.8,
+      baseA: 0.08 + Math.random() * 0.48,
+      phase: Math.random() * Math.PI * 2,
+      spd:   0.05 + Math.random() * 0.25,   // very slow twinkle
+      col:   [r, g, b]
+    });
+  }
+}
+initLights();
+
+/* ═══════════════════════════════
+   Unified animation loop
+═══════════════════════════════ */
+(function tick(t) {
+  /* — Stars — */
+  sctx.clearRect(0, 0, sc.width, sc.height);
+  for (const s of STARS) {
+    const a = 0.06 + 0.52 * (0.5 + 0.5 * Math.sin(s.phase + t * s.spd));
+    sctx.beginPath();
+    sctx.arc(s.x * sc.width, s.y * sc.height, s.r, 0, Math.PI * 2);
+    sctx.fillStyle = `rgba(255,255,255,${a.toFixed(3)})`;
+    sctx.fill();
+  }
+
+  /* — City lights — */
+  lctx.clearRect(0, 0, lc.width, lc.height);
+  for (const l of LIGHTS) {
+    const a = l.baseA * (0.55 + 0.45 * Math.sin(l.phase + t * l.spd));
+    const [r, g, b] = l.col;
+    const x = l.x * lc.width;
+    const y = l.y * lc.height;
+
+    /* soft glow halo */
+    const grad = lctx.createRadialGradient(x, y, 0, x, y, l.r * 5);
+    grad.addColorStop(0,   `rgba(${r},${g},${b},${(a * 0.6).toFixed(3)})`);
+    grad.addColorStop(1,   `rgba(${r},${g},${b},0)`);
+    lctx.beginPath();
+    lctx.arc(x, y, l.r * 5, 0, Math.PI * 2);
+    lctx.fillStyle = grad;
+    lctx.fill();
+
+    /* core dot */
+    lctx.beginPath();
+    lctx.arc(x, y, l.r, 0, Math.PI * 2);
+    lctx.fillStyle = `rgba(${r},${g},${b},${Math.min(1, a * 1.6).toFixed(3)})`;
+    lctx.fill();
+  }
+
+  requestAnimationFrame(ts => tick(ts / 1000));
+})(0);
+</script>
+</body>
+</html>

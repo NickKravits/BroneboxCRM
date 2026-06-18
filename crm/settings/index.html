@@ -388,6 +388,7 @@
         loadMaidsList();
         loadObjectsList();
         getIntegrations();
+        loadServiceSettings();
     });
   </script>
   <meta charset="UTF-8" />
@@ -451,6 +452,7 @@
       <button class="tab-btn" id="tab-btn-integrations" onclick="switchTab('integrations', this)">Интеграция</button>
       <button class="tab-btn" id="tab-btn-templates" onclick="switchTab('templates', this)">Шаблоны</button>
       <button class="tab-btn" id="tab-btn-autosend" onclick="switchTab('autosend', this)">Автоотправка</button>
+      <button class="tab-btn" id="tab-btn-service" onclick="switchTab('service', this)">Сервисные</button>
     </div>
 
     <!-- Сотрудники -->
@@ -576,6 +578,57 @@
         <i class="ti ti-rocket"></i>
         <div class="coming-soon-title">Скоро</div>
         <div class="coming-soon-desc">Автоматическая отправка сообщений гостям появится в ближайшем обновлении. Вы сможете настраивать триггеры, время отправки и выбирать шаблоны для каждого события.</div>
+      </div>
+    </div>
+
+    <!-- Сервисные настройки -->
+    <div class="tab-content" id="tab-service">
+      <div class="section-head">
+        <span class="section-label">Сервисные настройки</span>
+      </div>
+      <div class="service-settings-grid">
+
+        <div class="service-card">
+          <div class="service-card-title"><i class="ti ti-user"></i> Профиль</div>
+          <div class="field-group">
+            <label class="field-label" for="svc-user-name">Отображаемое имя</label>
+            <input class="field-input" id="svc-user-name" type="text" placeholder="Иван Иванов">
+          </div>
+          <button class="btn btn-save" onclick="saveUserName()">
+            <i class="ti ti-check"></i> Сохранить
+          </button>
+        </div>
+
+        <div class="service-card" id="svc-tz-section">
+          <div class="service-card-title"><i class="ti ti-clock"></i> Кабинет</div>
+          <div class="field-group">
+            <label class="field-label" for="svc-cabinet-timezone">
+              Часовой пояс
+              <span class="field-hint-icon" title="Часовой пояс используется для корректного отображения времени заезда и выезда гостям">
+                <i class="ti ti-info-circle"></i>
+              </span>
+            </label>
+            <select class="field-input" id="svc-cabinet-timezone">
+              <option value="ETC_GMT_1">UTC+1 — Etc/GMT-1</option>
+              <option value="EUROPE_CENTRAL">UTC+1/+2 — Центральная Европа</option>
+              <option value="EUROPE_KALININGRAD">UTC+2 — Калининград</option>
+              <option value="EUROPE_MOSCOW">UTC+3 — Москва</option>
+              <option value="EUROPE_SAMARA">UTC+4 — Самара</option>
+              <option value="ASIA_YEKATERINBURG">UTC+5 — Екатеринбург</option>
+              <option value="ASIA_OMSK">UTC+6 — Омск</option>
+              <option value="ASIA_KRASNOYARSK">UTC+7 — Красноярск</option>
+              <option value="ASIA_IRKUTSK">UTC+8 — Иркутск</option>
+              <option value="ASIA_YAKUTSK">UTC+9 — Якутск</option>
+              <option value="ASIA_VLADIVOSTOK">UTC+10 — Владивосток</option>
+              <option value="ASIA_MAGADAN">UTC+11 — Магадан</option>
+              <option value="ASIA_KAMCHATKA">UTC+12 — Камчатка</option>
+            </select>
+          </div>
+          <button class="btn btn-save" onclick="saveCabinetTimezone()">
+            <i class="ti ti-check"></i> Сохранить
+          </button>
+        </div>
+
       </div>
     </div>
 
@@ -2511,32 +2564,73 @@ for (const photo of photosData.photos) {
         }
     }
 
-    const toastIcons = {
-  success: 'ti-circle-check',
-  danger:  'ti-circle-x',
-  info:    'ti-info-circle',
-  warning: 'ti-alert-triangle'
-};
+    async function loadServiceSettings() {
+    const token = localStorage.getItem('broneboxtoken');
+    try {
+        const res = await fetch('http://127.0.0.1:3000/users/getme', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const me = await res.json();
+        document.getElementById('svc-user-name').value = me.name || '';
 
-function showToast(message, type = 'info', duration = 3500) {
-  const container = document.getElementById('toast-container');
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.innerHTML = `
-    <i class="ti ${toastIcons[type]}" aria-hidden="true"></i>
-    <span class="toast-text">${message}</span>
-    <button class="toast-close" onclick="hideToast(this.parentElement)" aria-label="Закрыть">
-      <i class="ti ti-x"></i>
-    </button>
-  `;
-  container.appendChild(toast);
-  setTimeout(() => hideToast(toast), duration);
+        if (me.role === 'ADMINISTRATOR') {
+            const cabRes = await fetch('http://127.0.0.1:3000/users/cabinet-info', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (cabRes.ok) {
+                const cabData = await cabRes.json();
+                const tz = cabData.cabinet?.Timezone;
+                if (tz) document.getElementById('svc-cabinet-timezone').value = tz;
+            }
+        } else {
+            const tzSection = document.getElementById('svc-tz-section');
+            if (tzSection) tzSection.style.display = 'none';
+        }
+    } catch (err) {
+        console.error('Ошибка загрузки сервисных настроек:', err);
+    }
 }
 
-function hideToast(toast) {
-  if (!toast || toast.classList.contains('hiding')) return;
-  toast.classList.add('hiding');
-  setTimeout(() => toast.remove(), 400);
+async function saveUserName() {
+    const name = document.getElementById('svc-user-name').value.trim();
+    if (!name) { showToast('Имя не может быть пустым', 'warning'); return; }
+    const token = localStorage.getItem('broneboxtoken');
+    try {
+        const res = await fetch('http://127.0.0.1:3000/users/update-name', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+        });
+        if (res.ok) {
+            showToast('Имя обновлено', 'success');
+            getUserData();
+        } else {
+            const err = await res.json();
+            showToast(err.error || 'Ошибка при сохранении', 'danger');
+        }
+    } catch (err) {
+        showToast('Ошибка при сохранении', 'danger');
+    }
+}
+
+async function saveCabinetTimezone() {
+    const timezone = document.getElementById('svc-cabinet-timezone').value;
+    const token = localStorage.getItem('broneboxtoken');
+    try {
+        const res = await fetch('http://127.0.0.1:3000/cabinet/update-timezone', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ timezone })
+        });
+        if (res.ok) {
+            showToast('Часовой пояс обновлён', 'success');
+        } else {
+            const err = await res.json();
+            showToast(err.error || 'Ошибка при сохранении', 'danger');
+        }
+    } catch (err) {
+        showToast('Ошибка при сохранении', 'danger');
+    }
 }
 </script>
 <div class="toast-container" id="toast-container"></div>

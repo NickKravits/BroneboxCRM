@@ -169,6 +169,17 @@ html[data-theme="light"] .field-input[type="time"]::-webkit-calendar-picker-indi
   filter: invert(0);
 }
 
+html[data-theme="light"] .btn-copy {
+  background: rgba(26,22,18,0.04);
+  border-color: rgba(26,22,18,0.12);
+  color: rgba(26,22,18,0.45);
+}
+html[data-theme="light"] .btn-copy:hover {
+  background: rgba(26,22,18,0.08);
+  border-color: rgba(26,22,18,0.20);
+  color: rgba(26,22,18,0.75);
+}
+
 html[data-theme="light"] .contact-btn.max,
 html[data-theme="light"] .contact-btn.tg {
   color: #1768C2;

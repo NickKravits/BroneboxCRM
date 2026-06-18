@@ -124,8 +124,10 @@
         return `${d}.${m}.${y}`
     }
 
-    document.addEventListener('DOMContentLoaded', () => { 
-        getUserData(); 
+    window.addEventListener('bronebox:reload', () => { getBookings(); });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        getUserData();
         getBookings();
     
         document.getElementById('filter-phone').addEventListener('input', function (e) {
@@ -270,6 +272,20 @@
 
         // Здесь будет реальный запрос к API
         console.log('Фильтры:', { object, checkin, checkout, phone });
+    }
+
+    function copyPhone() {
+        const phone = document.getElementById('m-phone').textContent.trim()
+        if (!phone || phone === '—') return
+        navigator.clipboard.writeText(phone).then(() => {
+            const btn = document.querySelector('.btn-copy')
+            btn.innerHTML = '<i class="ti ti-check"></i>'
+            btn.classList.add('copied')
+            setTimeout(() => {
+                btn.innerHTML = '<i class="ti ti-copy"></i>'
+                btn.classList.remove('copied')
+            }, 1500)
+        })
     }
 
     function closeBookingModal(event) {
@@ -540,25 +556,17 @@
  
           <div class="modal-field readonly">
             <span class="field-label">Телефон</span>
-            <span class="field-value" id="m-phone">—</span>
+            <div class="phone-row">
+              <span class="field-value" id="m-phone">—</span>
+              <button class="btn-copy" onclick="copyPhone()" title="Копировать номер">
+                <i class="ti ti-copy"></i>
+              </button>
+            </div>
           </div>
- 
+
           <div class="modal-field readonly">
             <span class="field-label">Доп. телефон</span>
             <span class="field-value" id="m-additional-phone">—</span>
-          </div>
- 
-          <!-- Кнопки связи -->
-          <div class="modal-field full-width">
-            <span class="field-label">Связаться</span>
-            <div class="contact-btns">
-              <button class="contact-btn max" id="btn-max" onclick="contactMax()">
-                <i class="ti ti-brand-maxcdn"></i> Max
-              </button>
-              <button class="contact-btn tg" id="btn-tg" onclick="contactTelegram()">
-                <i class="ti ti-brand-telegram"></i> Telegram
-              </button>
-            </div>
           </div>
  
           <div class="modal-field">

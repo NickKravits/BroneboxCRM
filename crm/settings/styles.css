@@ -739,3 +739,37 @@ select.field-input option {
   color: #ff87a8;
   border: 0.5px solid rgba(212,83,126,0.25);
 }
+
+/* ── Service settings tab ─────────────────────────────────────── */
+.service-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+  padding: 4px 0;
+}
+
+.service-card {
+  background: var(--card-bg);
+  border: 0.5px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.service-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.service-card-title i {
+  font-size: 15px;
+  opacity: 0.7;
+}
