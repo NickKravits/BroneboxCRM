@@ -189,6 +189,10 @@
         <i class="ti ti-calendar-event" aria-hidden="true"></i>
         <span class="nav-label">Бронирования</span>
       </a>
+      <a class="nav-item" href="/crm/maids">
+        <i class="ti ti-sparkles" aria-hidden="true"></i>
+        <span class="nav-label">Уборки</span>
+      </a>
       <a class="nav-item" href="/crm/logs">
         <i class="ti ti-info-circle" aria-hidden="true"></i>
         <span class="nav-label">Логи</span>
@@ -319,6 +323,13 @@
         }
     }
 
+    function renderReviewStars(review) {
+        if (!review) return '—';
+        return [1,2,3,4,5].map(i =>
+            `<i class="ti ${i <= review ? 'ti-star-filled' : 'ti-star'}" style="color:${i <= review ? '#F5A623' : 'var(--text-muted)'};font-size:16px;"></i>`
+        ).join('');
+    }
+
     async function editBooking() {
         const token = localStorage.getItem('broneboxtoken');
 
@@ -326,12 +337,11 @@
         const checkin = document.getElementById('m-begin-time').value;
         const checkout = document.getElementById('m-end-time').value;
         const channel = document.getElementById('m-channel').value;
-        const maidId = document.getElementById('m-maid').value;
         try {
             const res = await fetch('http://127.0.0.1:3000/bookings/update', {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: bookingId, checkin: checkin, checkout: checkout, channel: channel, maidid: maidId })
+                body: JSON.stringify({ id: bookingId, checkin: checkin, checkout: checkout, channel: channel })
             });
 
             if (!res.ok) {
@@ -417,9 +427,7 @@
 
             document.getElementById('m-channel').value = booking.channel || '';
 
-            document.getElementById('m-maid').value = booking.maid_id || '';
-
-            document.getElementById('m-review').textContent = booking.review_score ? booking.review_score + ' / 5' : '—';
+            document.getElementById('m-review').innerHTML = renderReviewStars(booking.review);
 
             document.getElementById('m-contract-id').value = booking.contract_id || '';
             document.getElementById('m-contract-link').value = booking.contract_link || '';
@@ -592,20 +600,12 @@
       <div class="modal-section">
         <div class="modal-section-title">Обслуживание</div>
         <div class="modal-grid">
- 
-          <div class="modal-field">
-            <span class="field-label">Горничная</span>
-            <select class="field-input" id="m-maid">
-              <option value="">Не назначена</option>
-              <!-- Заполняется динамически -->
-            </select>
-          </div>
- 
+
           <div class="modal-field readonly">
             <span class="field-label">Оценка уборки от гостя</span>
             <span class="field-value" id="m-review">—</span>
           </div>
- 
+
         </div>
       </div>
  

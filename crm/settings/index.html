@@ -381,6 +381,61 @@
     }
   }
 
+    async function loadCleaningTemplate() {
+        const token = localStorage.getItem('broneboxtoken');
+        try {
+            const res = await fetch('http://127.0.0.1:3000/cabinet/cleaning-template', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? ''; };
+            set('svc-cleaning-template', data.template);
+            set('svc-approx-marker',     data.approxTimeMarker ?? '~');
+            set('svc-empty-marker',      data.emptyStayMarker  ?? '—');
+            set('svc-cleaning-header',   data.cleaningHeader);
+            set('svc-cleaning-footer',   data.cleaningFooter);
+        } catch (err) { console.error(err); }
+    }
+
+    async function saveCleaningTemplate() {
+        const token = localStorage.getItem('broneboxtoken');
+        const get = (id, def) => document.getElementById(id)?.value ?? def;
+        const template        = get('svc-cleaning-template', '');
+        const approxTimeMarker = get('svc-approx-marker', '~');
+        const emptyStayMarker  = get('svc-empty-marker',  '—');
+        const cleaningHeader   = get('svc-cleaning-header', '');
+        const cleaningFooter   = get('svc-cleaning-footer', '');
+        try {
+            const res = await fetch('http://127.0.0.1:3000/cabinet/cleaning-template', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ template, approxTimeMarker, emptyStayMarker, cleaningHeader, cleaningFooter })
+            });
+            const data = await res.json();
+            if (!res.ok) { showToast(data.error || 'Ошибка', 'danger'); return; }
+            showToast('Шаблон сохранён', 'success');
+        } catch (err) { showToast('Ошибка при сохранении', 'danger'); }
+    }
+
+    function insertCleaningVar(v) {
+        const ta = document.getElementById('svc-cleaning-template');
+        if (!ta) return;
+        const pos = ta.selectionStart;
+        ta.value = ta.value.slice(0, pos) + v + ta.value.slice(ta.selectionEnd);
+        ta.selectionStart = ta.selectionEnd = pos + v.length;
+        ta.focus();
+    }
+
+    function insertHeaderFooterVar(id, v) {
+        const ta = document.getElementById(id);
+        if (!ta) return;
+        const pos = ta.selectionStart;
+        ta.value = ta.value.slice(0, pos) + v + ta.value.slice(ta.selectionEnd);
+        ta.selectionStart = ta.selectionEnd = pos + v.length;
+        ta.focus();
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         getUserData();
         loadStaffList();
@@ -389,6 +444,7 @@
         loadObjectsList();
         getIntegrations();
         loadServiceSettings();
+        loadCleaningTemplate();
     });
   </script>
   <meta charset="UTF-8" />
@@ -425,6 +481,10 @@
       <a class="nav-item" href="/crm/bookings">
         <i class="ti ti-calendar-event" aria-hidden="true"></i>
         <span class="nav-label">Бронирования</span>
+      </a>
+      <a class="nav-item" href="/crm/maids">
+        <i class="ti ti-sparkles" aria-hidden="true"></i>
+        <span class="nav-label">Уборки</span>
       </a>
       <a class="nav-item" href="/crm/logs">
         <i class="ti ti-info-circle" aria-hidden="true"></i>
@@ -524,6 +584,66 @@
 
     <!-- Шаблоны -->
     <div class="tab-content" id="tab-templates">
+
+      <!-- Cleaning schedule template -->
+      <div class="section-head">
+        <span class="section-label">Шаблон графика уборок</span>
+      </div>
+      <div class="template-card" style="margin-bottom:20px;">
+
+        <!-- Заголовок -->
+        <div class="field-group" style="margin-bottom:6px;">
+          <label class="field-label">Заголовок графика <span class="field-hint-icon" title="Добавляется перед всеми объектами при копировании">?</span></label>
+          <textarea class="field-input" id="svc-cleaning-header" rows="3" placeholder="Например: График уборок на {Дата_уборки}&#10;~ примерное время, — не жили"></textarea>
+          <div class="vars-row" style="margin-top:4px;">
+            <button class="var-chip" onclick="insertHeaderFooterVar('svc-cleaning-header', '{Дата_уборки}')">{Дата_уборки}</button>
+          </div>
+        </div>
+
+        <!-- Шаблон строки объекта -->
+        <div class="field-group" style="margin-bottom:6px;">
+          <label class="field-label">Шаблон строки объекта</label>
+          <textarea class="field-input" id="svc-cleaning-template" rows="8" style="font-family:monospace;font-size:12px;"></textarea>
+        </div>
+        <div class="vars-row" style="margin-bottom:4px;">
+          <button class="var-chip" onclick="insertCleaningVar('{Название_квартиры}')">{Название_квартиры}</button>
+          <button class="var-chip" onclick="insertCleaningVar('{Адрес_квартиры}')">{Адрес_квартиры}</button>
+          <button class="var-chip" onclick="insertCleaningVar('{Время_выезда}')">{Время_выезда}</button>
+          <button class="var-chip" onclick="insertCleaningVar('{Время_заезда}')">{Время_заезда}</button>
+          <button class="var-chip" onclick="insertCleaningVar('{Комментарий}')">{Комментарий}</button>
+          <button class="var-chip" onclick="insertCleaningVar('{Горничная}')">{Горничная}</button>
+          <button class="var-chip var-chip--hint" onclick="insertCleaningVar('{Новая_строка}')" title="Пустая строка-разделитель между объектами">{Новая_строка} ↵</button>
+        </div>
+        <p class="field-hint" style="margin-bottom:12px;">↵ {Новая_строка} — пустая строка между объектами в скопированном тексте</p>
+
+        <!-- Маркеры -->
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;">
+          <div class="field-group" style="flex:1;min-width:140px;">
+            <label class="field-label">Маркер примерного времени</label>
+            <input type="text" class="field-input" id="svc-approx-marker" placeholder="~" maxlength="10">
+            <p class="field-hint">Добавляется к времени, если оно не указано в бронировании (напр. ~12:00).</p>
+          </div>
+          <div class="field-group" style="flex:1;min-width:140px;">
+            <label class="field-label">Маркер «Не жили»</label>
+            <input type="text" class="field-input" id="svc-empty-marker" placeholder="—" maxlength="20">
+            <p class="field-hint">Заменяет {Время_выезда}, если в этот день никто не выезжал (напр. — или «не жили»).</p>
+          </div>
+        </div>
+
+        <!-- Подвал -->
+        <div class="field-group" style="margin-bottom:12px;">
+          <label class="field-label">Подвал графика <span class="field-hint-icon" title="Добавляется после всех объектов при копировании">?</span></label>
+          <textarea class="field-input" id="svc-cleaning-footer" rows="3" placeholder="Например: Дата уборки: {Дата_уборки}&#10;~ — время приблизительное"></textarea>
+          <div class="vars-row" style="margin-top:4px;">
+            <button class="var-chip" onclick="insertHeaderFooterVar('svc-cleaning-footer', '{Дата_уборки}')">{Дата_уборки}</button>
+          </div>
+        </div>
+
+        <button class="btn btn-save" onclick="saveCleaningTemplate()">
+          <i class="ti ti-device-floppy"></i> Сохранить шаблон
+        </button>
+      </div>
+
       <div class="section-head">
         <span class="section-label">Шаблоны сообщений</span>
         <button class="btn"><i class="ti ti-plus"></i> Создать</button>

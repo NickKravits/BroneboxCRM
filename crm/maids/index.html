@@ -2,19 +2,411 @@
 <html lang="ru">
 <head>
   <script>
-    (function() {
-      const token = localStorage.getItem('broneboxtoken');
-      if (!token) window.location.href = '/login';
+    (function () {
+      try {
+        if (localStorage.getItem('bronebox-theme') === 'light') {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      } catch (e) {}
     })();
   </script>
+
+  <script>
+    (function() {
+      const token = localStorage.getItem('broneboxtoken');
+      if (!token) { window.location.href = '/login'; }
+    })();
+  </script>
+
+  <script>
+    var _scheduleDate = '';
+    var _scheduleEntries = [];
+    var _maids = [];
+
+    function tomorrow() {
+      var d = new Date();
+      d.setDate(d.getDate() + 1);
+      return d.toISOString().slice(0, 10);
+    }
+
+    function fmtDate(str) {
+      if (!str || str.length < 10) return str || '—';
+      return str.slice(8, 10) + '.' + str.slice(5, 7) + '.' + str.slice(0, 4);
+    }
+
+    async function getUserData() {
+      var token = localStorage.getItem('broneboxtoken');
+      if (!token) { window.location.href = '/login'; return; }
+      try {
+        var res = await fetch('http://127.0.0.1:3000/users/getme', {
+          method: 'GET',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
+        });
+        if (!res.ok) { localStorage.removeItem('broneboxtoken'); window.location.href = '/login'; return; }
+        var data = await res.json();
+        var roleMap = { ADMINISTRATOR: 'Администратор', STAFF: 'Менеджер' };
+        var initials = data.name ? data.name.split(' ').map(function(n) { return n[0]; }).join('').toUpperCase().slice(0, 2) : '??';
+        document.querySelector('.avatar-name').textContent = data.name || 'Без имени';
+        document.querySelector('.avatar-role').textContent = roleMap[data.role] || 'Неизвестная роль';
+        document.getElementById('main_avatar').textContent = initials;
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function loadSchedule() {
+      var date = document.getElementById('schedule-date').value;
+      if (!date) return;
+      _scheduleDate = date;
+
+      var token = localStorage.getItem('broneboxtoken');
+      var list = document.getElementById('schedule-list');
+      list.innerHTML = '<div class="sched-empty"><i class="ti ti-loader-2 ti-spin"></i><span>Загрузка...</span></div>';
+
+      try {
+        var res = await fetch('http://127.0.0.1:3000/maids/schedule?date=' + date, {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!res.ok) throw new Error('API error');
+        var data = await res.json();
+        _scheduleEntries = data.entries;
+        _maids = data.maids;
+        renderSchedule();
+      } catch (err) {
+        list.innerHTML = '<div class="sched-empty"><i class="ti ti-alert-circle"></i><span>Ошибка загрузки данных</span></div>';
+        console.error(err);
+      }
+    }
+
+    function renderSchedule() {
+      var list = document.getElementById('schedule-list');
+      list.innerHTML = '';
+
+      if (_scheduleEntries.length === 0) {
+        list.innerHTML = '<div class="sched-empty"><i class="ti ti-sparkles"></i><span>Нет объектов в кабинете</span></div>';
+        return;
+      }
+
+      _scheduleEntries.forEach(function(entry, idx) {
+        var card = document.createElement('div');
+        var cardClass = 'sched-card';
+        if (!entry.included) cardClass += ' sched-card--excluded';
+        if (entry.status === 'ongoing') cardClass += ' sched-card--ongoing';
+        card.className = cardClass;
+        card.dataset.idx = idx;
+
+        var maidOptions = '<option value="">Не выбрано</option>';
+        _maids.forEach(function(m) {
+          maidOptions += '<option value="' + m.id + '"' + (entry.maidId == m.id ? ' selected' : '') + '>' + m.name + '</option>';
+        });
+
+        // Badge for status
+        var statusBadge = '';
+        if (entry.status === 'ongoing') {
+          statusBadge = '<span class="sched-badge sched-badge--ongoing">Гости проживают до ' + fmtDate(entry.ongoingCheckout) + '</span>';
+        } else if (entry.status === 'empty') {
+          statusBadge = '<span class="sched-badge sched-badge--empty">Не жили</span>';
+        }
+
+        // Guest review stars (from checkout booking)
+        var reviewBlock = '';
+        if (entry.status === 'checkout' && entry.guestReview) {
+          var stars = '';
+          for (var s = 1; s <= 5; s++) {
+            stars += '<i class="ti ' + (s <= entry.guestReview ? 'ti-star-filled' : 'ti-star') + ' sched-star' + (s <= entry.guestReview ? ' sched-star--filled' : '') + '"></i>';
+          }
+          reviewBlock = '<div class="sched-review">' + stars + '</div>';
+        }
+
+        // Checkout block (departing guests)
+        var checkoutTimeWarn = (entry.status === 'checkout' && !entry.hasBookingCheckoutTime && !entry.checkoutTime);
+        var checkoutTimeClass = checkoutTimeWarn ? 'time-warn' : '';
+
+        // Checkin block (arriving guests)
+        var checkinTimeWarn = (entry.status === 'checkout' && entry.hasNextBooking && !entry.hasBookingCheckinTime && !entry.checkinTime);
+        var checkinTimeClass = checkinTimeWarn ? 'time-warn' : '';
+
+        var datesBlock = '';
+        if (entry.status === 'checkout') {
+          var noNextBookingNote = !entry.hasNextBooking
+            ? '<span class="sched-no-booking">На сегодня брони нет</span>'
+            : '';
+
+          datesBlock =
+            '<div class="sched-dates-row">' +
+              '<div class="sched-date-block">' +
+                '<div class="sched-date-label">Выезд (уходящие)</div>' +
+                '<div class="sched-date-val">' + fmtDate(entry.checkoutDate) + '</div>' +
+                '<div class="sched-time-wrap ' + checkoutTimeClass + '">' +
+                  '<input type="time" class="sched-time-input" value="' + (entry.checkoutTime || '') + '" placeholder="Не указано" onchange="updateField(' + idx + ', \'checkoutTime\', this.value)">' +
+                  (checkoutTimeWarn ? '<span class="sched-time-warn-icon" title="Время не указано в бронировании"><i class="ti ti-alert-triangle"></i></span>' : '') +
+                '</div>' +
+              '</div>' +
+              '<div class="sched-dates-divider"><i class="ti ti-arrow-right"></i></div>' +
+              '<div class="sched-date-block">' +
+                '<div class="sched-date-label">Заезд (следующие)</div>' +
+                (noNextBookingNote
+                  ? '<div class="sched-date-val">—</div>' + noNextBookingNote
+                  : '<div class="sched-date-val">' + fmtDate(entry.checkinDate) + '</div>' +
+                    '<div class="sched-time-wrap ' + checkinTimeClass + '">' +
+                      '<input type="time" class="sched-time-input" value="' + (entry.checkinTime || '') + '" placeholder="Не указано" onchange="updateField(' + idx + ', \'checkinTime\', this.value)">' +
+                      (checkinTimeWarn ? '<span class="sched-time-warn-icon" title="Время не указано в бронировании"><i class="ti ti-alert-triangle"></i></span>' : '') +
+                    '</div>'
+                ) +
+              '</div>' +
+            '</div>';
+        } else if (entry.status === 'empty' && entry.hasNextBooking) {
+          // No checkout today, but next guests are arriving — show checkin time only
+          var emptyCheckinWarn = !entry.hasBookingCheckinTime && !entry.checkinTime;
+          var emptyCheckinClass = emptyCheckinWarn ? 'time-warn' : '';
+          datesBlock =
+            '<div class="sched-dates-row">' +
+              '<div class="sched-date-block">' +
+                '<div class="sched-date-label">Заезд (следующие)</div>' +
+                '<div class="sched-date-val">' + fmtDate(entry.checkinDate) + '</div>' +
+                '<div class="sched-time-wrap ' + emptyCheckinClass + '">' +
+                  '<input type="time" class="sched-time-input" value="' + (entry.checkinTime || '') + '" placeholder="Не указано" onchange="updateField(' + idx + ', \'checkinTime\', this.value)">' +
+                  (emptyCheckinWarn ? '<span class="sched-time-warn-icon" title="Время не указано в бронировании"><i class="ti ti-alert-triangle"></i></span>' : '') +
+                '</div>' +
+              '</div>' +
+            '</div>';
+        } else if (entry.status === 'ongoing') {
+          datesBlock =
+            '<div class="sched-dates-row sched-dates-row--compact">' +
+              '<div class="sched-date-block">' +
+                '<div class="sched-date-label">Проживают</div>' +
+                '<div class="sched-date-val">' + fmtDate(entry.ongoingCheckin) + ' — ' + fmtDate(entry.ongoingCheckout) + '</div>' +
+              '</div>' +
+            '</div>';
+        }
+
+        // Maid + comment rows only make sense when object is included
+        var detailsBlock = entry.status !== 'ongoing' || entry.included
+          ? '<div class="sched-maid-row">' +
+              '<label class="sched-field-label">Горничная</label>' +
+              '<select class="sched-select" onchange="updateField(' + idx + ', \'maidId\', this.value)">' + maidOptions + '</select>' +
+            '</div>' +
+            '<div class="sched-comment-row">' +
+              '<label class="sched-field-label">Комментарий</label>' +
+              '<textarea class="sched-textarea" placeholder="Пожелания, количество гостей..." onchange="updateField(' + idx + ', \'comment\', this.value)">' + (entry.comment || '') + '</textarea>' +
+            '</div>'
+          : '';
+
+        card.innerHTML =
+          '<div class="sched-card-header">' +
+            '<div class="sched-object-info">' +
+              '<div class="sched-object-name">' + (entry.objectName || 'Без названия') + '</div>' +
+              '<div class="sched-object-addr">' + (entry.objectAddress || '') + '</div>' +
+              (statusBadge || reviewBlock ? '<div style="margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' + (statusBadge || '') + reviewBlock + '</div>' : '') +
+            '</div>' +
+            '<div class="sched-toggle-wrap">' +
+              '<span class="sched-toggle-label">' + (entry.included ? 'В списке' : 'Исключён') + '</span>' +
+              '<label class="toggle-switch">' +
+                '<input type="checkbox" ' + (entry.included ? 'checked' : '') + ' onchange="toggleIncluded(' + idx + ', this.checked)">' +
+                '<span class="toggle-track"></span>' +
+              '</label>' +
+            '</div>' +
+          '</div>' +
+          datesBlock +
+          detailsBlock;
+
+        list.appendChild(card);
+      });
+    }
+
+    function toggleIncluded(idx, checked) {
+      _scheduleEntries[idx].included = checked;
+      // Re-render the single card so details show/hide correctly for 'ongoing'
+      var entry = _scheduleEntries[idx];
+      if (entry.status === 'ongoing') {
+        renderSchedule();
+      } else {
+        var card = document.querySelector('[data-idx="' + idx + '"]');
+        if (card) {
+          card.classList.toggle('sched-card--excluded', !checked);
+          var label = card.querySelector('.sched-toggle-label');
+          if (label) label.textContent = checked ? 'В списке' : 'Исключён';
+        }
+      }
+    }
+
+    function updateField(idx, field, value) {
+      _scheduleEntries[idx][field] = value;
+    }
+
+    function changeDay(delta) {
+      var d = new Date(_scheduleDate || tomorrow());
+      d.setDate(d.getDate() + delta);
+      var s = d.toISOString().slice(0, 10);
+      document.getElementById('schedule-date').value = s;
+      _scheduleDate = s;
+      loadSchedule();
+    }
+
+    async function saveSchedule() {
+      if (!_scheduleDate) return;
+      var token = localStorage.getItem('broneboxtoken');
+      try {
+        // Normalize entries for save endpoint (rename checkoutBookingId → bookingId)
+        var savePayload = _scheduleEntries.map(function(e) {
+          return {
+            objectid:     e.objectid,
+            bookingId:    e.checkoutBookingId || null,
+            maidId:       e.maidId,
+            checkinTime:  e.checkinTime,
+            checkoutTime: e.checkoutTime,
+            comment:      e.comment,
+            included:     e.included
+          };
+        });
+        var res = await fetch('http://127.0.0.1:3000/maids/schedule/save', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date: _scheduleDate, entries: savePayload })
+        });
+        if (!res.ok) throw new Error('Save failed');
+        window.showToast('График сохранён', 'success', 3000);
+      } catch (err) {
+        window.showToast('Ошибка при сохранении', 'danger', 3000);
+        console.error(err);
+      }
+    }
+
+    async function copySchedule() {
+      var token = localStorage.getItem('broneboxtoken');
+      try {
+        var res = await fetch('http://127.0.0.1:3000/cabinet/cleaning-template', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!res.ok) throw new Error('Template fetch failed');
+        var data = await res.json();
+        var template = data.template;
+
+        var included = _scheduleEntries.filter(function(e) { return e.included; });
+        if (included.length === 0) {
+          window.showToast('Нет объектов в списке', 'warning', 3000);
+          return;
+        }
+
+        var maidMap = {};
+        _maids.forEach(function(m) { maidMap[m.id] = m.name; });
+
+        var approxMarker = data.approxTimeMarker ?? '~';
+        var emptyMarker  = data.emptyStayMarker  ?? '—';
+        var rawHeader    = data.cleaningHeader    || '';
+        var rawFooter    = data.cleaningFooter    || '';
+
+        // Replace {Дата_уборки} in header/footer with the selected cleaning date
+        var cleaningDateFmt = fmtDate(_scheduleDate);
+        var header = rawHeader.replace(/\{Дата_уборки\}/g, cleaningDateFmt);
+        var footer = rawFooter.replace(/\{Дата_уборки\}/g, cleaningDateFmt);
+
+        var parts = included.map(function(e) {
+          // For empty status (no one checked out), use emptyMarker instead of a time
+          var checkoutTimeText;
+          if (e.status === 'empty') {
+            checkoutTimeText = emptyMarker;
+          } else {
+            checkoutTimeText = e.checkoutTime || e.objectCheckoutDef || 'не указано';
+            if (approxMarker && !e.hasBookingCheckoutTime) checkoutTimeText = approxMarker + checkoutTimeText;
+          }
+
+          var checkinTimeText = e.hasNextBooking ? (e.checkinTime || e.objectCheckinDef || 'не указано') : '—';
+          if (approxMarker && e.hasNextBooking && !e.hasBookingCheckinTime) checkinTimeText = approxMarker + checkinTimeText;
+
+          return template
+            .replace('{Название_квартиры}', e.objectName || '')
+            .replace('{Адрес_квартиры}', e.objectAddress || '')
+            .replace('{Время_выезда}', checkoutTimeText)
+            .replace('{Время_заезда}', checkinTimeText)
+            .replace('{Дата_выезда}', e.checkoutDate ? fmtDate(e.checkoutDate) : '—')
+            .replace('{Дата_заезда}', e.checkinDate  ? fmtDate(e.checkinDate)  : '—')
+            .replace('{Комментарий}', e.comment || '')
+            .replace('{Горничная}', e.maidId ? (maidMap[e.maidId] || 'Не выбрано') : 'Не выбрано')
+            .replace('{Новая_строка}', '');
+        });
+
+        var textParts = [];
+        if (header) textParts.push(header);
+        textParts.push.apply(textParts, parts);
+        if (footer) textParts.push(footer);
+        var text = textParts.join('\n');
+        await navigator.clipboard.writeText(text);
+        window.showToast('Скопировано в буфер обмена', 'success', 3000);
+      } catch (err) {
+        window.showToast('Ошибка при копировании', 'danger', 3000);
+        console.error(err);
+      }
+    }
+
+    // ── Template modal ──────────────────────────────────────────
+    async function openTemplateModal() {
+      var token = localStorage.getItem('broneboxtoken');
+      try {
+        var res = await fetch('http://127.0.0.1:3000/cabinet/cleaning-template', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        var data = await res.json();
+        document.getElementById('tpl-text').value = data.template || '';
+      } catch (err) { console.error(err); }
+      document.getElementById('template-modal').classList.add('open');
+    }
+
+    function closeTemplateModal() {
+      document.getElementById('template-modal').classList.remove('open');
+    }
+
+    function insertVar(v) {
+      var ta = document.getElementById('tpl-text');
+      var pos = ta.selectionStart;
+      var before = ta.value.slice(0, pos);
+      var after = ta.value.slice(ta.selectionEnd);
+      ta.value = before + v + after;
+      ta.selectionStart = ta.selectionEnd = pos + v.length;
+      ta.focus();
+    }
+
+    async function saveTemplate() {
+      var token = localStorage.getItem('broneboxtoken');
+      var template = document.getElementById('tpl-text').value;
+      try {
+        var res = await fetch('http://127.0.0.1:3000/cabinet/cleaning-template', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ template: template })
+        });
+        if (!res.ok) {
+          var err = await res.json();
+          window.showToast(err.error || 'Ошибка при сохранении', 'danger', 3500);
+          return;
+        }
+        window.showToast('Шаблон сохранён', 'success', 3000);
+        closeTemplateModal();
+      } catch (err) {
+        window.showToast('Ошибка при сохранении', 'danger', 3000);
+        console.error(err);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      getUserData();
+      var dateInput = document.getElementById('schedule-date');
+      dateInput.value = tomorrow();
+      _scheduleDate = dateInput.value;
+      loadSchedule();
+    });
+
+    window.addEventListener('bronebox:reload', function() { loadSchedule(); });
+  </script>
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BroneBox CRM — Горничные</title>
+  <title>BroneBox CRM — График уборок</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
   <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="maids.css" />
+  <link rel="stylesheet" href="app-shell.css" />
 </head>
 <body>
 
@@ -27,7 +419,7 @@
   <aside class="sidebar" id="sidebar">
     <div class="avatar-wrap">
       <div class="avatar">
-        <div class="person-avatar" id="main_avatar"></div>
+        <span id="main_avatar">??</span>
       </div>
       <div class="avatar-info">
         <span class="avatar-name">...</span>
@@ -45,16 +437,12 @@
         <span class="nav-label">Бронирования</span>
       </a>
       <a class="nav-item active" href="/crm/maids">
-        <i class="ti ti-user" aria-hidden="true"></i>
-        <span class="nav-label">Горничные</span>
+        <i class="ti ti-sparkles" aria-hidden="true"></i>
+        <span class="nav-label">Уборки</span>
       </a>
-      <a class="nav-item" href="/crm/chats">
-        <i class="ti ti-message-circle" aria-hidden="true"></i>
-        <span class="nav-label">Чаты</span>
-      </a>
-      <a class="nav-item " href="/crm/notes">
-        <i class="ti ti-note" aria-hidden="true"></i>
-        <span class="nav-label">Задачи</span>
+      <a class="nav-item" href="/crm/logs">
+        <i class="ti ti-info-circle" aria-hidden="true"></i>
+        <span class="nav-label">Логи</span>
       </a>
       <a class="nav-item" href="/crm/settings">
         <i class="ti ti-settings-2" aria-hidden="true"></i>
@@ -71,70 +459,104 @@
   </aside>
 
   <!-- Main -->
-  <main class="main" id="main">
+  <main class="main">
 
-    <!-- Page header -->
+    <!-- Header -->
     <div class="page-header">
       <div class="page-header-left">
         <h1 class="page-title">График уборок</h1>
-        <span class="page-subtitle" id="dateLabel">Загрузка...</span>
+        <div class="date-nav">
+          <button class="date-nav-btn" onclick="changeDay(-1)" aria-label="Предыдущий день">
+            <i class="ti ti-chevron-left"></i>
+          </button>
+          <input type="date" id="schedule-date" class="date-nav-input" onchange="loadSchedule()" />
+          <button class="date-nav-btn" onclick="changeDay(1)" aria-label="Следующий день">
+            <i class="ti ti-chevron-right"></i>
+          </button>
+        </div>
       </div>
       <div class="page-header-right">
-        <div class="date-picker-wrap">
-          <i class="ti ti-calendar" aria-hidden="true"></i>
-          <input type="date" id="datePicker" onchange="loadForDate(this.value)" />
-        </div>
-        <button class="action-btn" onclick="copySchedule()">
-          <i class="ti ti-copy" aria-hidden="true"></i>
-          <span>Скопировать</span>
+        <button class="btn" onclick="openTemplateModal()">
+          <i class="ti ti-template"></i>
+          <span class="btn-label">Шаблон</span>
         </button>
-        <button class="action-btn action-btn--primary" onclick="saveSchedule()">
-          <i class="ti ti-device-floppy" aria-hidden="true"></i>
-          <span>Сохранить</span>
+        <button class="btn" onclick="copySchedule()">
+          <i class="ti ti-copy"></i>
+          <span class="btn-label">Скопировать</span>
+        </button>
+        <button class="btn btn-save" onclick="saveSchedule()">
+          <i class="ti ti-device-floppy"></i>
+          <span class="btn-label">Сохранить</span>
         </button>
       </div>
     </div>
 
-    <!-- Objects list -->
-    <div class="objects-list" id="objectsList">
-      <!-- rendered by JS -->
+    <!-- Schedule list -->
+    <div id="schedule-list" class="schedule-list">
+      <div class="sched-empty">
+        <i class="ti ti-loader-2 ti-spin"></i>
+        <span>Загрузка...</span>
+      </div>
     </div>
 
   </main>
 </div>
 
-<!-- Toast -->
-<div class="toast" id="toast"></div>
+<!-- Mobile sticky action bar -->
+<div class="mob-action-bar">
+  <button class="mob-action-btn" onclick="copySchedule()">
+    <i class="ti ti-copy"></i>
+    Скопировать
+  </button>
+  <button class="mob-action-btn mob-action-btn--primary" onclick="saveSchedule()">
+    <i class="ti ti-device-floppy"></i>
+    Сохранить
+  </button>
+</div>
 
-<script src="maids.js"></script>
+<!-- Template modal -->
+<div class="modal-overlay" id="template-modal" onclick="if(event.target===this)closeTemplateModal()">
+  <div class="modal-box modal-box-lg">
+    <div class="modal-head">
+      <span class="modal-title">Шаблон для копирования</span>
+      <button class="btn btn-icon" onclick="closeTemplateModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body modal-scroll">
+      <div class="field-group">
+        <label class="field-label">
+          Текст шаблона
+          <span class="field-hint-icon" title="Используйте переменные из списка ниже"><i class="ti ti-info-circle"></i></span>
+        </label>
+        <textarea class="field-input" id="tpl-text" rows="10" placeholder="Введите шаблон..."></textarea>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Переменные — нажмите чтобы вставить</label>
+        <div class="vars-row">
+          <button class="var-chip" onclick="insertVar('{Название_квартиры}')">{Название_квартиры}</button>
+          <button class="var-chip" onclick="insertVar('{Адрес_квартиры}')">{Адрес_квартиры}</button>
+          <button class="var-chip" onclick="insertVar('{Время_выезда}')">{Время_выезда}</button>
+          <button class="var-chip" onclick="insertVar('{Время_заезда}')">{Время_заезда}</button>
+          <button class="var-chip" onclick="insertVar('{Комментарий}')">{Комментарий}</button>
+          <button class="var-chip" onclick="insertVar('{Горничная}')">{Горничная}</button>
+          <button class="var-chip var-chip--hint" onclick="insertVar('{Новая_строка}')" title="Вставляет пустую строку-разделитель между объектами в скопированном тексте">{Новая_строка} ↵</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeTemplateModal()">Отмена</button>
+      <button class="btn btn-save" onclick="saveTemplate()">
+        <i class="ti ti-device-floppy"></i>
+        Сохранить шаблон
+      </button>
+    </div>
+  </div>
+</div>
+
 <script>
   function toggleSidebar() {
     document.getElementById('sidebar').classList.toggle('open');
   }
-
-  async function getUserData() {
-    const token = localStorage.getItem('broneboxtoken');
-    if (!token) { window.location.href = '/login'; return; }
-    try {
-      const res = await fetch('http://127.0.0.1:3000/users/getme', {
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
-      });
-      if (!res.ok) { localStorage.removeItem('broneboxtoken'); window.location.href = '/login'; return; }
-      const data = await res.json();
-      const roleMap = { ADMINISTRATOR: 'Администратор', STAFF: 'Менеджер' };
-      const initials = data.name ? data.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '??';
-      document.querySelector('.avatar-name').textContent = data.name || 'Без имени';
-      document.querySelector('.avatar-role').textContent = roleMap[data.role] || 'Неизвестная роль';
-      document.getElementById('main_avatar').textContent = initials;
-    } catch (err) {
-      console.error('Ошибка при получении данных пользователя:', err);
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    getUserData();
-  });
 </script>
+<script src="app-shell.js"></script>
 </body>
 </html>

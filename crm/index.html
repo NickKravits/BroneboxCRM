@@ -160,6 +160,7 @@
 
       const card = document.createElement('div');
       card.className = 'guest-card';
+      card.dataset.bookingId = booking.id;
       card.onclick = () => quickModal(booking.id);
 
       // Завтра заезд
@@ -401,6 +402,10 @@ function formatDate(dateStr) {
     <a class="nav-item" href="/crm/bookings">
       <i class="ti ti-calendar-event" aria-hidden="true"></i>
       <span class="nav-label">Бронирования</span>
+    </a>
+    <a class="nav-item" href="/crm/maids">
+      <i class="ti ti-sparkles" aria-hidden="true"></i>
+      <span class="nav-label">Уборки</span>
     </a>
     <a class="nav-item" href="/crm/logs">
       <i class="ti ti-info-circle" aria-hidden="true"></i>
@@ -687,6 +692,23 @@ function formatDate(dateStr) {
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: _qmBookingId, channel: ch === 'Phone' ? ' ' : ch })
       })
+
+      // Немедленно обновляем channel-badge на карточке
+      const card = document.querySelector(`.guest-card[data-booking-id="${_qmBookingId}"]`)
+      if (card) {
+        let footer = card.querySelector('.card-footer-row')
+        if (ch === 'Phone') {
+          footer?.remove()
+        } else {
+          if (!footer) {
+            footer = document.createElement('div')
+            footer.className = 'card-footer-row'
+            card.appendChild(footer)
+          }
+          footer.innerHTML = `<span class="channel-tag">${ch}</span>`
+        }
+      }
+
       const active = document.querySelector('.qm-channel-pill.active')
       if (active) {
         active.classList.add('saved')
