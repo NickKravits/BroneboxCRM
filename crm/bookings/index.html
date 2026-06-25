@@ -217,10 +217,20 @@
     <!-- Header -->
     <div class="page-header">
       <h1 class="page-title">Бронирования</h1>
-      <button class="btn-apply" onclick="getBookings()"></i>
-        Необработанные брони
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs-bar">
+      <button class="tab-btn active" id="tab-all" onclick="switchTab('all')">
+        <i class="ti ti-calendar-event"></i> Все брони
+      </button>
+      <button class="tab-btn" id="tab-unprocessed" onclick="switchTab('unprocessed')">
+        <i class="ti ti-alert-circle"></i> Необработанные
       </button>
     </div>
+
+    <!-- Panel: All bookings -->
+    <div id="panel-all">
 
     <!-- Filters -->
     <div class="filters-bar">
@@ -259,6 +269,13 @@
     <div class="results-meta" id="results-meta">Показано ~ бронирования</div>
 
     <div class="bookings-list" id="bookings-list">
+    </div>
+    </div><!-- /panel-all -->
+
+    <!-- Panel: Unprocessed -->
+    <div id="panel-unprocessed" style="display:none">
+      <div class="results-meta" id="unprocessed-meta">Загрузка...</div>
+      <div class="bookings-list" id="unprocessed-list"></div>
     </div>
   </main>
 </div>
@@ -353,6 +370,116 @@
         } catch (err) {
             console.error(err);
             return;
+        }
+    }
+
+    function switchTab(tab) {
+        document.getElementById('panel-all').style.display = tab === 'all' ? '' : 'none';
+        document.getElementById('panel-unprocessed').style.display = tab === 'unprocessed' ? '' : 'none';
+        document.getElementById('tab-all').classList.toggle('active', tab === 'all');
+        document.getElementById('tab-unprocessed').classList.toggle('active', tab === 'unprocessed');
+        if (tab === 'unprocessed') getUnprocessed();
+    }
+
+    async function getUnprocessed() {
+        var token = localStorage.getItem('broneboxtoken');
+        var container = document.getElementById('unprocessed-list');
+        var meta = document.getElementById('unprocessed-meta');
+        container.innerHTML = '';
+        meta.textContent = 'Загрузка...';
+
+        try {
+            var objRes = await fetch('http://127.0.0.1:3000/objects/getall', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            var objData = await objRes.json();
+            var objects = objData.objects || [];
+
+            var res = await fetch('http://127.0.0.1:3000/bookings/unprocessed', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            var data = await res.json();
+            var items = data.items || [];
+
+            if (!items.length) {
+                meta.textContent = 'Нет необработанных бронирований';
+                container.innerHTML = '<div class="empty-state"><i class="ti ti-circle-check"></i><p>Все брони обработаны</p></div>';
+                return;
+            }
+
+            meta.textContent = 'Необработанных: ' + items.length;
+            items.forEach(function(item) {
+                container.appendChild(renderUnprocessedCard(item, objects));
+            });
+        } catch (err) {
+            console.error(err);
+            meta.textContent = 'Ошибка загрузки';
+        }
+    }
+
+    function renderUnprocessedCard(item, objects) {
+        var card = document.createElement('div');
+        card.className = 'booking-row';
+
+        var actionLabel = item.action === 'create_booking' ? 'Создание' : 'Обновление';
+        var reasonHtml = '';
+        var actionHtml = '';
+
+        if (item.failReason === 'object_not_found') {
+            reasonHtml = '<span class="upc-reason-badge upc-reason--warn">Объект не найден</span>';
+            var opts = objects.map(function(o) { return '<option value="' + o.id + '">' + o.name + '</option>'; }).join('');
+            actionHtml = '<select class="filter-select upc-obj-select" id="upc-obj-' + item.id + '"><option value="">Выберите объект...</option>' + opts + '</select>' +
+                '<button class="btn-resolve" onclick="resolveUnprocessed(' + item.id + ')"><i class="ti ti-arrow-right"></i> Перенести</button>';
+        } else if (item.failReason === 'booking_not_found') {
+            reasonHtml = '<span class="upc-reason-badge upc-reason--info">Бронь не найдена</span>';
+            actionHtml = '<button class="btn-resolve" onclick="resolveUnprocessed(' + item.id + ')"><i class="ti ti-plus"></i> Создать бронь</button>';
+        } else {
+            reasonHtml = '<span class="upc-reason-badge upc-reason--err">' + (item.failMessage || 'Неизвестная ошибка') + '</span>';
+        }
+
+        card.innerHTML =
+            '<div class="bk-guest">' +
+                '<div class="bk-name">' + (item.fio || '—') + '</div>' +
+                '<div class="bk-phone">' + (item.phone || '—') + '</div>' +
+            '</div>' +
+            '<div class="bk-divider"></div>' +
+            '<div class="bk-object">' +
+                '<div class="bk-object-name">Бронь #' + item.bookingId + '</div>' +
+                '<div class="bk-object-source">' + actionLabel + ' · ' + (item.source || '—') + '</div>' +
+            '</div>' +
+            '<div class="bk-divider"></div>' +
+            '<div class="bk-dates">' +
+                '<div class="bk-date-range">' + (item.beginDate ? formatDate(item.beginDate) : '—') + ' — ' + (item.endDate ? formatDate(item.endDate) : '—') + '</div>' +
+            '</div>' +
+            '<div class="bk-divider"></div>' +
+            '<div class="upc-right">' +
+                reasonHtml +
+                '<div class="upc-actions">' + actionHtml + '</div>' +
+            '</div>';
+
+        return card;
+    }
+
+    async function resolveUnprocessed(id) {
+        var token = localStorage.getItem('broneboxtoken');
+        var sel = document.getElementById('upc-obj-' + id);
+        var objectId = sel ? (sel.value ? Number(sel.value) : null) : null;
+
+        try {
+            var res = await fetch('http://127.0.0.1:3000/bookings/unprocessed/resolve', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, objectId: objectId })
+            });
+            var data = await res.json();
+            if (!res.ok) {
+                window.showToast && window.showToast(data.error || 'Ошибка', 'error');
+                return;
+            }
+            window.showToast && window.showToast(data.message || 'Перенесено', 'success');
+            getUnprocessed();
+        } catch (err) {
+            console.error(err);
         }
     }
 

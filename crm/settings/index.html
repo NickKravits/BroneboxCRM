@@ -59,12 +59,16 @@
         const initials = data.name ? data.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '??';
 
         if (data.role == 'ADMINISTRATOR') {
-            const container = document.getElementById('menu-tabs');
-            container.insertAdjacentHTML('afterbegin', `<button class="tab-btn active" id="tab-btn-staff" onclick="switchTab('admins', this)">Сотрудники</button>`);
-            document.getElementById('tab-admins').classList.add('active');
+            if (!document.getElementById('tab-btn-staff')) {
+                const container = document.getElementById('menu-tabs');
+                container.insertAdjacentHTML('afterbegin', `<button class="tab-btn active" id="tab-btn-staff" onclick="switchTab('admins', this)">Сотрудники</button>`);
+                document.getElementById('tab-admins').classList.add('active');
+            }
         } else {
-            document.getElementById('tab-btn-maids').classList.add('active');
-            document.getElementById('tab-maids').classList.add('active');
+            if (!document.querySelector('#menu-tabs .tab-btn.active')) {
+                document.getElementById('tab-btn-maids').classList.add('active');
+                document.getElementById('tab-maids').classList.add('active');
+            }
         }
 
         document.querySelector('.avatar-name').textContent = data.name || 'Без имени';
@@ -445,6 +449,7 @@
         getIntegrations();
         loadServiceSettings();
         loadCleaningTemplate();
+        loadMsgTemplates();
     });
   </script>
   <meta charset="UTF-8" />
@@ -646,49 +651,12 @@
 
       <div class="section-head">
         <span class="section-label">Шаблоны сообщений</span>
-        <button class="btn"><i class="ti ti-plus"></i> Создать</button>
+        <button class="btn" id="btn-new-tpl" onclick="openMsgTemplateModal(null)" style="display:none">
+          <i class="ti ti-plus"></i> Создать
+        </button>
       </div>
-      <div class="template-list">
-        <div class="template-card">
-          <div class="template-head">
-            <span class="template-name">Подтверждение бронирования</span>
-            <div class="person-actions">
-              <button class="btn"><i class="ti ti-pencil"></i></button>
-              <button class="btn btn-danger"><i class="ti ti-trash"></i></button>
-            </div>
-          </div>
-          <div class="template-preview">{{имя}}, ваше бронирование подтверждено! Объект: {{номер}}, заезд {{дата_заезда}}, выезд {{дата_выезда}}. Ждём вас!</div>
-        </div>
-        <div class="template-card">
-          <div class="template-head">
-            <span class="template-name">Приветствие при заезде</span>
-            <div class="person-actions">
-              <button class="btn"><i class="ti ti-pencil"></i></button>
-              <button class="btn btn-danger"><i class="ti ti-trash"></i></button>
-            </div>
-          </div>
-          <div class="template-preview">Здравствуйте, {{имя}}! Рады приветствовать вас. Ваш номер — {{номер}}. Код от двери: {{код}}.</div>
-        </div>
-        <div class="template-card">
-          <div class="template-head">
-            <span class="template-name">Напоминание о выезде</span>
-            <div class="person-actions">
-              <button class="btn"><i class="ti ti-pencil"></i></button>
-              <button class="btn btn-danger"><i class="ti ti-trash"></i></button>
-            </div>
-          </div>
-          <div class="template-preview">{{имя}}, напоминаем, что завтра {{дата}} у вас запланирован выезд до 12:00. Будем рады видеть вас снова!</div>
-        </div>
-        <div class="template-card">
-          <div class="template-head">
-            <span class="template-name">Запрос отзыва</span>
-            <div class="person-actions">
-              <button class="btn"><i class="ti ti-pencil"></i></button>
-              <button class="btn btn-danger"><i class="ti ti-trash"></i></button>
-            </div>
-          </div>
-          <div class="template-preview">Спасибо за ваш визит, {{имя}}! Оставьте, пожалуйста, отзыв о вашем пребывании: {{ссылка}}.</div>
-        </div>
+      <div id="msg-template-list" class="template-list">
+        <div style="color:var(--text-muted);font-size:13px;padding:8px 0">Загрузка...</div>
       </div>
     </div>
 
@@ -719,6 +687,12 @@
           </button>
         </div>
 
+        <div class="service-card" id="svc-balance-section" style="display:none">
+          <div class="service-card-title"><i class="ti ti-wallet"></i> Баланс кабинета</div>
+          <div class="svc-balance-display" id="svc-balance-value">—</div>
+          <div class="svc-balance-hint">Текущий баланс счёта</div>
+        </div>
+
         <div class="service-card" id="svc-tz-section">
           <div class="service-card-title"><i class="ti ti-clock"></i> Кабинет</div>
           <div class="field-group">
@@ -746,6 +720,17 @@
           </div>
           <button class="btn btn-save" onclick="saveCabinetTimezone()">
             <i class="ti ti-check"></i> Сохранить
+          </button>
+        </div>
+
+        <div class="service-card">
+          <div class="service-card-title"><i class="ti ti-bug"></i> Сообщить об ошибке</div>
+          <div class="field-group">
+            <label class="field-label" for="svc-bug-text">Описание проблемы</label>
+            <textarea class="field-input" id="svc-bug-text" rows="3" placeholder="Опишите, что произошло и как воспроизвести..."></textarea>
+          </div>
+          <button class="btn btn-save" onclick="sendBugReport()">
+            <i class="ti ti-send"></i> Отправить
           </button>
         </div>
 
@@ -2701,6 +2686,12 @@ for (const photo of photosData.photos) {
                 const cabData = await cabRes.json();
                 const tz = cabData.cabinet?.Timezone;
                 if (tz) document.getElementById('svc-cabinet-timezone').value = tz;
+
+                const balance = cabData.cabinet?.balance ?? 0;
+                const balEl = document.getElementById('svc-balance-value');
+                if (balEl) balEl.textContent = balance.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₽';
+                const balSection = document.getElementById('svc-balance-section');
+                if (balSection) balSection.style.display = '';
             }
         } else {
             const tzSection = document.getElementById('svc-tz-section');
@@ -2733,6 +2724,144 @@ async function saveUserName() {
     }
 }
 
+let _canEditTemplates = false
+
+async function loadMsgTemplates() {
+    const token = localStorage.getItem('broneboxtoken')
+    const container = document.getElementById('msg-template-list')
+    try {
+        const [meRes, tplRes] = await Promise.all([
+            fetch('http://127.0.0.1:3000/users/getme', { headers: { 'Authorization': `Bearer ${token}` } }),
+            fetch('http://127.0.0.1:3000/cabinet/templates', { headers: { 'Authorization': `Bearer ${token}` } })
+        ])
+        const me  = await meRes.json()
+        const { templates } = await tplRes.json()
+
+        _canEditTemplates = me.role === 'ADMINISTRATOR' || me.staff?.managetemplates === 'YES'
+        const btn = document.getElementById('btn-new-tpl')
+        if (btn && _canEditTemplates) btn.style.display = ''
+
+        container.innerHTML = ''
+        if (!templates || !templates.length) {
+            container.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:8px 0">Нет шаблонов. Создайте первый!</div>'
+            return
+        }
+        templates.forEach(t => container.appendChild(renderMsgTemplateCard(t)))
+    } catch (err) {
+        console.error(err)
+        container.innerHTML = '<div style="color:var(--text-muted)">Ошибка загрузки</div>'
+    }
+}
+
+function renderMsgTemplateCard(t) {
+    const card = document.createElement('div')
+    card.className = 'template-card'
+    card.innerHTML = `
+        <div class="template-head">
+            <span class="template-name">${t.name}</span>
+            ${_canEditTemplates ? `<div class="person-actions">
+                <button class="btn" onclick="openMsgTemplateModal(${t.id})"><i class="ti ti-pencil"></i></button>
+                <button class="btn btn-danger" onclick="deleteMsgTemplate(${t.id})"><i class="ti ti-trash"></i></button>
+            </div>` : ''}
+        </div>
+        <div class="template-preview">${t.body.replace(/\n/g, ' ')}</div>
+    `
+    return card
+}
+
+function openMsgTemplateModal(id) {
+    document.getElementById('msg-tpl-id').value = id || ''
+    if (id) {
+        const token = localStorage.getItem('broneboxtoken')
+        fetch('http://127.0.0.1:3000/cabinet/templates', { headers: { 'Authorization': `Bearer ${token}` } })
+            .then(r => r.json())
+            .then(({ templates }) => {
+                const t = (templates || []).find(x => x.id === id)
+                if (!t) return
+                document.getElementById('msg-tpl-modal-title').textContent = 'Редактировать шаблон'
+                document.getElementById('msg-tpl-name').value = t.name
+                document.getElementById('msg-tpl-body').value = t.body
+                document.getElementById('modal-msg-tpl').classList.add('active')
+            })
+    } else {
+        document.getElementById('msg-tpl-modal-title').textContent = 'Новый шаблон'
+        document.getElementById('msg-tpl-name').value = ''
+        document.getElementById('msg-tpl-body').value = ''
+        document.getElementById('modal-msg-tpl').classList.add('active')
+    }
+}
+
+function closeMsgTemplateModal() {
+    document.getElementById('modal-msg-tpl').classList.remove('active')
+}
+
+function insertMsgVar(v) {
+    const ta = document.getElementById('msg-tpl-body')
+    if (!ta) return
+    const pos = ta.selectionStart
+    ta.value = ta.value.slice(0, pos) + v + ta.value.slice(ta.selectionEnd)
+    ta.selectionStart = ta.selectionEnd = pos + v.length
+    ta.focus()
+}
+
+async function saveMsgTemplate() {
+    const token = localStorage.getItem('broneboxtoken')
+    const id    = document.getElementById('msg-tpl-id').value
+    const name  = document.getElementById('msg-tpl-name').value.trim()
+    const body  = document.getElementById('msg-tpl-body').value.trim()
+    if (!name || !body) { showToast('Заполните название и текст', 'warning'); return }
+    try {
+        const res = await fetch('http://127.0.0.1:3000/cabinet/templates/save', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id ? Number(id) : undefined, name, body })
+        })
+        const data = await res.json()
+        if (!res.ok) { showToast(data.error || 'Ошибка', 'danger'); return }
+        showToast('Шаблон сохранён', 'success')
+        closeMsgTemplateModal()
+        loadMsgTemplates()
+    } catch (err) { showToast('Ошибка при сохранении', 'danger') }
+}
+
+async function deleteMsgTemplate(id) {
+    if (!confirm('Удалить шаблон?')) return
+    const token = localStorage.getItem('broneboxtoken')
+    try {
+        const res = await fetch('http://127.0.0.1:3000/cabinet/templates/delete', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+        })
+        const data = await res.json()
+        if (!res.ok) { showToast(data.error || 'Ошибка', 'danger'); return }
+        showToast('Шаблон удалён', 'success')
+        loadMsgTemplates()
+    } catch (err) { showToast('Ошибка при удалении', 'danger') }
+}
+
+async function sendBugReport() {
+    const message = document.getElementById('svc-bug-text')?.value?.trim();
+    if (!message) { showToast('Опишите проблему', 'warning'); return; }
+    const token = localStorage.getItem('broneboxtoken');
+    try {
+        const res = await fetch('http://127.0.0.1:3000/users/bug-report', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message, page: window.location.pathname })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showToast('Отчёт отправлен, спасибо!', 'success');
+            document.getElementById('svc-bug-text').value = '';
+        } else {
+            showToast(data.error || 'Ошибка', 'danger');
+        }
+    } catch (err) {
+        showToast('Ошибка при отправке', 'danger');
+    }
+}
+
 async function saveCabinetTimezone() {
     const timezone = document.getElementById('svc-cabinet-timezone').value;
     const token = localStorage.getItem('broneboxtoken');
@@ -2754,6 +2883,59 @@ async function saveCabinetTimezone() {
 }
 </script>
 <div class="toast-container" id="toast-container"></div>
+
+<!-- Модал редактирования шаблона сообщения -->
+<div class="modal-overlay" id="modal-msg-tpl" onclick="if(event.target.id==='modal-msg-tpl')closeMsgTemplateModal()">
+  <div class="modal-box" style="max-width:560px;width:100%">
+    <div class="modal-head">
+      <span class="modal-title" id="msg-tpl-modal-title">Новый шаблон</span>
+      <button class="modal-close" onclick="closeMsgTemplateModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:14px">
+      <input type="hidden" id="msg-tpl-id">
+      <div class="field-group">
+        <label class="field-label">Название</label>
+        <input class="field-input" id="msg-tpl-name" type="text" placeholder="Например: Подтверждение бронирования">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Текст шаблона</label>
+        <textarea class="field-input" id="msg-tpl-body" rows="6" placeholder="Текст сообщения..."></textarea>
+        <div class="vars-row" style="margin-top:6px;flex-wrap:wrap;gap:4px">
+          <button class="var-chip" onclick="insertMsgVar('{имя}')" title="ФИО гостя">{имя}</button>
+          <button class="var-chip" onclick="insertMsgVar('{телефон}')" title="Номер телефона">{телефон}</button>
+          <button class="var-chip" onclick="insertMsgVar('{объект}')" title="Название объекта">{объект}</button>
+          <button class="var-chip" onclick="insertMsgVar('{адрес}')" title="Адрес объекта">{адрес}</button>
+          <button class="var-chip" onclick="insertMsgVar('{дата_заезда}')" title="Дата заезда">{дата_заезда}</button>
+          <button class="var-chip" onclick="insertMsgVar('{дата_выезда}')" title="Дата выезда">{дата_выезда}</button>
+          <button class="var-chip" onclick="insertMsgVar('{ссылка}')" title="Ссылка на гостевую страницу">{ссылка}</button>
+          <button class="var-chip" onclick="insertMsgVar('{сумма}')" title="Сумма бронирования">{сумма}</button>
+          <button class="var-chip" onclick="insertMsgVar('{оплачено}')" title="Сумма предоплаты">{оплачено}</button>
+          <button class="var-chip" onclick="insertMsgVar('{долг}')" title="Остаток к оплате">{долг}</button>
+        </div>
+        <div class="placeholder-table">
+          <div class="ph-row ph-header"><span>Плейсхолдер</span><span>Что подставляется</span></div>
+          <div class="ph-row"><span>{имя}</span><span>ФИО гостя</span></div>
+          <div class="ph-row"><span>{телефон}</span><span>Номер телефона гостя</span></div>
+          <div class="ph-row"><span>{объект}</span><span>Название объекта</span></div>
+          <div class="ph-row"><span>{адрес}</span><span>Адрес объекта</span></div>
+          <div class="ph-row"><span>{дата_заезда}</span><span>Дата заезда</span></div>
+          <div class="ph-row"><span>{дата_выезда}</span><span>Дата выезда</span></div>
+          <div class="ph-row"><span>{ссылка}</span><span>Ссылка на гостевую страницу</span></div>
+          <div class="ph-row"><span>{сумма}</span><span>Полная сумма бронирования</span></div>
+          <div class="ph-row"><span>{оплачено}</span><span>Сумма предоплаты</span></div>
+          <div class="ph-row"><span>{долг}</span><span>Остаток к оплате</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-save" onclick="saveMsgTemplate()">
+        <i class="ti ti-device-floppy"></i> Сохранить
+      </button>
+      <button class="btn" onclick="closeMsgTemplateModal()">Отмена</button>
+    </div>
+  </div>
+</div>
+
 <script src="app-shell.js"></script>
 </body>
 </html>

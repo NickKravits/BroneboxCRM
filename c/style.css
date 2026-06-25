@@ -784,6 +784,34 @@ body {
   color: var(--text-secondary);
 }
 
+/* ── Уведомление о доступности ── */
+.available-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--amber-bg);
+  border: 0.5px solid var(--amber-border);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  font-size: 13px;
+  color: var(--amber-text);
+  line-height: 1.5;
+  margin-top: 10px;
+}
+
+.available-notice svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* ── Иконка «в ожидании» ── */
+.state-icon-amber {
+  background: var(--amber-bg);
+  border: 0.5px solid var(--amber-border);
+  color: var(--amber-text);
+}
+
 /* ── Responsive дополнения ── */
 @media (max-width: 500px) {
   .location-row {

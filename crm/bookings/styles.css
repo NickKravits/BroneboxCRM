@@ -400,3 +400,55 @@
   border: 0.5px solid rgba(212, 83, 126, 0.2);
 }
 .modal-btn.delete:hover { background: rgba(212, 83, 126, 0.2); }
+
+/* ── Tabs ── */
+.tabs-bar {
+    display: flex; gap: 4px; margin-bottom: 18px;
+}
+.tab-btn {
+    display: flex; align-items: center; gap: 6px;
+    background: transparent;
+    border: 0.5px solid transparent;
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 12px; font-family: 'Sora', sans-serif; font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.tab-btn:hover { background: var(--surface-hover); color: var(--text-secondary); }
+.tab-btn.active { background: var(--surface); border-color: var(--border-mid); color: var(--text-primary); }
+.tab-btn i { font-size: 14px; }
+
+/* ── Unprocessed card extras ── */
+.upc-right {
+    flex: 1; display: flex; align-items: center; gap: 12px; justify-content: flex-end; flex-wrap: wrap;
+}
+.upc-actions { display: flex; align-items: center; gap: 8px; }
+
+.upc-reason-badge {
+    display: inline-block;
+    font-size: 11px; font-weight: 500;
+    padding: 3px 9px; border-radius: 6px;
+    white-space: nowrap;
+}
+.upc-reason--warn { background: rgba(239,159,39,0.1); color: var(--accent-amber); border: 0.5px solid rgba(239,159,39,0.25); }
+.upc-reason--info { background: rgba(29,158,117,0.1); color: #2ed19d; border: 0.5px solid rgba(29,158,117,0.25); }
+.upc-reason--err  { background: rgba(212,83,126,0.1); color: var(--accent-pink); border: 0.5px solid rgba(212,83,126,0.25); }
+
+.upc-obj-select { font-size: 12px; padding: 5px 10px; height: 32px; }
+
+.btn-resolve {
+    display: flex; align-items: center; gap: 5px;
+    background: rgba(29,158,117,0.1);
+    border: 0.5px solid rgba(29,158,117,0.25);
+    border-radius: 8px;
+    padding: 5px 12px;
+    font-size: 12px; font-family: 'Sora', sans-serif; font-weight: 500;
+    color: #2ed19d;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+.btn-resolve:hover { background: rgba(29,158,117,0.2); }
+.btn-resolve i { font-size: 13px; }

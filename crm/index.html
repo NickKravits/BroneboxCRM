@@ -359,6 +359,7 @@ function formatDate(dateStr) {
       getUserData();
       getBookings();
       getAvailableObjects();
+      loadQmTemplates();
     });
 
     window.addEventListener('bronebox:reload', () => {
@@ -551,6 +552,13 @@ function formatDate(dateStr) {
             <button class="btn-copy-qm" onclick="copyQPhone('qm-addphone')" title="Копировать"><i class="ti ti-copy"></i></button>
           </div>
         </div>
+        <div class="qm-contact-row" id="qm-guestlink-row" style="display:none">
+          <div class="qm-phone-group">
+            <span class="qm-phone-lbl"><i class="ti ti-link"></i></span>
+            <span class="qm-phone-val qm-guestlink-val" id="qm-guestlink-text">—</span>
+            <button class="btn-copy-qm" onclick="copyGuestLink()" title="Копировать ссылку"><i class="ti ti-copy"></i></button>
+          </div>
+        </div>
         <!-- Канал связи -->
         <div class="qm-channel-pills">
           <button class="qm-channel-pill" data-ch="Phone" onclick="setQmChannel('Phone')">
@@ -561,9 +569,6 @@ function formatDate(dateStr) {
           </button>
           <button class="qm-channel-pill" data-ch="Max" onclick="setQmChannel('Max')">
             <i class="ti ti-message-circle"></i> Max
-          </button>
-          <button class="qm-channel-pill" data-ch="Whatsapp" onclick="setQmChannel('Whatsapp')">
-            <i class="ti ti-brand-whatsapp"></i> WhatsApp
           </button>
         </div>
       </div>
@@ -656,21 +661,52 @@ function formatDate(dateStr) {
   let _qmBookingId      = null
   let _qmPhone          = ''
   let _qmContactChannel = 'Phone'
+  let _qmTemplates      = []
+  let _qmBookingData    = {}
 
   const QM_CHANNEL = { TOCHKA: 'Точка Банк', TBANK: 'Т-Банк', MONETA: 'Moneta' }
   const QM_STATUS  = { booked: 'Забронировано', canceled: 'Отменено', deleted: 'Удалено', request: 'Запрос' }
 
-  const QM_CH_ICONS  = { Phone: 'ti-phone', Telegram: 'ti-brand-telegram', Max: 'ti-message-circle', Whatsapp: 'ti-brand-whatsapp' }
-  const QM_CH_LABELS = { Phone: 'Позвонить', Telegram: 'Telegram', Max: 'Max', Whatsapp: 'WhatsApp' }
+  const QM_CH_ICONS  = { Phone: 'ti-phone', Telegram: 'ti-brand-telegram', Max: 'ti-message-circle' }
+  const QM_CH_LABELS = { Phone: 'Позвонить', Telegram: 'Telegram', Max: 'Max' }
+
+  async function loadQmTemplates() {
+    const token = localStorage.getItem('broneboxtoken')
+    try {
+      const res = await fetch('http://127.0.0.1:3000/cabinet/templates', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const data = await res.json()
+      _qmTemplates = data.templates || []
+    } catch (err) { console.error('loadQmTemplates:', err) }
+  }
+
+  function fillTemplate(body) {
+    const d = _qmBookingData
+    return body
+      .replace(/{имя}/g,         d.fio         || '')
+      .replace(/{телефон}/g,     d.phone       || '')
+      .replace(/{объект}/g,      d.objectName  || '')
+      .replace(/{адрес}/g,       d.objectAddress || '')
+      .replace(/{дата_заезда}/g, d.beginDate   || '')
+      .replace(/{дата_выезда}/g, d.endDate     || '')
+      .replace(/{ссылка}/g,      d.guestLink   || '')
+      .replace(/{сумма}/g,       d.amount      || '')
+      .replace(/{оплачено}/g,    d.prepayment  || '')
+      .replace(/{долг}/g,        d.balance     || '')
+  }
 
   function openContact() {
     const digits = _qmPhone.replace(/\D/g, '')
-    const links = {
-      Telegram: 'https://t.me/+' + digits,
-      Max:      'https://vk.me/+' + digits,
-      Whatsapp: 'https://wa.me/' + digits,
+    if (_qmContactChannel === 'Max') {
+      window.showToast && window.showToast('Функционал в разработке. Скопируйте номер и напишите гостю вручную.', 'info')
+      return
     }
-    window.open(links[_qmContactChannel] || 'tel:+' + digits)
+    if (_qmContactChannel === 'Telegram') {
+      showTgTemplatePicker(digits)
+      return
+    }
+    window.open('tel:+' + digits)
   }
 
   async function setQmChannel(ch, save = true) {
@@ -771,7 +807,7 @@ function formatDate(dateStr) {
 
       // Канал связи — инициализация без сохранения
       const rawCh = (booking.channel || '').trim()
-      setQmChannel(['Telegram', 'Max', 'Whatsapp'].includes(rawCh) ? rawCh : 'Phone', false)
+      setQmChannel(['Telegram', 'Max'].includes(rawCh) ? rawCh : 'Phone', false)
 
       // ── Детали ────────────────────────────────────────────
       const locationRow = document.getElementById('qm-location-row')
@@ -839,18 +875,37 @@ function formatDate(dateStr) {
       })
 
       // ── Ссылки ────────────────────────────────────────────
-      const bookLink   = booking.link ? `/c?id=${booking.link}` : null
+      const bookLink   = booking.link ? `http://127.0.0.1:5500/c/?id=${booking.link}` : null
       const contrLink  = booking.contract_link || null
+
+      // Данные для шаблонов
+      _qmBookingData = {
+        fio:           booking.fio || '',
+        phone:         _qmPhone,
+        objectName:    object?.name || '',
+        objectAddress: object?.location || '',
+        beginDate:     fmtDate(booking.begin_date),
+        endDate:       fmtDate(booking.end_date),
+        guestLink:     bookLink || '',
+        amount:        Number(booking.amount || 0).toLocaleString('ru-RU') + ' ₽',
+        prepayment:    Number(booking.prepayment || 0).toLocaleString('ru-RU') + ' ₽',
+        balance:       Number(booking.balance_to_be_paid_1 || 0).toLocaleString('ru-RU') + ' ₽'
+      }
 
       const qBL  = document.getElementById('qm-booking-link')
       const qCL  = document.getElementById('qm-contract-link')
       const qMBL = document.getElementById('qm-mob-booking')
       const qMCL = document.getElementById('qm-mob-contract')
 
+      const guestLinkRow  = document.getElementById('qm-guestlink-row')
+      const guestLinkText = document.getElementById('qm-guestlink-text')
       if (bookLink) {
+        guestLinkText.textContent  = bookLink
+        guestLinkRow.style.display = ''
         qBL.href  = bookLink;  qBL.style.display  = ''
         qMBL.href = bookLink;  qMBL.style.display = ''
       } else {
+        guestLinkRow.style.display = 'none'
         qBL.style.display  = 'none'
         qMBL.style.display = 'none'
       }
@@ -896,6 +951,58 @@ function formatDate(dateStr) {
     if (!phone || phone === '—') return
     navigator.clipboard.writeText(phone).then(() => {
       const btn = document.getElementById(elemId).closest('.qm-phone-group')?.querySelector('.btn-copy-qm')
+      if (!btn) return
+      const orig = btn.innerHTML
+      btn.innerHTML = '<i class="ti ti-check"></i>'
+      btn.classList.add('copied')
+      setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('copied') }, 1500)
+    })
+  }
+
+  function showTgTemplatePicker(digits) {
+    const existing = document.getElementById('qm-tg-popover')
+    if (existing) { existing.remove(); return }
+
+    const btn = document.getElementById('qm-contact-btn')
+    const popover = document.createElement('div')
+    popover.id = 'qm-tg-popover'
+    popover.className = 'qm-tg-popover'
+
+    const makeItem = (label, body) => {
+      const item = document.createElement('div')
+      item.className = 'qm-tg-popover-item'
+      item.textContent = label
+      item.onclick = (e) => {
+        e.stopPropagation()
+        popover.remove()
+        let url = 'https://t.me/+' + digits
+        if (body) url += '?text=' + encodeURIComponent(fillTemplate(body))
+        window.open(url)
+      }
+      return item
+    }
+
+    popover.appendChild(makeItem('Без шаблона', null))
+    _qmTemplates.forEach(tpl => popover.appendChild(makeItem(tpl.name, tpl.body)))
+
+    btn.style.position = 'relative'
+    btn.appendChild(popover)
+
+    setTimeout(() => {
+      document.addEventListener('click', function closePopover(e) {
+        if (!popover.contains(e.target)) {
+          popover.remove()
+          document.removeEventListener('click', closePopover)
+        }
+      })
+    }, 0)
+  }
+
+  function copyGuestLink() {
+    const text = document.getElementById('qm-guestlink-text')?.textContent?.trim()
+    if (!text || text === '—') return
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('qm-guestlink-row')?.querySelector('.btn-copy-qm')
       if (!btn) return
       const orig = btn.innerHTML
       btn.innerHTML = '<i class="ti ti-check"></i>'
