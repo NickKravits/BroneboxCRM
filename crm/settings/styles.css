@@ -417,6 +417,7 @@ textarea.field-input {
   display: grid;
   grid-template-columns: repeat(auto-fill, 78px);
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .photo-drag-hint {

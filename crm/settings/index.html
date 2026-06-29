@@ -1314,23 +1314,27 @@ function addDragHandlers(el, row) {
             if (!_photoDragging) return
             const addBtn = row.querySelector('.photo-add')
             const thumbs = [...row.querySelectorAll('.photo-thumb:not(.ph-drag)')]
-            let insertBefore = addBtn
+
+            let closest = null
+            let closestDist = Infinity
             for (const thumb of thumbs) {
                 const rect = thumb.getBoundingClientRect()
-                if (e.clientY < rect.bottom) {
-                    if (e.clientY < rect.top) {
-                        // мышь выше этой строки — вставить перед этим элементом
-                        insertBefore = thumb
-                        break
-                    }
-                    // мышь в той же строке — проверяем X
-                    if (e.clientX < rect.left + rect.width / 2) {
-                        insertBefore = thumb
-                        break
-                    }
+                const cx = rect.left + rect.width / 2
+                const cy = rect.top + rect.height / 2
+                const dist = Math.hypot(e.clientX - cx, e.clientY - cy)
+                if (dist < closestDist) {
+                    closestDist = dist
+                    closest = { thumb, rect }
                 }
             }
-            row.insertBefore(_photoDragging, insertBefore)
+
+            if (closest) {
+                if (e.clientX < closest.rect.left + closest.rect.width / 2) {
+                    row.insertBefore(_photoDragging, closest.thumb)
+                } else {
+                    row.insertBefore(_photoDragging, closest.thumb.nextElementSibling || addBtn)
+                }
+            }
         })
     }
 }
@@ -2577,7 +2581,6 @@ for (const photo of photosData.photos) {
     objectPhotos.length = 0;
     const photosRow = document.getElementById('obj-photos-row');
     photosRow.querySelectorAll('.photo-thumb').forEach(el => el.remove());
-    photosRow._dragoverAttached = false;
     const btn = document.querySelector('#modal-new-object .btn-save');
     if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-plus"></i> Создать'; }
   }
