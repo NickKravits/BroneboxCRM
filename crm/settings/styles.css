@@ -454,6 +454,7 @@ textarea.field-input {
   position: relative;
   width: 72px;
   height: 72px;
+  cursor: grab;
   min-width: 72px;
   border-radius: 8px;
   overflow: hidden;
@@ -465,6 +466,8 @@ textarea.field-input {
   height: 100%;
   object-fit: cover;
 }
+
+.photo-thumb.ph-drag { opacity: 0.4; cursor: grabbing; }
 
 .photo-remove {
   position: absolute;

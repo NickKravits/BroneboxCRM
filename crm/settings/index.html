@@ -964,7 +964,10 @@
             input.onchange = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
-
+                if (file.size > 20 * 1024 * 1024) {
+                    showToast('Файл слишком большой. Максимум 20 МБ', 'danger');
+                    return;
+                }
                 const url = URL.createObjectURL(file);
                 objectPhotos.push({ file, url });
                 renderPhoto(url, objectPhotos.length - 1);
@@ -978,7 +981,8 @@
 
             const wrapper = document.createElement('div');
             wrapper.className = 'photo-thumb';
-            wrapper.dataset.index = index;
+            wrapper.dataset.newIndex = index;
+            wrapper.draggable = true;
 
             const img = document.createElement('img');
             img.src = url;
@@ -988,6 +992,8 @@
             removeBtn.innerHTML = '<i class="ti ti-x"></i>';
             removeBtn.onclick = () => removePhoto(index, wrapper);
 
+            addDragHandlers(wrapper, row);
+
             wrapper.appendChild(img);
             wrapper.appendChild(removeBtn);
             row.insertBefore(wrapper, addBtn);
@@ -995,7 +1001,7 @@
 
         function removePhoto(index, wrapper) {
             URL.revokeObjectURL(objectPhotos[index].url);
-            objectPhotos[index] = null; // не смещаем индексы
+            objectPhotos[index] = null;
             wrapper.remove();
         }
       </script>
@@ -1237,7 +1243,10 @@
     input.onchange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
-
+        if (file.size > 20 * 1024 * 1024) {
+            showToast('Файл слишком большой. Максимум 20 МБ', 'danger');
+            return;
+        }
         const url = URL.createObjectURL(file);
         editObjectPhotos.push({ file, url });
         renderPhotoEdit({ url, isNew: true, index: editObjectPhotos.length - 1 });
@@ -1251,6 +1260,9 @@ function renderPhotoEdit({ id, url, isNew, index }) {
 
     const wrapper = document.createElement('div');
     wrapper.className = 'photo-thumb';
+    wrapper.draggable = true;
+    if (isNew) wrapper.dataset.newIndex = index;
+    else wrapper.dataset.photoId = id;
 
     const img = document.createElement('img');
     img.src = url;
@@ -1272,9 +1284,38 @@ function renderPhotoEdit({ id, url, isNew, index }) {
         };
     }
 
+    addDragHandlers(wrapper, row);
+
     wrapper.appendChild(img);
     wrapper.appendChild(removeBtn);
     row.insertBefore(wrapper, addBtn);
+}
+
+let _photoDragging = null
+
+function addDragHandlers(el, row) {
+    el.addEventListener('dragstart', (e) => {
+        _photoDragging = el
+        e.dataTransfer.effectAllowed = 'move'
+        e.dataTransfer.setData('text/plain', '')
+        setTimeout(() => el.classList.add('ph-drag'), 0)
+    })
+    el.addEventListener('dragend', () => {
+        el.classList.remove('ph-drag')
+        _photoDragging = null
+    })
+    el.addEventListener('dragenter', (e) => {
+        e.preventDefault()
+        if (!_photoDragging || _photoDragging === el) return
+        const rect = el.getBoundingClientRect()
+        const addBtn = row.querySelector('.photo-add')
+        if (e.clientX > rect.left + rect.width / 2) {
+            row.insertBefore(_photoDragging, el.nextElementSibling || addBtn)
+        } else {
+            row.insertBefore(_photoDragging, el)
+        }
+    })
+    el.addEventListener('dragover', (e) => { e.preventDefault() })
 }
 
 function clearEditPhotos() {
@@ -2211,6 +2252,7 @@ async function loadODTemplates(apiKey) {
   
   async function saveEditObject() {
     const token = localStorage.getItem('broneboxtoken');
+    const btn = document.querySelector('#modal-edit-object .btn-save');
 
     const name = document.getElementById('obj-name-edit').value.trim();
     const location = document.getElementById('obj-location-edit').value.trim();
@@ -2236,6 +2278,9 @@ async function loadODTemplates(apiKey) {
     const PaymentChanel = document.getElementById('obj-payment-service-edit').value.trim();
     const active = document.getElementById('obj-active-create').checked ? "YES" : "NO";
 
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ti ti-loader-2 ti-spin"></i> Сохранение...';
+
     try {
         // 1. Удаляем помеченные фото
         for (const photoId of photosToDelete) {
@@ -2245,15 +2290,24 @@ async function loadODTemplates(apiKey) {
             });
         }
 
-        // 2. Загружаем новые фото
-        for (const photo of editObjectPhotos.filter(Boolean)) {
+        // 2. Загружаем новые фото в порядке DOM, запоминаем ID
+        const newPhotoThumbMap = new Map();
+        const newThumbs = [...document.querySelectorAll('#obj-photos-row-edit .photo-thumb[data-new-index]')];
+        for (const thumb of newThumbs) {
+            const idx = parseInt(thumb.dataset.newIndex);
+            const photo = editObjectPhotos[idx];
+            if (!photo) continue;
             const formData = new FormData();
             formData.append('file', photo.file);
-            await fetch(`${API}/objects/${currentEditingObjectId}/photos/add`, {
+            const r = await fetch(`${API}/objects/${currentEditingObjectId}/photos/add`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` },
                 body: formData
             });
+            if (r.ok) {
+                const d = await r.json();
+                newPhotoThumbMap.set(thumb, d.id);
+            }
         }
 
         const realtyIdInt = Number(realtyId);
@@ -2273,16 +2327,35 @@ async function loadODTemplates(apiKey) {
         const data = await res.json();
         if (!res.ok) {
             showToast(data.error || 'Ошибка при сохранении', 'danger');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="ti ti-plus"></i> Обновить';
             return;
+        }
+
+        // 4. Сохраняем порядок фото
+        const allThumbs = [...document.querySelectorAll('#obj-photos-row-edit .photo-thumb')];
+        const photoIds = [];
+        for (const thumb of allThumbs) {
+            if (thumb.dataset.photoId) photoIds.push(parseInt(thumb.dataset.photoId));
+            else if (newPhotoThumbMap.has(thumb)) photoIds.push(newPhotoThumbMap.get(thumb));
+        }
+        if (photoIds.length > 1) {
+            await fetch(`${API}/objects/${currentEditingObjectId}/photos/reorder`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ photoIds })
+            });
         }
 
         showToast('Объект успешно обновлён', 'success');
         closeEditObject();
-        loadObjectsList(); // обновляем список если есть такая функция
+        loadObjectsList();
 
     } catch (err) {
         console.error('Ошибка при сохранении объекта:', err);
         showToast('Ошибка при сохранении объекта', 'danger');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ti ti-plus"></i> Обновить';
     }
 }
 
@@ -2420,6 +2493,10 @@ for (const photo of photosData.photos) {
       return;
     }
 
+    const btn = document.querySelector('#modal-new-object .btn-save');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ti ti-loader-2 ti-spin"></i> Создание...';
+
     try {
       const res = await fetch(API + '/objects/create', {
         method: 'POST',
@@ -2430,28 +2507,56 @@ for (const photo of photosData.photos) {
       const data = await res.json();
       if (!res.ok) {
         showToast("Ошибка при создании объекта", 'danger');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ti ti-plus"></i> Создать';
         return;
       }
 
-      const photos = objectPhotos.filter(Boolean); // убираем удалённые
-
-      for (const photo of photos) {
+      // Загружаем фото в порядке DOM (с учётом drag-and-drop)
+      const thumbsInOrder = [...document.querySelectorAll('#obj-photos-row .photo-thumb')];
+      for (const thumb of thumbsInOrder) {
+        const idx = parseInt(thumb.dataset.newIndex);
+        const photo = objectPhotos[idx];
+        if (!photo) continue;
         const formData = new FormData();
         formData.append('file', photo.file);
         await fetch(`${API}/objects/${data.newObject.id}/photos/add`, {
             method: 'POST',
-            headers: {'Authorization': `Bearer ${token}` },
+            headers: { 'Authorization': `Bearer ${token}` },
             body: formData
         });
       }
 
+      resetCreateForm();
       closeNewObject();
-        loadObjectsList();
+      loadObjectsList();
       showToast('Объект успешно создан', 'success');
 
     } catch (err) {
       console.error('Ошибка при создании объекта:', err);
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ti ti-plus"></i> Создать';
     }
+  }
+
+  function resetCreateForm() {
+    ['obj-name-create','obj-location-create','obj-lot-create','obj-map-create',
+     'obj-instructions-create','obj-okidoki-row-create','obj-okidoki-val-create',
+     'obj-okidoki-name-create','obj-okidoki-datein-create','obj-okidoki-dateout-create',
+     'obj-okidoki-deposit-create','obj-okidoki-payed-create','obj-okidoki-payperday-create'
+    ].forEach(id => { document.getElementById(id).value = ''; });
+    document.getElementById('obj-deposit-create').value = '';
+    document.getElementById('obj-checkin-time-create').value = '14:00';
+    document.getElementById('obj-checkout-time-create').value = '12:00';
+    document.getElementById('obj-show-payment-create').value = 'IMMEDIATELY';
+    document.getElementById('obj-show-instructions-create').value = 'IMMEDIATELY';
+    document.getElementById('obj-show-contract-create').value = 'IMMEDIATELY';
+    document.getElementById('obj-show-review-create').value = 'IMMEDIATELY';
+    document.getElementById('obj-deposit-service-create').value = 'NONE';
+    document.getElementById('obj-payment-service-create').value = 'NONE';
+    document.getElementById('obj-active-create').checked = true;
+    objectPhotos.length = 0;
+    document.getElementById('obj-photos-row').querySelectorAll('.photo-thumb').forEach(el => el.remove());
   }
 
   async function createMaid() {

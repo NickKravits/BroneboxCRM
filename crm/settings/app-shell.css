@@ -424,7 +424,7 @@ html[data-theme="light"] .created-icon { color: #0E7A56; }
 .cred-copy { width: 28px; height: 28px; min-width: 28px; padding: 0; justify-content: center; }
 .creds-warning { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--accent-amber); background: rgba(239,159,39,0.08); border: 0.5px solid rgba(239,159,39,0.2); border-radius: 10px; padding: 9px 12px; }
 
-.photos-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.photos-row { display: flex; flex-wrap: nowrap; gap: 8px; overflow-x: auto; }
 .photo-thumb, .photo-add { width: 78px; height: 78px; border-radius: 10px; overflow: hidden; position: relative; flex-shrink: 0; }
 .photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .photo-add {
