@@ -177,8 +177,9 @@
         const fmt = { timeZone: userTimezone, year: 'numeric', month: '2-digit', day: '2-digit' }
         const fmtCA = (d) => new Intl.DateTimeFormat('en-CA', fmt).format(d)
         const now = new Date()
-        const todayStr    = fmtCA(now)
-        const tomorrowStr = fmtCA(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1))
+        const todayStr = fmtCA(now)
+        const [ty, tm, td] = todayStr.split('-').map(Number)
+        const tomorrowStr  = fmtCA(new Date(Date.UTC(ty, tm - 1, td + 1, 12)))
 
         const { bookings } = bRes
 
