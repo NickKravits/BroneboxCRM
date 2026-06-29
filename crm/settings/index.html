@@ -954,6 +954,7 @@
           <span>Добавить</span>
         </div>
       </div>
+      <p class="photo-drag-hint">Перетащите фотографии для изменения порядка</p>
       <script>
         const objectPhotos = [];
 
@@ -1232,6 +1233,7 @@
           <span>Добавить</span>
         </div>
       </div>
+      <p class="photo-drag-hint">Перетащите фотографии для изменения порядка</p>
       <script>
         const editObjectPhotos = [];
         const photosToDelete = [];
@@ -2255,6 +2257,8 @@ async function loadODTemplates(apiKey) {
   function closeEditObject() {
     document.getElementById('modal-edit-object').classList.remove('open');
     clearEditPhotos();
+    const btn = document.querySelector('#modal-edit-object .btn-save');
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-plus"></i> Обновить'; }
   }
   
   async function saveEditObject() {

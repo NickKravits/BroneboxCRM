@@ -415,14 +415,19 @@ textarea.field-input {
 /* Фотографии */
 .photos-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  flex-wrap: nowrap;
-  padding-bottom: 4px;
   min-height: 72px;
-  min-width: 0;
-  width: 100%;
+}
+
+.photo-drag-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: -2px;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .photo-drag-hint { display: none; }
 }
 
 .photo-add {
