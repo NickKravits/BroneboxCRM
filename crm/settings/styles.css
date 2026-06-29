@@ -421,6 +421,8 @@ textarea.field-input {
   flex-wrap: nowrap;
   padding-bottom: 4px;
   min-height: 72px;
+  min-width: 0;
+  width: 100%;
 }
 
 .photo-add {

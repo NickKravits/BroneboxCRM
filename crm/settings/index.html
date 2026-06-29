@@ -1304,18 +1304,25 @@ function addDragHandlers(el, row) {
         el.classList.remove('ph-drag')
         _photoDragging = null
     })
-    el.addEventListener('dragenter', (e) => {
-        e.preventDefault()
-        if (!_photoDragging || _photoDragging === el) return
-        const rect = el.getBoundingClientRect()
-        const addBtn = row.querySelector('.photo-add')
-        if (e.clientX > rect.left + rect.width / 2) {
-            row.insertBefore(_photoDragging, el.nextElementSibling || addBtn)
-        } else {
-            row.insertBefore(_photoDragging, el)
-        }
-    })
-    el.addEventListener('dragover', (e) => { e.preventDefault() })
+
+    if (!row._dragoverAttached) {
+        row._dragoverAttached = true
+        row.addEventListener('dragover', (e) => {
+            e.preventDefault()
+            if (!_photoDragging) return
+            const addBtn = row.querySelector('.photo-add')
+            const thumbs = [...row.querySelectorAll('.photo-thumb:not(.ph-drag)')]
+            let insertBefore = addBtn
+            for (const thumb of thumbs) {
+                const rect = thumb.getBoundingClientRect()
+                if (e.clientX < rect.left + rect.width / 2) {
+                    insertBefore = thumb
+                    break
+                }
+            }
+            row.insertBefore(_photoDragging, insertBefore)
+        })
+    }
 }
 
 function clearEditPhotos() {
@@ -2556,7 +2563,11 @@ for (const photo of photosData.photos) {
     document.getElementById('obj-payment-service-create').value = 'NONE';
     document.getElementById('obj-active-create').checked = true;
     objectPhotos.length = 0;
-    document.getElementById('obj-photos-row').querySelectorAll('.photo-thumb').forEach(el => el.remove());
+    const photosRow = document.getElementById('obj-photos-row');
+    photosRow.querySelectorAll('.photo-thumb').forEach(el => el.remove());
+    photosRow._dragoverAttached = false;
+    const btn = document.querySelector('#modal-new-object .btn-save');
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-plus"></i> Создать'; }
   }
 
   async function createMaid() {
