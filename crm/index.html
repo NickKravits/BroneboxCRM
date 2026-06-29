@@ -67,241 +67,173 @@
       }
     }
 
+    // Кеш объектов: Map(realtyid → object). Живёт всю сессию.
+    let _objectsCache = null
+
+    async function loadObjectsCache() {
+      if (_objectsCache) return _objectsCache
+      const token = localStorage.getItem('broneboxtoken')
+      const res = await fetch(API + '/objects/getall', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const { objects } = await res.json()
+      _objectsCache = new Map((objects || []).map(o => [o.realtyid, o]))
+      return _objectsCache
+    }
+
+    function buildCard(booking, object) {
+      const card = document.createElement('div')
+      card.className = 'guest-card'
+      card.dataset.bookingId = booking.id
+      card.onclick = () => quickModal(booking.id)
+      return card
+    }
+
+    function cardCheckin(booking, object) {
+      return `
+        <div class="card-header-row">
+          <div class="guest-name">${booking.fio}</div>
+          <span class="booking-source">${booking.source}</span>
+        </div>
+        <div class="guest-room">${object?.name || '—'}</div>
+        <div class="guest-dates">
+          Заезд: ${formatDate(booking.begin_date)}
+          (${booking.begin_time
+            ? `<span class="tm-confirmed">${booking.begin_time}</span>`
+            : `<span class="tm-unconfirmed">${object?.checkindef || ''}</span>`})
+        </div>
+        <div class="card-tags-group">
+          <span class="guest-tag">${nightsCount(booking.begin_date, booking.end_date)} ночей</span>
+        </div>
+        ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row"><span class="channel-tag">${booking.channel}</span></div>`}
+      `
+    }
+
+    function cardCheckout(booking, object) {
+      return `
+        <div class="card-header-row">
+          <div class="guest-name">${booking.fio}</div>
+          <span class="booking-source">${booking.source}</span>
+        </div>
+        <div class="guest-room">${object?.name || '—'}</div>
+        <div class="guest-dates">
+          Выезд: ${formatDate(booking.end_date)}
+          (${booking.end_time
+            ? `<span class="tm-confirmed">${booking.end_time}</span>`
+            : `<span class="tm-unconfirmed">${object?.checkoutdef || ''}</span>`})
+        </div>
+        <div class="card-tags-group">
+          <span class="guest-tag">${nightsCount(booking.begin_date, booking.end_date)} ночей</span>
+        </div>
+        ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row"><span class="channel-tag">${booking.channel}</span></div>`}
+      `
+    }
+
+    function cardLiving(booking, object) {
+      return `
+        <div class="card-header-row">
+          <div class="guest-name">${booking.fio}</div>
+          <span class="booking-source">${booking.source}</span>
+        </div>
+        <div class="guest-room">${object?.name || '—'}</div>
+        <div class="guest-dates">${formatDate(booking.begin_date)} — ${formatDate(booking.end_date)}</div>
+        <div class="card-tags-group">
+          <span class="guest-tag">${nightsCount(booking.begin_date, booking.end_date)} ночей</span>
+        </div>
+        ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row"><span class="channel-tag">${booking.channel}</span></div>`}
+      `
+    }
+
     async function getBookings() {
-  const token = localStorage.getItem('broneboxtoken');
+      const token = localStorage.getItem('broneboxtoken')
 
-  const data = await fetch(API + '/users/getme', {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
+      const tomorrowInContainer  = document.getElementById('tomorrow-in-container')
+      const todayInContainer     = document.getElementById('today-in-container')
+      const livingContainer      = document.getElementById('living-container')
+      const todayOutContainer    = document.getElementById('today-out-container')
+      const tomorrowOutContainer = document.getElementById('tomorrow-out-container')
 
-    if (!data.ok) {
-      console.error('Ошибка при получении таймзоны:', res.statusText);
-      return;
-    }
+      tomorrowInContainer.innerHTML  = ''
+      todayInContainer.innerHTML     = ''
+      livingContainer.innerHTML      = ''
+      todayOutContainer.innerHTML    = ''
+      tomorrowOutContainer.innerHTML = ''
 
-    const dataRes = await data.json();
-    
-    const userTimezone = dataRes.cabinet.Timezone || 'Europe/Moscow';
+      try {
+        // Загружаем брони и объекты параллельно
+        const [meRes, bRes, objectsMap] = await Promise.all([
+          fetch(API + '/users/getme', {
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+          }).then(r => r.json()),
+          fetch(API + '/bookings/get', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+          }).then(r => r.json()),
+          loadObjectsCache()
+        ])
 
-  const today = new Date();
-  const todayStr = new Intl.DateTimeFormat('en-CA', {
-    timeZone: userTimezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-}).format(today);
+        const userTimezone = meRes.cabinet?.Timezone || 'Europe/Moscow'
+        const fmt = { timeZone: userTimezone, year: 'numeric', month: '2-digit', day: '2-digit' }
+        const fmtCA = (d) => new Intl.DateTimeFormat('en-CA', fmt).format(d)
+        const now = new Date()
+        const todayStr    = fmtCA(now)
+        const tomorrowStr = fmtCA(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1))
 
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowStr = new Intl.DateTimeFormat('en-CA', {
-    timeZone: userTimezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  }).format(tomorrow);
+        const { bookings } = bRes
 
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = new Intl.DateTimeFormat('en-CA', {
-    timeZone: userTimezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  }).format(yesterday);
+        // Сортировка по имени объекта
+        bookings.sort((a, b) => {
+          const nameA = objectsMap.get(a.realty_id)?.name || ''
+          const nameB = objectsMap.get(b.realty_id)?.name || ''
+          return nameA.localeCompare(nameB, 'ru')
+        })
 
-  let counter = 0;
+        let counter = 0, counterTomorowIn = 0, counterTodayIn = 0
+        let counterLiving = 0, counterTodayOut = 0, counterTomorrowOut = 0
 
-  let counterTomorowIn = 0;
-  let counterTodayIn = 0;
-  let counterLiving = 0;
-  let counterTodayOut = 0;
-  let counterTomorrowOut = 0;
+        for (const booking of bookings) {
+          const object   = objectsMap.get(booking.realty_id)
+          const beginStr = booking.begin_date.split('T')[0]
+          const endStr   = booking.end_date.split('T')[0]
+          const card     = buildCard(booking, object)
 
-  const tomorrowInContainer = document.getElementById('tomorrow-in-container');
-  const todayInContainer = document.getElementById('today-in-container');
-  const livingContainer = document.getElementById('living-container');
-  const todayOutContainer = document.getElementById('today-out-container');
-  const tomorrowOutContainer = document.getElementById('tomorrow-out-container');
+          if (beginStr === tomorrowStr) {
+            counterTomorowIn++
+            card.innerHTML = cardCheckin(booking, object)
+            tomorrowInContainer.appendChild(card)
+          } else if (beginStr === todayStr) {
+            counterTodayIn++
+            card.innerHTML = cardCheckin(booking, object)
+            todayInContainer.appendChild(card)
+          } else if (endStr === todayStr) {
+            counterTodayOut++
+            card.innerHTML = cardCheckout(booking, object)
+            todayOutContainer.appendChild(card)
+          } else if (endStr === tomorrowStr) {
+            counterTomorrowOut++
+            card.innerHTML = cardCheckout(booking, object)
+            tomorrowOutContainer.appendChild(card)
+          } else if (beginStr <= todayStr && endStr > todayStr) {
+            counterLiving++
+            card.innerHTML = cardLiving(booking, object)
+            livingContainer.appendChild(card)
+          }
 
-  tomorrowInContainer.innerHTML = '';
-  todayInContainer.innerHTML = '';
-  livingContainer.innerHTML = '';
-  todayOutContainer.innerHTML = '';
-  tomorrowOutContainer.innerHTML = '';
+          if ((beginStr <= todayStr && endStr > todayStr) || beginStr >= tomorrowStr) counter++
+        }
 
-  try {
-    const res = await fetch(API + '/bookings/get', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({})
-    });
+        document.getElementById('num-container').textContent          = counter
+        document.getElementById('col-count-tomorrow-in').textContent  = counterTomorowIn
+        document.getElementById('col-count-today-in').textContent     = counterTodayIn
+        document.getElementById('col-count-living').textContent       = counterLiving
+        document.getElementById('col-count-today-out').textContent    = counterTodayOut
+        document.getElementById('col-count-tomorrow-out').textContent = counterTomorrowOut
 
-    if (!res.ok) {
-      console.error('Ошибка при получении бронирований:', res.statusText);
-      return;
-    }
-
-    const { bookings } = await res.json();
-
-    for (const booking of bookings) {
-      const getObj = await fetch(API + '/objects/getbyrid', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rId: booking.realty_id })
-      });
-
-      const { object } = await getObj.json();
-
-      const beginStr = booking.begin_date.split('T')[0];
-      const endStr = booking.end_date.split('T')[0];
-
-      const card = document.createElement('div');
-      card.className = 'guest-card';
-      card.dataset.bookingId = booking.id;
-      card.onclick = () => quickModal(booking.id);
-
-      // Завтра заезд
-      if (beginStr === tomorrowStr) {
-        counterTomorowIn++
-        card.innerHTML = `
-          <div class="card-header-row">
-            <div class="guest-name">${booking.fio}</div>
-            <span class="booking-source">${booking.source}</span>
-          </div>
-          <div class="guest-room">${object.name}</div>
-          <div class="guest-dates">
-            Заезд: ${formatDate(booking.begin_date)}
-            (${booking.begin_time
-              ? `<span class="tm-confirmed">${booking.begin_time}</span>`
-              : `<span class="tm-unconfirmed">${object.checkindef}</span>`})
-          </div>
-          <div class="card-tags-group">
-            <span class="guest-tag">${nightsCount(booking.begin_date, booking.end_date)} ночей</span>
-          </div>
-          ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row">
-            <span class="channel-tag">${booking.channel}</span>
-          </div>`}
-        `;
-        tomorrowInContainer.appendChild(card);
-
-      // Сегодня заезд
-      } else if (beginStr === todayStr) {
-        counterTodayIn++
-        card.innerHTML = `
-          <div class="card-header-row">
-            <div class="guest-name">${booking.fio}</div>
-            <span class="booking-source">${booking.source}</span>
-          </div>
-          <div class="guest-room">${object.name}</div>
-          <div class="guest-dates">
-            Заезд: ${formatDate(booking.begin_date)}
-            (${booking.begin_time
-              ? `<span class="tm-confirmed">${booking.begin_time}</span>`
-              : `<span class="tm-unconfirmed">${object.checkindef}</span>`})
-          </div>
-          <div class="card-tags-group">
-            <span class="guest-tag">${nightsCount(booking.begin_date, booking.end_date)} ночей</span>
-          </div>
-          ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row">
-            <span class="channel-tag">${booking.channel}</span>
-          </div>`}
-        `;
-        todayInContainer.appendChild(card);
-
-      // Сегодня выезд
-      } else if (endStr === todayStr) {
-        counterTodayOut++
-        card.innerHTML = `
-          <div class="card-header-row">
-            <div class="guest-name">${booking.fio}</div>
-            <span class="booking-source">${booking.source}</span>
-          </div>
-          <div class="guest-room">${object.name}</div>
-          <div class="guest-dates">
-            Выезд: ${formatDate(booking.end_date)}
-            (${booking.end_time
-              ? `<span class="tm-confirmed">${booking.end_time}</span>`
-              : `<span class="tm-unconfirmed">${object.checkoutdef}</span>`})
-          </div>
-          <div class="card-tags-group">
-            <span class="guest-tag">${nightsCount(booking.begin_date, booking.end_date)} ночей</span>
-          </div>
-          ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row">
-            <span class="channel-tag">${booking.channel}</span>
-          </div>`}
-        `;
-        todayOutContainer.appendChild(card);
-
-      // Завтра выезд
-      } else if (endStr === tomorrowStr) {
-        counterTomorrowOut++
-        card.innerHTML = `
-          <div class="card-header-row">
-            <div class="guest-name">${booking.fio}</div>
-            <span class="booking-source">${booking.source}</span>
-          </div>
-          <div class="guest-room">${object.name}</div>
-          <div class="guest-dates">
-            Выезд: ${formatDate(booking.end_date)}
-            (${booking.end_time
-              ? `<span class="tm-confirmed">${booking.end_time}</span>`
-              : `<span class="tm-unconfirmed">${object.checkoutdef}</span>`})
-          </div>
-          <div class="card-tags-group">
-            <span class="guest-tag">${nightsCount(booking.begin_date, booking.end_date)} ночей</span>
-          </div>
-          ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row">
-            <span class="channel-tag">${booking.channel}</span>
-          </div>`}
-        `;
-        tomorrowOutContainer.appendChild(card);
-
-      // Живут (заезд был раньше сегодня, выезд позже сегодня)
-      } else if (beginStr <= todayStr && endStr > todayStr) {
-        counterLiving++
-        card.innerHTML = `
-          <div class="card-header-row">
-            <div class="guest-name">${booking.fio}</div>
-            <span class="booking-source">${booking.source}</span>
-          </div>
-          <div class="guest-room">${object.name}</div>
-          <div class="guest-dates">
-            ${formatDate(booking.begin_date)} — ${formatDate(booking.end_date)}
-          </div>
-          <div class="card-tags-group">
-            <span class="guest-tag">${nightsCount(booking.begin_date, booking.end_date)} ночей</span>
-          </div>
-          ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row">
-            <span class="channel-tag">${booking.channel}</span>
-          </div>`}
-        `;
-        livingContainer.appendChild(card);
-      }
-
-      if (beginStr <= todayStr && endStr > todayStr) {
-        counter++
-      } else if (beginStr >= tomorrowStr) {
-        counter++
+      } catch (err) {
+        console.error('Ошибка при получении бронирований:', err)
       }
     }
-
-    document.getElementById('num-container').textContent = counter
-    document.getElementById('col-count-tomorrow-in').textContent = counterTomorowIn
-    document.getElementById('col-count-today-in').textContent = counterTodayIn
-    document.getElementById('col-count-living').textContent = counterLiving
-    document.getElementById('col-count-today-out').textContent = counterTodayOut
-    document.getElementById('col-count-tomorrow-out').textContent = counterTomorrowOut
-
-  } catch (err) {
-    console.error('Ошибка при получении бронирований:', err);
-  }
-
-  
-}
 
 function formatDate(dateStr) {
   const d = new Date(dateStr);
@@ -356,17 +288,27 @@ function formatDate(dateStr) {
       }
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      getUserData();
-      getBookings();
-      getAvailableObjects();
-      loadQmTemplates();
-    });
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        await Promise.all([
+          getUserData(),
+          getBookings(),
+          getAvailableObjects(),
+          loadQmTemplates(),
+        ])
+      } catch (e) {
+        console.error(e)
+      } finally {
+        const loader = document.getElementById('page-loader')
+        loader.classList.add('hidden')
+        setTimeout(() => loader.remove(), 300)
+      }
+    })
 
     window.addEventListener('bronebox:reload', () => {
-      getBookings();
-      getAvailableObjects();
-    });
+      getBookings()
+      getAvailableObjects()
+    })
   </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -378,6 +320,10 @@ function formatDate(dateStr) {
   <link rel="stylesheet" href="app-shell.css">
 </head>
 <body>
+
+<div id="page-loader">
+  <i class="ti ti-loader-2 ti-spin"></i>
+</div>
 
 <div class="ambient ambient-tr"></div>
 <div class="ambient ambient-bl"></div>
@@ -782,12 +728,8 @@ function formatDate(dateStr) {
       const { booking } = await bRes.json()
       const { maids }   = await mRes.json()
 
-      const oRes = await fetch(API + '/objects/getbyrid', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rId: booking.realty_id })
-      })
-      const { object } = await oRes.json()
+      const objectsMap = await loadObjectsCache()
+      const object = objectsMap.get(booking.realty_id) || null
 
       // ── Шапка ────────────────────────────────────────────
       document.getElementById('qm-fio').textContent    = booking.fio || '—'

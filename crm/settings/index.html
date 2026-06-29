@@ -441,16 +441,26 @@
         ta.focus();
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        getUserData();
-        loadStaffList();
+    document.addEventListener('DOMContentLoaded', async () => {
         initPermissionsSync();
-        loadMaidsList();
-        loadObjectsList();
-        getIntegrations();
-        loadServiceSettings();
-        loadCleaningTemplate();
-        loadMsgTemplates();
+        try {
+            await Promise.all([
+                getUserData(),
+                loadStaffList(),
+                loadMaidsList(),
+                loadObjectsList(),
+                getIntegrations(),
+                loadServiceSettings(),
+                loadCleaningTemplate(),
+                loadMsgTemplates(),
+            ]);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            const loader = document.getElementById('page-loader');
+            loader.classList.add('hidden');
+            setTimeout(() => loader.remove(), 300);
+        }
     });
   </script>
   <meta charset="UTF-8" />
@@ -463,6 +473,10 @@
   <link rel="stylesheet" href="app-shell.css">
 </head>
 <body>
+
+<div id="page-loader">
+  <i class="ti ti-loader-2 ti-spin"></i>
+</div>
 
 <div class="ambient ambient-tr"></div>
 <div class="ambient ambient-bl"></div>
