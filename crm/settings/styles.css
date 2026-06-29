@@ -421,9 +421,11 @@ textarea.field-input {
 }
 
 .photo-drag-hint {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-muted);
-  margin-top: -2px;
+  opacity: 0.5;
+  text-align: center;
+  margin-top: 2px;
 }
 
 @media (hover: none) and (pointer: coarse) {
