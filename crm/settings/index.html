@@ -1317,9 +1317,17 @@ function addDragHandlers(el, row) {
             let insertBefore = addBtn
             for (const thumb of thumbs) {
                 const rect = thumb.getBoundingClientRect()
-                if (e.clientX < rect.left + rect.width / 2) {
-                    insertBefore = thumb
-                    break
+                if (e.clientY < rect.bottom) {
+                    if (e.clientY < rect.top) {
+                        // мышь выше этой строки — вставить перед этим элементом
+                        insertBefore = thumb
+                        break
+                    }
+                    // мышь в той же строке — проверяем X
+                    if (e.clientX < rect.left + rect.width / 2) {
+                        insertBefore = thumb
+                        break
+                    }
                 }
             }
             row.insertBefore(_photoDragging, insertBefore)
