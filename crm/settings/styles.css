@@ -414,14 +414,13 @@ textarea.field-input {
 
 /* Фотографии */
 .photos-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  min-height: 72px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 78px);
+  gap: 8px;
 }
 
 .photo-drag-hint {
-  flex: 0 0 100%;
+  grid-column: 1 / -1;
   font-size: 10px;
   color: var(--text-muted);
   opacity: 0.5;
