@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+  <script src="/config.js"></script>
   <script>
     (function () {
       try {
@@ -120,7 +121,7 @@
 
         try {
             const token = localStorage.getItem('broneboxtoken');
-            const res = await fetch(`${API_BASE}/logs/read`, {
+            const res = await fetch(`${API}/logs/read`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -188,7 +189,7 @@
         if (readQueue.size === 0) return;
             const token = localStorage.getItem('broneboxtoken');
             // keepalive: true — запрос завершится даже после закрытия/обновления страницы
-            fetch(`${API_BASE}/logs/read`, {
+            fetch(`${API}/logs/read`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -200,7 +201,7 @@
     });
 </script>
 <script>
-  const API_BASE = 'http://127.0.0.1:3000';
+  
 
   const STATUS_CONFIG = {
     INFO:    { icon: 'ti-info-circle',  cls: 'info',    label: 'Инфо' },
@@ -262,7 +263,7 @@
     const pill      = document.getElementById('unread-pill');
 
     try {
-      const res = await fetch(`${API_BASE}/logs/get`, {
+      const res = await fetch(`${API}/logs/get`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -321,7 +322,7 @@
     const token = localStorage.getItem('broneboxtoken');
     if (!token) { window.location.href = '/login'; return; }
     try {
-      const res = await fetch(`${API_BASE}/users/getme`, {
+      const res = await fetch(`${API}/users/getme`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

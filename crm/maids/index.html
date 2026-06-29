@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+  <script src="/config.js"></script>
   <script>
     (function () {
       try {
@@ -38,7 +39,7 @@
       var token = localStorage.getItem('broneboxtoken');
       if (!token) { window.location.href = '/login'; return; }
       try {
-        var res = await fetch('http://127.0.0.1:3000/users/getme', {
+        var res = await fetch(API + '/users/getme', {
           method: 'GET',
           headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
         });
@@ -64,7 +65,7 @@
       list.innerHTML = '<div class="sched-empty"><i class="ti ti-loader-2 ti-spin"></i><span>Загрузка...</span></div>';
 
       try {
-        var res = await fetch('http://127.0.0.1:3000/maids/schedule?date=' + date, {
+        var res = await fetch(API + '/maids/schedule?date=' + date, {
           headers: { 'Authorization': 'Bearer ' + token }
         });
         if (!res.ok) throw new Error('API error');
@@ -259,7 +260,7 @@
             included:     e.included
           };
         });
-        var res = await fetch('http://127.0.0.1:3000/maids/schedule/save', {
+        var res = await fetch(API + '/maids/schedule/save', {
           method: 'POST',
           headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
           body: JSON.stringify({ date: _scheduleDate, entries: savePayload })
@@ -275,7 +276,7 @@
     async function copySchedule() {
       var token = localStorage.getItem('broneboxtoken');
       try {
-        var res = await fetch('http://127.0.0.1:3000/cabinet/cleaning-template', {
+        var res = await fetch(API + '/cabinet/cleaning-template', {
           headers: { 'Authorization': 'Bearer ' + token }
         });
         if (!res.ok) throw new Error('Template fetch failed');
@@ -343,7 +344,7 @@
     async function openTemplateModal() {
       var token = localStorage.getItem('broneboxtoken');
       try {
-        var res = await fetch('http://127.0.0.1:3000/cabinet/cleaning-template', {
+        var res = await fetch(API + '/cabinet/cleaning-template', {
           headers: { 'Authorization': 'Bearer ' + token }
         });
         var data = await res.json();
@@ -370,7 +371,7 @@
       var token = localStorage.getItem('broneboxtoken');
       var template = document.getElementById('tpl-text').value;
       try {
-        var res = await fetch('http://127.0.0.1:3000/cabinet/cleaning-template', {
+        var res = await fetch(API + '/cabinet/cleaning-template', {
           method: 'POST',
           headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
           body: JSON.stringify({ template: template })

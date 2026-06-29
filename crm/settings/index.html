@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+  <script src="/config.js"></script>
     <script>
       (function () {
         try {
@@ -31,7 +32,7 @@
         return;
       }
       try {
-        const res = await fetch('http://127.0.0.1:3000/users/getme', {
+        const res = await fetch(API + '/users/getme', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`, // Передаем токен бэкенду
@@ -84,7 +85,7 @@
         const container = document.getElementById('staff-container');
   
         try {
-        const res = await fetch('http://127.0.0.1:3000/staff/getall', {
+        const res = await fetch(API + '/staff/getall', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -149,7 +150,7 @@
         const container = document.getElementById('maids-container');
 
         try {
-            const res = await fetch('http://127.0.0.1:3000/maids/getall', {
+            const res = await fetch(API + '/maids/getall', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -208,7 +209,7 @@
         const container = document.getElementById('objects-container');
 
         try {
-            const res = await fetch('http://127.0.0.1:3000/objects/getall', {
+            const res = await fetch(API + '/objects/getall', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -285,7 +286,7 @@
     const token = localStorage.getItem('broneboxtoken');
 
     try {
-        const res = await fetch('http://127.0.0.1:3000/integration/connected', {
+        const res = await fetch(API + '/integration/connected', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -388,7 +389,7 @@
     async function loadCleaningTemplate() {
         const token = localStorage.getItem('broneboxtoken');
         try {
-            const res = await fetch('http://127.0.0.1:3000/cabinet/cleaning-template', {
+            const res = await fetch(API + '/cabinet/cleaning-template', {
                 headers: { 'Authorization': 'Bearer ' + token }
             });
             if (!res.ok) throw new Error();
@@ -411,7 +412,7 @@
         const cleaningHeader   = get('svc-cleaning-header', '');
         const cleaningFooter   = get('svc-cleaning-footer', '');
         try {
-            const res = await fetch('http://127.0.0.1:3000/cabinet/cleaning-template', {
+            const res = await fetch(API + '/cabinet/cleaning-template', {
                 method: 'POST',
                 headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ template, approxTimeMarker, emptyStayMarker, cleaningHeader, cleaningFooter })
@@ -1686,7 +1687,7 @@ function clearEditPhotos() {
   async function selectmerchantfunc() {
     try {
       const token = localStorage.getItem('broneboxtoken');
-      const res = await fetch('http://127.0.0.1:3000/integration/tochka/get-merchants', {
+      const res = await fetch(API + '/integration/tochka/get-merchants', {
         method: 'GET',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -1794,7 +1795,7 @@ async function confirmTochkaRetailerSelection() {
  
   try {
     const token = localStorage.getItem('broneboxtoken')
-    const res = await fetch('http://127.0.0.1:3000/integration/tochka/select-merchant', {
+    const res = await fetch(API + '/integration/tochka/select-merchant', {
       method: 'POST',
       headers: { 
         'Authorization': `Bearer ${token}`,
@@ -1847,7 +1848,7 @@ function escapeHtml(str) {
   async function deleteTochkaIntegration() {
     const token = localStorage.getItem('broneboxtoken')
     try {
-      const res = await fetch(`http://127.0.0.1:3000/integration/tochka/disconnect`, {
+      const res = await fetch(`${API}/integration/tochka/disconnect`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -1875,7 +1876,7 @@ function escapeHtml(str) {
     
     try {
       const token = localStorage.getItem('broneboxtoken')
-      const res = await fetch(`http://127.0.0.1:3000/integration/tochka/save`, {
+      const res = await fetch(`${API}/integration/tochka/save`, {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -1927,7 +1928,7 @@ function escapeHtml(str) {
 
     try {
     // Получаем список шаблонов
-      const res = await fetch(`http://127.0.0.1:3000/integration/okidoki/tryconnect?apiKey=${apiKey}`, {
+      const res = await fetch(`${API}/integration/okidoki/tryconnect?apiKey=${apiKey}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
 
@@ -1940,7 +1941,7 @@ function escapeHtml(str) {
       return
     }
 
-    const saveRes = await fetch('http://127.0.0.1:3000/integration/okidoki/save', {
+    const saveRes = await fetch(API + '/integration/okidoki/save', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ apiKey })
@@ -2018,7 +2019,7 @@ async function showODTemplates() {
   const token = localStorage.getItem('broneboxtoken')
   try {
     // Получаем список шаблонов
-    const resOD = await fetch(`http://127.0.0.1:3000/integration/okidoki/get`, {
+    const resOD = await fetch(`${API}/integration/okidoki/get`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     const { res } = await resOD.json();
@@ -2046,7 +2047,7 @@ async function loadODTemplates(apiKey) {
 
   try {
     // Получаем список шаблонов
-    const res = await fetch(`http://127.0.0.1:3000/integration/okidoki/templates?apiKey=${apiKey}`, {
+    const res = await fetch(`${API}/integration/okidoki/templates?apiKey=${apiKey}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     const { templates } = await res.json();
@@ -2062,7 +2063,7 @@ async function loadODTemplates(apiKey) {
       // Получаем поля каждого шаблона
       let entities = []
 
-      const entRes = await fetch(`http://127.0.0.1:3000/integration/okidoki/entities?apiKey=${apiKey}&templateId=${template.template_id}`, {
+      const entRes = await fetch(`${API}/integration/okidoki/entities?apiKey=${apiKey}&templateId=${template.template_id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
 
@@ -2143,7 +2144,7 @@ async function loadODTemplates(apiKey) {
         const token = localStorage.getItem('broneboxtoken');
 
         try {
-            const res = await fetch('http://127.0.0.1:3000/integration/realtycalendar', {
+            const res = await fetch(API + '/integration/realtycalendar', {
                 method: 'GET',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -2167,7 +2168,7 @@ async function loadODTemplates(apiKey) {
     }
 
     function openRCIntegration(webhookKey) {
-        document.getElementById('rc-webhook-url').value = `http://127.0.0.1:3000/webhook/rc/${webhookKey}`;
+        document.getElementById('rc-webhook-url').value = `${API}/webhook/rc/${webhookKey}`;
         document.getElementById('modal-rc-integration').classList.add('open');
     }
 
@@ -2189,7 +2190,7 @@ async function loadODTemplates(apiKey) {
       return;
     }
     try {
-      const res = await fetch(`http://127.0.0.1:3000/objects/delete`, {
+      const res = await fetch(`${API}/objects/delete`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ objectId: id })
@@ -2238,7 +2239,7 @@ async function loadODTemplates(apiKey) {
     try {
         // 1. Удаляем помеченные фото
         for (const photoId of photosToDelete) {
-            await fetch(`http://127.0.0.1:3000/objects/photos/${photoId}`, {
+            await fetch(`${API}/objects/photos/${photoId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -2248,7 +2249,7 @@ async function loadODTemplates(apiKey) {
         for (const photo of editObjectPhotos.filter(Boolean)) {
             const formData = new FormData();
             formData.append('file', photo.file);
-            await fetch(`http://127.0.0.1:3000/objects/${currentEditingObjectId}/photos/add`, {
+            await fetch(`${API}/objects/${currentEditingObjectId}/photos/add`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` },
                 body: formData
@@ -2258,7 +2259,7 @@ async function loadODTemplates(apiKey) {
         const realtyIdInt = Number(realtyId);
 
         // 3. Сохраняем данные объекта
-        const res = await fetch('http://127.0.0.1:3000/objects/edit', {
+        const res = await fetch(API + '/objects/edit', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({
@@ -2289,7 +2290,7 @@ async function loadODTemplates(apiKey) {
     const token = localStorage.getItem('broneboxtoken');
 
     try {
-      const res = await fetch('http://127.0.0.1:3000/objects/get', {
+      const res = await fetch(API + '/objects/get', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ objectId: id })
@@ -2337,7 +2338,7 @@ async function loadODTemplates(apiKey) {
 
       document.getElementById('modal-edit-object').classList.add('open');
 
-      const photosRes = await fetch(`http://127.0.0.1:3000/objects/${id}/photos/get`, {
+      const photosRes = await fetch(`${API}/objects/${id}/photos/get`, {
     headers: { 'Authorization': `Bearer ${token}` }
 });
 const photosData = await photosRes.json();
@@ -2345,7 +2346,7 @@ const photosData = await photosRes.json();
 for (const photo of photosData.photos) {
     renderPhotoEdit({
         id: photo.id,
-        url: `http://127.0.0.1:3000${photo.url}`,
+        url: `${API}${photo.url}`,
         isNew: false
     });
 }
@@ -2420,7 +2421,7 @@ for (const photo of photosData.photos) {
     }
 
     try {
-      const res = await fetch('http://127.0.0.1:3000/objects/create', {
+      const res = await fetch(API + '/objects/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ realtyId: realtyid, name: name, instructions: instruction, checkInTime: checkindef, checkOutTime: checkoutdef, showPaymentTiming: sspayanddeposit, showInstructionTiming: ssinstruction, showContractTiming: sscontract, showReviewTiming: ssrateclean, location: location, mapLink: maplink, defaultDeposit: deposit, okiDokiRowId: odstringid, okiDokiValueId: odvalueid, okiDokiNameId: odnameid, okiDokiDateInId: oddateinid, okiDokiDateOutId: oddateoutid, okiDokiDepositId: oddepositid, okiDokiPayedId: odpayedid, okiDokiPayPerDayId: odpayperdayid, DepositChanel: depositchanel, PaymentChanel: paymentchanel, active: active })
@@ -2437,7 +2438,7 @@ for (const photo of photosData.photos) {
       for (const photo of photos) {
         const formData = new FormData();
         formData.append('file', photo.file);
-        await fetch(`http://127.0.0.1:3000/objects/${data.newObject.id}/photos/add`, {
+        await fetch(`${API}/objects/${data.newObject.id}/photos/add`, {
             method: 'POST',
             headers: {'Authorization': `Bearer ${token}` },
             body: formData
@@ -2463,7 +2464,7 @@ for (const photo of photosData.photos) {
     }
 
     try {
-      const res = await fetch('http://127.0.0.1:3000/maids/create', {
+      const res = await fetch(API + '/maids/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ name: name })
@@ -2488,7 +2489,7 @@ for (const photo of photosData.photos) {
     currentEditingStaffId = id;
 
     try {
-      const res = await fetch(`http://127.0.0.1:3000/staff/get`, {
+      const res = await fetch(`${API}/staff/get`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ id: id })
@@ -2570,7 +2571,7 @@ for (const photo of photosData.photos) {
 
 
         try {
-            const res = await fetch('http://127.0.0.1:3000/staff/create', {
+            const res = await fetch(API + '/staff/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ login: login, name: name })
@@ -2597,7 +2598,7 @@ for (const photo of photosData.photos) {
         const token = localStorage.getItem('broneboxtoken');
 
         try {
-            const res = await fetch('http://127.0.0.1:3000/staff/delete', {
+            const res = await fetch(API + '/staff/delete', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ id: id })
@@ -2623,7 +2624,7 @@ for (const photo of photosData.photos) {
         const token = localStorage.getItem('broneboxtoken');
 
         try {
-            const res = await fetch('http://127.0.0.1:3000/maids/delete', {
+            const res = await fetch(API + '/maids/delete', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ id: id })
@@ -2652,7 +2653,7 @@ for (const photo of photosData.photos) {
         }
 
         try {
-            const res = await fetch('http://127.0.0.1:3000/staff/permissionschange', {
+            const res = await fetch(API + '/staff/permissionschange', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ id: currentEditingStaffId, permission: permission, value: value })
@@ -2672,14 +2673,14 @@ for (const photo of photosData.photos) {
     async function loadServiceSettings() {
     const token = localStorage.getItem('broneboxtoken');
     try {
-        const res = await fetch('http://127.0.0.1:3000/users/getme', {
+        const res = await fetch(API + '/users/getme', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const me = await res.json();
         document.getElementById('svc-user-name').value = me.name || '';
 
         if (me.role === 'ADMINISTRATOR') {
-            const cabRes = await fetch('http://127.0.0.1:3000/users/cabinet-info', {
+            const cabRes = await fetch(API + '/users/cabinet-info', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (cabRes.ok) {
@@ -2707,7 +2708,7 @@ async function saveUserName() {
     if (!name) { showToast('Имя не может быть пустым', 'warning'); return; }
     const token = localStorage.getItem('broneboxtoken');
     try {
-        const res = await fetch('http://127.0.0.1:3000/users/update-name', {
+        const res = await fetch(API + '/users/update-name', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ name })
@@ -2731,8 +2732,8 @@ async function loadMsgTemplates() {
     const container = document.getElementById('msg-template-list')
     try {
         const [meRes, tplRes] = await Promise.all([
-            fetch('http://127.0.0.1:3000/users/getme', { headers: { 'Authorization': `Bearer ${token}` } }),
-            fetch('http://127.0.0.1:3000/cabinet/templates', { headers: { 'Authorization': `Bearer ${token}` } })
+            fetch(API + '/users/getme', { headers: { 'Authorization': `Bearer ${token}` } }),
+            fetch(API + '/cabinet/templates', { headers: { 'Authorization': `Bearer ${token}` } })
         ])
         const me  = await meRes.json()
         const { templates } = await tplRes.json()
@@ -2773,7 +2774,7 @@ function openMsgTemplateModal(id) {
     document.getElementById('msg-tpl-id').value = id || ''
     if (id) {
         const token = localStorage.getItem('broneboxtoken')
-        fetch('http://127.0.0.1:3000/cabinet/templates', { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch(API + '/cabinet/templates', { headers: { 'Authorization': `Bearer ${token}` } })
             .then(r => r.json())
             .then(({ templates }) => {
                 const t = (templates || []).find(x => x.id === id)
@@ -2811,7 +2812,7 @@ async function saveMsgTemplate() {
     const body  = document.getElementById('msg-tpl-body').value.trim()
     if (!name || !body) { showToast('Заполните название и текст', 'warning'); return }
     try {
-        const res = await fetch('http://127.0.0.1:3000/cabinet/templates/save', {
+        const res = await fetch(API + '/cabinet/templates/save', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: id ? Number(id) : undefined, name, body })
@@ -2828,7 +2829,7 @@ async function deleteMsgTemplate(id) {
     if (!confirm('Удалить шаблон?')) return
     const token = localStorage.getItem('broneboxtoken')
     try {
-        const res = await fetch('http://127.0.0.1:3000/cabinet/templates/delete', {
+        const res = await fetch(API + '/cabinet/templates/delete', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ id })
@@ -2845,7 +2846,7 @@ async function sendBugReport() {
     if (!message) { showToast('Опишите проблему', 'warning'); return; }
     const token = localStorage.getItem('broneboxtoken');
     try {
-        const res = await fetch('http://127.0.0.1:3000/users/bug-report', {
+        const res = await fetch(API + '/users/bug-report', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ message, page: window.location.pathname })
@@ -2866,7 +2867,7 @@ async function saveCabinetTimezone() {
     const timezone = document.getElementById('svc-cabinet-timezone').value;
     const token = localStorage.getItem('broneboxtoken');
     try {
-        const res = await fetch('http://127.0.0.1:3000/cabinet/update-timezone', {
+        const res = await fetch(API + '/cabinet/update-timezone', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ timezone })

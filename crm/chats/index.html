@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+  <script src="/config.js"></script>
     <script>
         (function() {
         const token = localStorage.getItem('broneboxtoken');
@@ -17,7 +18,7 @@
         return;
       }
       try {
-        const res = await fetch('http://127.0.0.1:3000/users/getme', {
+        const res = await fetch(API + '/users/getme', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`, // Передаем токен бэкенду

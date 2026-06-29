@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+  <script src="/config.js"></script>
     <script>
       (function () {
         try {
@@ -31,7 +32,7 @@
         return;
       }
       try {
-        const res = await fetch('http://127.0.0.1:3000/users/getme', {
+        const res = await fetch(API + '/users/getme', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`, // Передаем токен бэкенду
@@ -69,7 +70,7 @@
     async function getBookings() {
   const token = localStorage.getItem('broneboxtoken');
 
-  const data = await fetch('http://127.0.0.1:3000/users/getme', {
+  const data = await fetch(API + '/users/getme', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -133,7 +134,7 @@
   tomorrowOutContainer.innerHTML = '';
 
   try {
-    const res = await fetch('http://127.0.0.1:3000/bookings/get', {
+    const res = await fetch(API + '/bookings/get', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({})
@@ -147,7 +148,7 @@
     const { bookings } = await res.json();
 
     for (const booking of bookings) {
-      const getObj = await fetch('http://127.0.0.1:3000/objects/getbyrid', {
+      const getObj = await fetch(API + '/objects/getbyrid', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ rId: booking.realty_id })
@@ -318,7 +319,7 @@ function formatDate(dateStr) {
       availableList.innerHTML = '';
 
       try {
-        const res = await fetch('http://127.0.0.1:3000/objects/check-availability', {
+        const res = await fetch(API + '/objects/check-availability', {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
         });
@@ -673,7 +674,7 @@ function formatDate(dateStr) {
   async function loadQmTemplates() {
     const token = localStorage.getItem('broneboxtoken')
     try {
-      const res = await fetch('http://127.0.0.1:3000/cabinet/templates', {
+      const res = await fetch(API + '/cabinet/templates', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       const data = await res.json()
@@ -723,7 +724,7 @@ function formatDate(dateStr) {
     if (!save) return
     const token = localStorage.getItem('broneboxtoken')
     try {
-      await fetch('http://127.0.0.1:3000/bookings/update', {
+      await fetch(API + '/bookings/update', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: _qmBookingId, channel: ch === 'Phone' ? ' ' : ch })
@@ -767,12 +768,12 @@ function formatDate(dateStr) {
 
     try {
       const [bRes, mRes] = await Promise.all([
-        fetch('http://127.0.0.1:3000/bookings/get-by-id', {
+        fetch(API + '/bookings/get-by-id', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: bookingId })
         }),
-        fetch('http://127.0.0.1:3000/maids/getall', {
+        fetch(API + '/maids/getall', {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
         })
@@ -781,7 +782,7 @@ function formatDate(dateStr) {
       const { booking } = await bRes.json()
       const { maids }   = await mRes.json()
 
-      const oRes = await fetch('http://127.0.0.1:3000/objects/getbyrid', {
+      const oRes = await fetch(API + '/objects/getbyrid', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ rId: booking.realty_id })
@@ -875,7 +876,7 @@ function formatDate(dateStr) {
       })
 
       // ── Ссылки ────────────────────────────────────────────
-      const bookLink   = booking.link ? `http://127.0.0.1:5500/c/?id=${booking.link}` : null
+      const bookLink   = booking.link ? `${DOMEN}/c/?id=${booking.link}` : null
       const contrLink  = booking.contract_link || null
 
       // Данные для шаблонов
@@ -933,7 +934,7 @@ function formatDate(dateStr) {
     const token  = localStorage.getItem('broneboxtoken')
     const maidId = document.getElementById('qm-maid').value
     try {
-      await fetch('http://127.0.0.1:3000/bookings/update', {
+      await fetch(API + '/bookings/update', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: _qmBookingId, maidid: maidId || null })

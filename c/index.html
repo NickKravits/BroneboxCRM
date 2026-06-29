@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+  <script src="/config.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title id="page-title">BroneBox | Загрузка...</title>
@@ -99,7 +100,7 @@
       </div>
     </div>
     <div class="time-section" id="time-section">
-      <p>Пожалуйста, укажите удобное время заезда и выезда — мы всё подготовим заранее.</p>
+      <p id="time-section-hint">Пожалуйста, укажите удобное время заезда и выезда — мы всё подготовим заранее.</p>
       <div class="time-inputs">
         <div class="time-field">
           <label for="ci">Время заезда</label>
@@ -109,8 +110,8 @@
           <label for="co">Время выезда</label>
           <input type="time" id="co" />
         </div>
-        <button class="btn-save" onclick="saveTimes()">Сохранить</button>
       </div>
+      <button class="btn-save-time" id="btn-save-time" onclick="saveTime()" disabled>Сохранить</button>
     </div>
   </div>
 
@@ -178,6 +179,8 @@
         <div class="price-label" id="nights-label">Итого</div>
         <div class="price-total" id="price-total">...</div>
         <div class="price-breakdown">
+          <span>Цена в сутки: <strong id="daily-price">...</strong></span>
+          <span>Общая сумма без предоплаты: <strong id="total-price">...</strong></span>
           <span>Предоплата: <strong id="prepayment-amount">...</strong></span>
         </div>
       </div>
@@ -225,7 +228,10 @@
 </div><!-- /.page -->
 
 <script>
-  const API = 'http://127.0.0.1:3000'
+  
+
+  // Глобальное состояние для динамического обновления бейджей
+  let _state = {}
 
   // ── Утилиты ───────────────────────────────────────────────────────────
   function getBookingLink() {
@@ -345,7 +351,7 @@
   }
 
   // ── Метка канала оплаты ───────────────────────────────────────────────
-  const CHANNEL_NAMES = { TOCHKA: 'Точка Банк', TBANK: 'Т-Банк', MONETA: 'Moneta' }
+  const CHANNEL_NAMES = { TOCHKA: 'Точка Банк', TBANK: 'Т-Банк', MONETA: 'Moneta', NONE: 'менеджера' }
 
   function renderChannelTag(elId, channel, prefix) {
     if (!channel || channel === 'NONE') return
@@ -368,22 +374,31 @@
   // ── Блок оплаты ───────────────────────────────────────────────────────
   function renderPayment(booking, objects, show) {
     const pay = show.payanddeposit || {}
-    if (!objects || objects.paymentchanel === 'NONE') return
+    if (!objects) return
 
     document.getElementById('card-payment').style.display = ''
     const nights = countNights(booking.begin_date, booking.end_date)
     document.getElementById('nights-label').textContent      = 'Итого за ' + nights + ' ' + nightsWord(nights)
-    document.getElementById('price-total').textContent       = formatPrice(booking.amount)
+    document.getElementById('price-total').textContent       = formatPrice(booking.balance_to_be_paid_1)
     document.getElementById('prepayment-amount').textContent = booking.prepayment
       ? formatPrice(booking.prepayment) : 'не внесена'
+    document.getElementById('daily-price').textContent       = formatPrice(booking.price_per_day)
+    document.getElementById('total-price').textContent       = formatPrice(booking.amount)
 
     const action = document.getElementById('pay-obj-action')
+    if (objects.paymentchanel === 'NONE' && booking.balance_to_be_paid_1 > 0) {
+      document.getElementById('payment-notice-text').textContent = 'Оплата произодится через менеджера!'
+      document.getElementById('payment-notice').style.display = ''
+    }
+
     if (!pay.active && pay.availableAt) {
       action.innerHTML = ''
       document.getElementById('payment-notice-text').textContent = 'Ссылка для оплаты появится ' + pay.availableAt
       document.getElementById('payment-notice').style.display = ''
     } else if (booking.balance_to_be_paid_1 > 0) {
-      action.innerHTML = `<button class="btn-pay">Оплатить ${formatPrice(booking.balance_to_be_paid_1)}</button>`
+      if (objects.paymentchanel !== 'NONE') {
+        action.innerHTML = `<button class="btn-pay">Оплатить ${formatPrice(booking.balance_to_be_paid_1)}</button>`
+      }
     } else {
       action.innerHTML = PAID_BADGE
     }
@@ -394,25 +409,31 @@
   // ── Блок залога ───────────────────────────────────────────────────────
   function renderDeposit(booking, objects, show) {
     const pay = show.payanddeposit || {}
-    if (!objects || objects.depositchanel === 'NONE') return
+    if (!objects) return
 
     document.getElementById('card-deposit').style.display  = ''
     document.getElementById('deposit-amount').textContent  = formatPrice(objects.deposit)
 
-    const action     = document.getElementById('deposit-obj-action')
+    const action = document.getElementById('deposit-obj-action')
+    // Залог считается внесённым: Bookings.deposit >= Objects.deposit
+    // Чтобы скрыть кнопку — обновить Bookings.deposit = <сумма залога>
+    // Для возврата залога — обнулить Bookings.deposit (логику возврата настроить самостоятельно)
     const depositPaid = (booking.deposit ?? 0) >= (parseInt(objects.deposit) || 0)
 
     if (!pay.active && pay.availableAt) {
       action.innerHTML = ''
       document.getElementById('deposit-notice-text').textContent = 'Кнопка внесения залога появится ' + pay.availableAt
       document.getElementById('deposit-notice').style.display = ''
-    } else if (pay.depositActive) {
-      action.innerHTML = depositPaid
-        ? DEPOSITED_BADGE
-        : `<button class="btn-deposit">Внести залог</button>`
-    } else {
-      // completed — кнопка скрыта, значок если внесён
-      action.innerHTML = depositPaid ? DEPOSITED_BADGE : ''
+    } else if (depositPaid) {
+      action.innerHTML = DEPOSITED_BADGE
+    } else if (objects.depositchanel !== 'NONE') {
+      // Залог не внесён — кнопка остаётся видимой даже после выезда НУЖНО СДЕЛАТЬ ТАК, ЧТОБЫ ОНА СКРЫВАЛАСЬ ПОСЛЕ ВЫЕЗДА, ЕСЛИ НЕ ВНЕСЁН ЗАЛОГ И ПИСАТЬ ОБ ЭТОМ
+      action.innerHTML = `<button class="btn-deposit">Внести залог</button>`
+    }
+
+    if (objects.depositchanel === 'NONE') {
+      document.getElementById('deposit-notice-text').textContent = 'Внесение залога произодится через менеджера!'
+      document.getElementById('deposit-notice').style.display = ''
     }
 
     renderChannelTag('deposit-channel-tag', objects.depositchanel, 'Принимается через')
@@ -503,32 +524,41 @@
     }
 
     // ── booked ─────────────────────────────────────────────────────────
+    _state = { booking, objects, show, completed }
+
+    const nights   = countNights(booking.begin_date, booking.end_date)
+    const checkin  = formatDate(booking.begin_date)
+    const checkout = formatDate(booking.end_date)
+    document.getElementById('checkin-date').textContent  = checkin.date
+    document.getElementById('checkin-day').textContent   = checkin.day
+    document.getElementById('checkout-date').textContent = checkout.date
+    document.getElementById('checkout-day').textContent  = checkout.day + ' · ' + nights + ' ' + nightsWord(nights)
+
+    if (booking.begin_time) document.getElementById('ci').value = booking.begin_time
+    if (booking.end_time)   document.getElementById('co').value = booking.end_time
+
     if (completed) {
       document.getElementById('greeting-text').innerHTML =
         'Надеемся, всё прошло хорошо, <span id="guest-name">' + firstName + '</span>!'
 
-      const nights = countNights(booking.begin_date, booking.end_date)
-      const cin    = formatDate(booking.begin_date)
-      const cout   = formatDate(booking.end_date)
       document.getElementById('completed-dates').textContent =
-        cin.date + ' — ' + cout.date + ' · ' + nights + ' ' + nightsWord(nights)
+        checkin.date + ' — ' + checkout.date + ' · ' + nights + ' ' + nightsWord(nights)
       document.getElementById('card-completed').style.display = ''
-
       document.getElementById('todo-bar').style.display    = 'none'
-      document.getElementById('time-section').style.display = 'none'
+
+      // После выезда: поля времени только для чтения (если были указаны) или скрыты
+      const hasAnyTime = booking.begin_time || booking.end_time
+      if (hasAnyTime) {
+        document.getElementById('ci').readOnly                      = true
+        document.getElementById('co').readOnly                      = true
+        document.getElementById('btn-save-time').style.display      = 'none'
+        document.getElementById('time-section-hint').style.display  = 'none'
+      } else {
+        document.getElementById('time-section').style.display = 'none'
+      }
     } else {
-      const nights  = countNights(booking.begin_date, booking.end_date)
-      const checkin  = formatDate(booking.begin_date)
-      const checkout = formatDate(booking.end_date)
-      document.getElementById('checkin-date').textContent  = checkin.date
-      document.getElementById('checkin-day').textContent   = checkin.day
-      document.getElementById('checkout-date').textContent = checkout.date
-      document.getElementById('checkout-day').textContent  = checkout.day + ' · ' + nights + ' ' + nightsWord(nights)
-
-      if (booking.begin_time) document.getElementById('ci').value = booking.begin_time
-      if (booking.end_time)   document.getElementById('co').value = booking.end_time
-
       renderTodos(booking, objects, show, completed)
+      initTimeSaving()
     }
 
     // Даты всегда показываем для активной/завершённой брони
@@ -539,6 +569,8 @@
     renderLocation(objects, booking)
 
     // ── Договор ──────────────────────────────────────────────────────────
+    // Ссылка договора: Bookings.contract_link — установить вручную в базе данных
+    // Инструкционный текст для гостя: элемент .contract-info p (в HTML этого файла)
     const contract = show.contract || {}
     if (contract.visible) {
       document.getElementById('card-contract').style.display = ''
@@ -610,31 +642,57 @@
     }
   }
 
-  // ── Сохранение времени ────────────────────────────────────────────────
-  function saveTimes() {
+  // ── Отслеживание изменений времени ──────────────────────────────────
+  function initTimeSaving() {
     const ci  = document.getElementById('ci')
     const co  = document.getElementById('co')
-    let valid = true
+    const btn = document.getElementById('btn-save-time')
 
-    ;[ci, co].forEach(el => {
-      el.classList.remove('error', 'success')
-      if (!el.value) {
-        el.classList.add('error')
-        setTimeout(() => el.classList.remove('error'), 2000)
-        valid = false
-      } else {
-        el.classList.add('success')
-        setTimeout(() => el.classList.remove('success'), 2000)
-      }
-    })
-    if (!valid) return
+    function checkChanges() {
+      const ciChanged = ci.value !== (_state.booking.begin_time || '')
+      const coChanged = co.value !== (_state.booking.end_time   || '')
+      btn.disabled = !(ciChanged || coChanged)
+    }
 
+    ci.addEventListener('change', checkChanges)
+    co.addEventListener('change', checkChanges)
+  }
+
+  // ── Сохранение времени (только изменённые поля) ──────────────────────
+  async function saveTime() {
+    const ci   = document.getElementById('ci')
+    const co   = document.getElementById('co')
+    const btn  = document.getElementById('btn-save-time')
     const link = getBookingLink()
-    fetch(API + '/guest/save-times', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ id: link, begin_time: ci.value, end_time: co.value })
-    }).catch(e => console.error('Ошибка сохранения времени:', e))
+
+    const ciChanged = ci.value !== (_state.booking.begin_time || '')
+    const coChanged = co.value !== (_state.booking.end_time   || '')
+    if (!ciChanged && !coChanged) return
+
+    const payload = { id: link }
+    if (ciChanged) payload.begin_time = ci.value
+    if (coChanged) payload.end_time   = co.value
+
+    btn.disabled = true
+
+    try {
+      const res = await fetch(API + '/guest/save-times', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload)
+      })
+      if (res.ok) {
+        if (ciChanged) { _state.booking.begin_time = ci.value || null; ci.classList.add('success') }
+        if (coChanged) { _state.booking.end_time   = co.value || null; co.classList.add('success') }
+        renderTodos(_state.booking, _state.objects, _state.show, _state.completed)
+        setTimeout(() => { ci.classList.remove('success'); co.classList.remove('success') }, 1500)
+        // Кнопка остаётся неактивной — текущие значения совпадают с сохранёнными
+      } else {
+        btn.disabled = false
+      }
+    } catch {
+      btn.disabled = false
+    }
   }
 
   // ── Запуск ───────────────────────────────────────────────────────────

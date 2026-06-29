@@ -179,9 +179,8 @@ body {
 
 .time-inputs {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
-  align-items: end;
 }
 
 .time-field label {
@@ -240,6 +239,30 @@ body {
 
 .btn-save:hover {
   opacity: 0.82;
+}
+
+.btn-save-time {
+  font-family: var(--font-main);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--bg-card);
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0;
+  height: 38px;
+  width: 100%;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  margin-top: 10px;
+}
+
+.btn-save-time:hover    { opacity: 0.82; }
+.btn-save-time:disabled { opacity: 0.4; cursor: default; }
+
+.time-field input[type="time"]:read-only {
+  opacity: 0.55;
+  cursor: default;
 }
 
 /* ── Photo carousel ── */
@@ -493,15 +516,6 @@ body {
 
   .dates-grid {
     grid-template-columns: 1fr;
-  }
-
-  .time-inputs {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .time-inputs .btn-save {
-    grid-column: span 2;
-    width: 100%;
   }
 
   .payment-block {

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+  <script src="/config.js"></script>
   <script>
     (function () {
       try {
@@ -26,7 +27,7 @@
       const token = localStorage.getItem('broneboxtoken');
       if (!token) { window.location.href = '/login'; return; }
       try {
-        const res = await fetch('http://127.0.0.1:3000/users/getme', {
+        const res = await fetch(API + '/users/getme', {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
         });
@@ -54,7 +55,7 @@
         container.innerHTML = '';
 
         try {
-            const res = await fetch('http://127.0.0.1:3000/bookings/get', {
+            const res = await fetch(API + '/bookings/get', {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ object: filterObject, phone: filterPhone, checkin: filterCheckin, checkout: filterCheckout })
@@ -69,7 +70,7 @@
 
             for (const booking of bookings) {
 
-                const getObj = await fetch('http://127.0.0.1:3000/objects/getbyrid', {
+                const getObj = await fetch(API + '/objects/getbyrid', {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ rId: booking.realty_id })
@@ -323,7 +324,7 @@
         const token = localStorage.getItem('broneboxtoken');
         const bookingId = document.getElementById('modal-booking-id').textContent.replace('#', '');
         try {
-            const res = await fetch('http://127.0.0.1:3000/bookings/delete', {
+            const res = await fetch(API + '/bookings/delete', {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: bookingId })
@@ -355,7 +356,7 @@
         const checkout = document.getElementById('m-end-time').value;
         const channel = document.getElementById('m-channel').value;
         try {
-            const res = await fetch('http://127.0.0.1:3000/bookings/update', {
+            const res = await fetch(API + '/bookings/update', {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: bookingId, checkin: checkin, checkout: checkout, channel: channel })
@@ -389,13 +390,13 @@
         meta.textContent = 'Загрузка...';
 
         try {
-            var objRes = await fetch('http://127.0.0.1:3000/objects/getall', {
+            var objRes = await fetch(API + '/objects/getall', {
                 headers: { 'Authorization': 'Bearer ' + token }
             });
             var objData = await objRes.json();
             var objects = objData.objects || [];
 
-            var res = await fetch('http://127.0.0.1:3000/bookings/unprocessed', {
+            var res = await fetch(API + '/bookings/unprocessed', {
                 headers: { 'Authorization': 'Bearer ' + token }
             });
             var data = await res.json();
@@ -466,7 +467,7 @@
         var objectId = sel ? (sel.value ? Number(sel.value) : null) : null;
 
         try {
-            var res = await fetch('http://127.0.0.1:3000/bookings/unprocessed/resolve', {
+            var res = await fetch(API + '/bookings/unprocessed/resolve', {
                 method: 'POST',
                 headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: id, objectId: objectId })
@@ -486,7 +487,7 @@
     async function editBookingModal(bookingId) {
         const token = localStorage.getItem('broneboxtoken');
         try {
-            const res = await fetch('http://127.0.0.1:3000/bookings/get-by-id', {
+            const res = await fetch(API + '/bookings/get-by-id', {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: bookingId })
@@ -513,7 +514,7 @@
                 document.getElementById('m-status').textContent = booking.status;
             }
 
-            const res_obj = await fetch('http://127.0.0.1:3000/objects/getbyrid', {
+            const res_obj = await fetch(API + '/objects/getbyrid', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ rId: booking.realty_id })

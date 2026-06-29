@@ -229,7 +229,7 @@
 
     _sseActive = true;
 
-    fetch('http://127.0.0.1:3000/events', {
+    fetch(API + '/events', {
       headers: { 'Authorization': 'Bearer ' + token }
     }).then(function (res) {
       if (!res.ok || !res.body) {
