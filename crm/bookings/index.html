@@ -426,14 +426,18 @@
         var reasonHtml = '';
         var actionHtml = '';
 
+        var deleteBtnHtml = '<button class="btn-delete" onclick="deleteUnprocessed(' + item.id + ')"><i class="ti ti-trash"></i> Удалить</button>';
+
         if (item.failReason === 'object_not_found') {
             reasonHtml = '<span class="upc-reason-badge upc-reason--warn">Объект не найден</span>';
             var opts = objects.map(function(o) { return '<option value="' + o.id + '">' + o.name + '</option>'; }).join('');
             actionHtml = '<select class="filter-select upc-obj-select" id="upc-obj-' + item.id + '"><option value="">Выберите объект...</option>' + opts + '</select>' +
-                '<button class="btn-resolve" onclick="resolveUnprocessed(' + item.id + ')"><i class="ti ti-arrow-right"></i> Перенести</button>';
+                '<button class="btn-resolve" onclick="resolveUnprocessed(' + item.id + ')"><i class="ti ti-arrow-right"></i> Перенести</button>' +
+                deleteBtnHtml;
         } else if (item.failReason === 'booking_not_found') {
             reasonHtml = '<span class="upc-reason-badge upc-reason--info">Бронь не найдена</span>';
-            actionHtml = '<button class="btn-resolve" onclick="resolveUnprocessed(' + item.id + ')"><i class="ti ti-plus"></i> Создать бронь</button>';
+            actionHtml = '<button class="btn-resolve" onclick="resolveUnprocessed(' + item.id + ')"><i class="ti ti-plus"></i> Создать бронь</button>' +
+                deleteBtnHtml;
         } else {
             reasonHtml = '<span class="upc-reason-badge upc-reason--err">' + (item.failMessage || 'Неизвестная ошибка') + '</span>';
         }
@@ -475,9 +479,32 @@
             var data = await res.json();
             if (!res.ok) {
                 window.showToast && window.showToast(data.error || 'Ошибка', 'error');
+                if (data.deleted) getUnprocessed();
                 return;
             }
             window.showToast && window.showToast(data.message || 'Перенесено', 'success');
+            getUnprocessed();
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    async function deleteUnprocessed(id) {
+        if (!confirm('Удалить эту запись из необработанных броней?')) return;
+        var token = localStorage.getItem('broneboxtoken');
+
+        try {
+            var res = await fetch(API + '/bookings/unprocessed/delete', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id })
+            });
+            var data = await res.json();
+            if (!res.ok) {
+                window.showToast && window.showToast(data.error || 'Ошибка', 'error');
+                return;
+            }
+            window.showToast && window.showToast(data.message || 'Удалено', 'success');
             getUnprocessed();
         } catch (err) {
             console.error(err);

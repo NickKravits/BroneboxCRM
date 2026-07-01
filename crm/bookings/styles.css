@@ -452,3 +452,18 @@
 }
 .btn-resolve:hover { background: rgba(29,158,117,0.2); }
 .btn-resolve i { font-size: 13px; }
+
+.btn-delete {
+    display: flex; align-items: center; gap: 5px;
+    background: rgba(212,83,126,0.1);
+    border: 0.5px solid rgba(212,83,126,0.25);
+    border-radius: 8px;
+    padding: 5px 12px;
+    font-size: 12px; font-family: 'Sora', sans-serif; font-weight: 500;
+    color: var(--accent-pink);
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+.btn-delete:hover { background: rgba(212,83,126,0.2); }
+.btn-delete i { font-size: 13px; }
