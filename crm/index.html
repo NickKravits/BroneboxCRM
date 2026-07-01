@@ -106,7 +106,28 @@
           <span class="guest-tag">${nightsCount(booking.begin_date, booking.end_date)} ночей</span>
         </div>
         ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row"><span class="channel-tag">${booking.channel}</span></div>`}
+        ${getContractStatus(booking) === null ? '' : `<div class="card-footer-row"><span class="warn-tag">${getContractStatus(booking)}</span></div>`}
       `
+    }
+
+    function getContractStatus(booking) {
+      if(!booking.contract_link) {
+        return null;
+      } else if (booking.contract_status == "" || booking.contract_status == "Выставлен") {
+        return "Договор не подписан";
+      } else if (booking.contract_status == "Черновик")  {
+        return "Договор - черновик";
+      } else if (booking.contract_status == "Отклонен") {
+        return "Договор отклонён";
+      } else if (booking.contract_status == "Ожидает проверки") {
+        return "Договор ожидает проверки";
+      } else if (booking.contract_status == "Аннулирован") {
+        return "Договор аннулирован";
+      } else if (booking.contract_status == "Подписан") {
+        return null;
+      } else {
+        return "Что-то с договором!"
+      }
     }
 
     function cardCheckout(booking, object) {
