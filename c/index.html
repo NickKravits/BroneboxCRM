@@ -6,8 +6,52 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title id="page-title">BroneBox | Загрузка...</title>
   <link rel="stylesheet" href="style.css" />
+  <style>
+    .c-toast {
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+      z-index: 9999; width: min(420px, calc(100vw - 32px));
+      background: #1e1e2a; border-radius: 14px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.45);
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 16px 14px 16px 16px;
+      animation: cToastIn .25s ease;
+    }
+    @keyframes cToastIn {
+      from { opacity: 0; transform: translateX(-50%) translateY(-12px); }
+      to   { opacity: 1; transform: translateX(-50%) translateY(0);      }
+    }
+    .c-toast-icon {
+      flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .c-toast-icon svg { width: 18px; height: 18px; }
+    .c-toast-icon--success { background: rgba(46,209,157,.15); color: #2ed19d; }
+    .c-toast-icon--warn    { background: rgba(239,159,39,.15); color: #efb939; }
+    .c-toast-icon--error   { background: rgba(212,83,126,.15); color: #d4537e; }
+    .c-toast-body  { flex: 1; }
+    .c-toast-title { font-size: 14px; font-weight: 600; color: #f0f0f5; margin-bottom: 2px; }
+    .c-toast-text  { font-size: 12px; color: #8f8fa8; line-height: 1.4; }
+    .c-toast-close {
+      flex-shrink: 0; background: none; border: none; cursor: pointer;
+      color: #555568; padding: 2px; display: flex;
+    }
+    .c-toast-close svg { width: 16px; height: 16px; }
+    .c-toast-close:hover { color: #8f8fa8; }
+  </style>
 </head>
 <body>
+
+<!-- ── Тост статуса договора ─────────────────────────────────────────────── -->
+<div class="c-toast" id="contract-toast" style="display:none">
+  <div class="c-toast-icon" id="c-toast-icon"></div>
+  <div class="c-toast-body">
+    <div class="c-toast-title" id="c-toast-title"></div>
+    <div class="c-toast-text"  id="c-toast-text"></div>
+  </div>
+  <button class="c-toast-close" onclick="document.getElementById('contract-toast').style.display='none'" aria-label="Закрыть">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+  </button>
+</div>
 
 <div class="page">
 
@@ -695,9 +739,58 @@
     }
   }
 
+  // ── Тост статуса договора ────────────────────────────────────────────
+  const OKIDOKI_MSG = {
+    'true':     { title: 'Договор подписан!',                desc: 'Спасибо, договор успешно подписан.',                      type: 'success' },
+    'pertrue':  { title: 'Договор подписан',                 desc: 'Договор подписан и отправлен на проверку.',               type: 'warn'    },
+    'dicline':  { title: 'Договор отклонён',                 desc: 'Вы отклонили подписание договора.',                       type: 'warn'    },
+    'nothing':  { title: 'Договор не подписан',              desc: 'Договор ещё не был подписан.',                            type: 'warn'    },
+    'draft':    { title: 'Договор в статусе черновика',      desc: 'Пожалуйста, свяжитесь с менеджером.',                    type: 'warn'    },
+    'notfound': { title: 'Договор аннулирован',              desc: 'Пожалуйста, свяжитесь с менеджером.',                    type: 'error'   },
+    'unknown':  { title: 'Неизвестная ошибка',               desc: 'Пожалуйста, свяжитесь с менеджером.',                    type: 'error'   },
+  }
+
+  const ICON_SVG = {
+    success: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>`,
+    warn:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>`,
+    error:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>`,
+  }
+
+  function showContractToast(result) {
+    const msg   = OKIDOKI_MSG[result] || OKIDOKI_MSG['unknown']
+    const toast = document.getElementById('contract-toast')
+    const icon  = document.getElementById('c-toast-icon')
+
+    document.getElementById('c-toast-title').textContent = msg.title
+    document.getElementById('c-toast-text').textContent  = msg.desc
+    icon.className = 'c-toast-icon c-toast-icon--' + msg.type
+    icon.innerHTML = ICON_SVG[msg.type]
+    toast.style.display = ''
+
+    if (msg.type === 'success') setTimeout(() => { toast.style.display = 'none' }, 5000)
+  }
+
+  async function checkContractStatus(link) {
+    try {
+      const res  = await fetch(API + '/guest/contract/update', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ id: link })
+      })
+      const data = await res.json()
+      showContractToast(data.result)
+    } catch {
+      showContractToast('unknown')
+    }
+  }
+
   // ── Запуск ───────────────────────────────────────────────────────────
   const link = getBookingLink()
   if (link) { loadData(link) } else { showNotFound() }
+
+  if (link && new URLSearchParams(window.location.search).get('red') === 'okidoki') {
+    checkContractStatus(link)
+  }
 </script>
 
 </body>

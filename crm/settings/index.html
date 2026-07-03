@@ -1129,6 +1129,17 @@
           <input class="field-input" id="obj-okidoki-payperday-create" type="text" placeholder="Цена в сутки">
         </div>
 
+      <label class="perm-row" style="margin-top:12px">
+        <div class="perm-info">
+          <span class="perm-name">Автоматическое создание договоров</span>
+          <span class="perm-desc">Договор будет создан в OkiDoki автоматически при поступлении брони</span>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="obj-okidoki-active-create">
+          <span class="toggle-track"></span>
+        </label>
+      </label>
+
       <div class="modal-section-divider">Получение платежей</div>
 
       <label class="field-label">Пожалуйста, убедитесь, что у вас настроена интеграция с выбраным банком. "Настройки" -> "Интеграция"</label>
@@ -1468,6 +1479,17 @@ function clearEditPhotos() {
           <label class="field-label" for="obj-okidoki-payperday-edit">Keyword стоимости за день</label>
           <input class="field-input" id="obj-okidoki-payperday-edit" type="text" placeholder="Цена в сутки">
         </div>
+
+      <label class="perm-row" style="margin-top:12px">
+        <div class="perm-info">
+          <span class="perm-name">Автоматическое создание договоров</span>
+          <span class="perm-desc">Договор будет создан в OkiDoki автоматически при поступлении брони</span>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="obj-okidoki-active-edit">
+          <span class="toggle-track"></span>
+        </label>
+      </label>
 
       <div class="modal-section-divider">Получение платежей</div>
 
@@ -2311,6 +2333,7 @@ async function loadODTemplates(apiKey) {
     const okiDokiDepositId = document.getElementById('obj-okidoki-deposit-edit').value.trim();
     const okiDokiPayedId = document.getElementById('obj-okidoki-payed-edit').value.trim();
     const okiDokiPayPerDayId = document.getElementById('obj-okidoki-payperday-edit').value.trim();
+    const okidokiactive = document.getElementById('obj-okidoki-active-edit').checked ? 1 : 0;
     const DepositChanel = document.getElementById('obj-deposit-service-edit').value.trim();
     const PaymentChanel = document.getElementById('obj-payment-service-edit').value.trim();
     const active = document.getElementById('obj-active-create').checked ? "YES" : "NO";
@@ -2357,7 +2380,7 @@ async function loadODTemplates(apiKey) {
                 objectId: currentEditingObjectId,
                 realtyId: realtyIdInt, name, instructions, checkInTime, checkOutTime,
                 showPaymentTiming, showInstructionTiming, showContractTiming, showReviewTiming,
-                location, mapLink, defaultDeposit, okiDokiRowId, okiDokiValueId, okiDokiNameId, okiDokiDateInId, okiDokiDateOutId, okiDokiDepositId, okiDokiPayedId, okiDokiPayPerDayId, DepositChanel, PaymentChanel, active
+                location, mapLink, defaultDeposit, okiDokiRowId, okiDokiValueId, okiDokiNameId, okiDokiDateInId, okiDokiDateOutId, okiDokiDepositId, okiDokiPayedId, okiDokiPayPerDayId, okidokiactive, DepositChanel, PaymentChanel, active
             })
         });
 
@@ -2433,6 +2456,7 @@ async function loadODTemplates(apiKey) {
       document.getElementById('obj-okidoki-deposit-edit').value = data.object.oddepositid;
       document.getElementById('obj-okidoki-payed-edit').value = data.object.odpayedid;
       document.getElementById('obj-okidoki-payperday-edit').value = data.object.odpayperdayid;
+      document.getElementById('obj-okidoki-active-edit').checked = data.object.okidokiactive === 1;
       document.getElementById('obj-deposit-service-edit').value = data.object.depositchanel;
       document.getElementById('obj-payment-service-edit').value = data.object.paymentchanel;
 
@@ -2513,6 +2537,7 @@ for (const photo of photosData.photos) {
     const oddepositid = document.getElementById('obj-okidoki-deposit-create').value.trim(); //
     const odpayedid = document.getElementById('obj-okidoki-payed-create').value.trim(); //
     const odpayperdayid = document.getElementById('obj-okidoki-payperday-create').value.trim(); //
+    const okidokiactive = document.getElementById('obj-okidoki-active-create').checked ? 1 : 0;
     const depositchanel = document.getElementById('obj-deposit-service-create').value.trim();
     const paymentchanel = document.getElementById('obj-payment-service-create').value.trim();
 
@@ -2538,7 +2563,7 @@ for (const photo of photosData.photos) {
       const res = await fetch(API + '/objects/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ realtyId: realtyid, name: name, instructions: instruction, checkInTime: checkindef, checkOutTime: checkoutdef, showPaymentTiming: sspayanddeposit, showInstructionTiming: ssinstruction, showContractTiming: sscontract, showReviewTiming: ssrateclean, location: location, mapLink: maplink, defaultDeposit: deposit, okiDokiRowId: odstringid, okiDokiValueId: odvalueid, okiDokiNameId: odnameid, okiDokiDateInId: oddateinid, okiDokiDateOutId: oddateoutid, okiDokiDepositId: oddepositid, okiDokiPayedId: odpayedid, okiDokiPayPerDayId: odpayperdayid, DepositChanel: depositchanel, PaymentChanel: paymentchanel, active: active })
+        body: JSON.stringify({ realtyId: realtyid, name: name, instructions: instruction, checkInTime: checkindef, checkOutTime: checkoutdef, showPaymentTiming: sspayanddeposit, showInstructionTiming: ssinstruction, showContractTiming: sscontract, showReviewTiming: ssrateclean, location: location, mapLink: maplink, defaultDeposit: deposit, okiDokiRowId: odstringid, okiDokiValueId: odvalueid, okiDokiNameId: odnameid, okiDokiDateInId: oddateinid, okiDokiDateOutId: oddateoutid, okiDokiDepositId: oddepositid, okiDokiPayedId: odpayedid, okiDokiPayPerDayId: odpayperdayid, okidokiactive, DepositChanel: depositchanel, PaymentChanel: paymentchanel, active: active })
       });
 
       const data = await res.json();
