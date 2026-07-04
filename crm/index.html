@@ -633,12 +633,21 @@ function formatDate(dateStr) {
           </div>
           <div id="qm-payments-list"></div>
         </div>
-        <div class="qm-finance-row" id="qm-deposit-row" style="display:none">
+        <div class="qm-finance-row">
           <div class="qm-finance-item">
             <span class="qm-lbl">Залог</span>
             <span class="qm-finance-val" id="qm-deposit">—</span>
           </div>
           <span class="qm-channel-badge" id="qm-dep-channel" style="display:none"></span>
+        </div>
+        <div class="qm-payments-section">
+          <div class="qm-payments-head">
+            <span class="qm-payments-label">Залоги</span>
+            <button class="qm-add-pay-btn" onclick="addManualDeposit()">
+              <i class="ti ti-plus"></i> Добавить
+            </button>
+          </div>
+          <div id="qm-deposits-list"></div>
         </div>
       </div>
 
@@ -692,10 +701,18 @@ function formatDate(dateStr) {
   let _qmBookingAmount     = 0
   let _qmBookingPrepayment = 0
   let _qmPaidSum           = 0
+  let _qmBookingDepositBase = 0
+  let _qmObjectDepositMax   = 0
+  let _qmDepositPaidSum     = 0
 
   function updateQmAmountDisplay() {
     const remaining = Math.max(0, _qmBookingAmount - _qmBookingPrepayment - _qmPaidSum)
     document.getElementById('qm-amount').textContent = fmtMoney(remaining) + ' ₽'
+  }
+
+  function updateQmDepositDisplay() {
+    const total = _qmBookingDepositBase + _qmDepositPaidSum
+    document.getElementById('qm-deposit').textContent = fmtMoney(total) + ' ₽'
   }
 
   function fmtMoney(val) {
@@ -894,21 +911,22 @@ function formatDate(dateStr) {
         payChanEl.style.display  = 'none'
       }
 
-      const depRow   = document.getElementById('qm-deposit-row')
-      const depCh    = object?.depositchanel
-      if (booking.deposit > 0 || (depCh && depCh !== 'NONE')) {
-        document.getElementById('qm-deposit').textContent = Number(booking.deposit || 0).toLocaleString('ru-RU') + ' ₽'
-        const depChanEl = document.getElementById('qm-dep-channel')
-        if (depCh && depCh !== 'NONE') {
-          depChanEl.textContent   = QM_CHANNEL[depCh] || depCh
-          depChanEl.style.display = ''
-        } else {
-          depChanEl.style.display = 'none'
-        }
-        depRow.style.display = ''
+      const depCh = object?.depositchanel
+      const depChanEl = document.getElementById('qm-dep-channel')
+      if (depCh && depCh !== 'NONE') {
+        depChanEl.textContent   = QM_CHANNEL[depCh] || depCh
+        depChanEl.style.display = ''
       } else {
-        depRow.style.display = 'none'
+        depChanEl.style.display = 'none'
       }
+
+      _qmBookingDepositBase = Number(booking.deposit || 0)
+      _qmObjectDepositMax   = parseFloat(object?.deposit) || 0
+      _qmDepositPaidSum     = 0
+      updateQmDepositDisplay()
+
+      document.getElementById('qm-deposits-list').innerHTML = ''
+      loadQmDeposits(bookingId)
 
       // ── Горничная ─────────────────────────────────────────
       const maidSel = document.getElementById('qm-maid')
@@ -979,30 +997,45 @@ function formatDate(dateStr) {
   async function loadQmPayments(bookingId) {
     try {
       const token = localStorage.getItem('broneboxtoken')
-      const res = await fetch(`${API}/payments/getbybooking?bookingId=${bookingId}`, {
+      const res = await fetch(`${API}/payments/getbybooking?bookingId=${bookingId}&type=PAY`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       if (!res.ok) return
       const { payments } = await res.json()
-      renderQmPayments(payments)
+      renderQmPaymentRows(payments, 'qm-payments-list', 'PAY')
     } catch {}
   }
 
-  function renderQmPayments(payments) {
-    const list = document.getElementById('qm-payments-list')
+  async function loadQmDeposits(bookingId) {
+    try {
+      const token = localStorage.getItem('broneboxtoken')
+      const res = await fetch(`${API}/payments/getbybooking?bookingId=${bookingId}&type=DEPOSIT`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (!res.ok) return
+      const { payments } = await res.json()
+      renderQmPaymentRows(payments, 'qm-deposits-list', 'DEPOSIT')
+    } catch {}
+  }
+
+  const QM_PAY_STATUS_LABEL = { PAID: 'Оплачен', PENDING: 'Ожидание', FAILED: 'Ошибка', RETURNED: 'Возвращено' }
+
+  function renderQmPaymentRows(payments, containerId, kind) {
+    const list = document.getElementById(containerId)
     list.innerHTML = ''
 
-    _qmPaidSum = (payments || []).reduce((sum, p) => {
+    const paidSum = (payments || []).reduce((sum, p) => {
       return p.status === 'PAID' ? sum + Number(p.amount || 0) : sum
     }, 0)
-    updateQmAmountDisplay()
+    if (kind === 'PAY') {
+      _qmPaidSum = paidSum
+      updateQmAmountDisplay()
+    } else {
+      _qmDepositPaidSum = paidSum
+      updateQmDepositDisplay()
+    }
 
-    const STATUS_LABEL = { PAID: 'Оплачен', PENDING: 'Ожидание', FAILED: 'Ошибка', RETURNED: 'Возврат' }
-
-    const visible = (payments || []).filter(p => {
-      if ((p.method === 'TOCHKA' || p.method === 'TBANK') && p.status === 'PENDING') return false
-      return true
-    })
+    const visible = (payments || []).filter(p => p.status !== 'PENDING')
 
     visible.forEach(p => {
       const row = document.createElement('div')
@@ -1013,13 +1046,15 @@ function formatDate(dateStr) {
 
       const metaParts = [dateStr]
       if (p.method === 'MANAGER' && p.madeBy) metaParts.push(p.madeBy)
-      if (p.method === 'TOCHKA' || p.method === 'TBANK') metaParts.push(STATUS_LABEL[p.status] || p.status)
+      if (p.method === 'TOCHKA' || p.method === 'TBANK') metaParts.push(QM_PAY_STATUS_LABEL[p.status] || p.status)
 
-      let actionBtn = ''
-      if (p.method === 'MANAGER') {
-        actionBtn = `<button class="qm-pay-action danger" onclick="removeManualPayment(${p.id})" title="Удалить"><i class="ti ti-trash" style="font-size:14px;"></i></button>`
+      let actionHtml = ''
+      if (p.status === 'RETURNED') {
+        actionHtml = `<span class="qm-pay-returned">Возвращено</span>`
+      } else if (p.method === 'MANAGER') {
+        actionHtml = `<button class="qm-pay-action danger" onclick="removeManualPayment(${p.id}, '${kind}')" title="Удалить"><i class="ti ti-trash" style="font-size:14px;"></i></button>`
       } else if (p.method === 'TOCHKA' || p.method === 'TBANK') {
-        actionBtn = `<button class="qm-pay-action" disabled title="Возврат"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
+        actionHtml = `<button class="qm-pay-action" disabled title="Возврат"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
       }
 
       row.innerHTML = `
@@ -1027,17 +1062,30 @@ function formatDate(dateStr) {
           <span class="qm-pay-amount">${amtStr}</span>
           <span class="qm-pay-meta">${metaParts.join(' · ')}</span>
         </div>
-        ${actionBtn}`
+        ${actionHtml}`
 
       list.appendChild(row)
     })
   }
 
-  // ── Модалка добавления платежа ──────────────────────────────
+  // ── Модалка добавления платежа/залога ────────────────────────
   let _addPayMaxAmount = 0
+  let _addPayKind       = 'PAY'
 
   function addManualPayment() {
+    _addPayKind = 'PAY'
     _addPayMaxAmount = Math.max(0, _qmBookingAmount - _qmBookingPrepayment - _qmPaidSum)
+    openAddPaymentModal('Добавить оплату')
+  }
+
+  function addManualDeposit() {
+    _addPayKind = 'DEPOSIT'
+    _addPayMaxAmount = Math.max(0, _qmObjectDepositMax - _qmBookingDepositBase - _qmDepositPaidSum)
+    openAddPaymentModal('Добавить залог')
+  }
+
+  function openAddPaymentModal(title) {
+    document.querySelector('#modal-add-payment .modal-title').textContent = title
     const inp = document.getElementById('add-payment-input')
     inp.value = _addPayMaxAmount % 1 === 0 ? String(_addPayMaxAmount) : String(_addPayMaxAmount.toFixed(2))
     inp.max = _addPayMaxAmount
@@ -1077,7 +1125,7 @@ function formatDate(dateStr) {
       const res = await fetch(`${API}/payments/manualcreate`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId: _qmBookingId, amount })
+        body: JSON.stringify({ bookingId: _qmBookingId, amount, type: _addPayKind })
       })
       if (!res.ok) {
         const err = await res.json()
@@ -1085,8 +1133,9 @@ function formatDate(dateStr) {
         return
       }
       closeAddPaymentModal()
-      showToast('Платёж добавлен', 'success')
-      loadQmPayments(_qmBookingId)
+      showToast(_addPayKind === 'DEPOSIT' ? 'Залог добавлен' : 'Платёж добавлен', 'success')
+      if (_addPayKind === 'DEPOSIT') loadQmDeposits(_qmBookingId)
+      else loadQmPayments(_qmBookingId)
     } catch {
       showToast('Ошибка создания платежа', 'danger')
     } finally {
@@ -1094,11 +1143,13 @@ function formatDate(dateStr) {
     }
   }
 
-  // ── Модалка удаления платежа ─────────────────────────────────
-  let _removePaymentId = null
+  // ── Модалка удаления платежа/залога ──────────────────────────
+  let _removePaymentId   = null
+  let _removePaymentKind = 'PAY'
 
-  function removeManualPayment(paymentId) {
-    _removePaymentId = paymentId
+  function removeManualPayment(paymentId, kind) {
+    _removePaymentId   = paymentId
+    _removePaymentKind = kind || 'PAY'
     document.getElementById('modal-remove-payment').classList.add('open')
   }
 
@@ -1128,8 +1179,9 @@ function formatDate(dateStr) {
         return
       }
       closeRemovePaymentModal()
-      showToast('Платёж удалён', 'success')
-      loadQmPayments(_qmBookingId)
+      showToast(_removePaymentKind === 'DEPOSIT' ? 'Залог удалён' : 'Платёж удалён', 'success')
+      if (_removePaymentKind === 'DEPOSIT') loadQmDeposits(_qmBookingId)
+      else loadQmPayments(_qmBookingId)
     } catch {
       showToast('Ошибка удаления платежа', 'danger')
     } finally {
