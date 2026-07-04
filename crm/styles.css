@@ -658,8 +658,9 @@
 /* Payment section */
 .qm-payments-section {
   margin-top: 12px;
-  padding-top: 12px;
+  padding: 12px 0;
   border-top: 0.5px solid rgba(255,255,255,0.07);
+  border-bottom: 0.5px solid rgba(255,255,255,0.07);
 }
 .qm-payments-head {
   display: flex; align-items: center; justify-content: space-between;
@@ -696,7 +697,7 @@
 .qm-pay-action:hover { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.7); border-color: rgba(255,255,255,0.15); }
 .qm-pay-action.danger:hover { background: rgba(248,79,79,0.1); color: rgba(248,79,79,0.9); border-color: rgba(248,79,79,0.22); }
 .qm-pay-action[disabled] { cursor: default; opacity: 0.3; pointer-events: none; }
-html[data-theme="light"] .qm-payments-section { border-top-color: rgba(0,0,0,0.07); }
+html[data-theme="light"] .qm-payments-section { border-top-color: rgba(0,0,0,0.07); border-bottom-color: rgba(0,0,0,0.07); }
 html[data-theme="light"] .qm-payments-label { color: rgba(0,0,0,0.28); }
 html[data-theme="light"] .qm-add-pay-btn { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.1); color: rgba(0,0,0,0.5); }
 html[data-theme="light"] .qm-add-pay-btn:hover { background: rgba(0,0,0,0.07); color: rgba(0,0,0,0.78); }

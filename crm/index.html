@@ -691,6 +691,12 @@ function formatDate(dateStr) {
   let _qmBookingData    = {}
   let _qmBookingAmount     = 0
   let _qmBookingPrepayment = 0
+  let _qmPaidSum           = 0
+
+  function updateQmAmountDisplay() {
+    const remaining = Math.max(0, _qmBookingAmount - _qmBookingPrepayment - _qmPaidSum)
+    document.getElementById('qm-amount').textContent = fmtMoney(remaining) + ' ₽'
+  }
 
   function fmtMoney(val) {
     const n = Number(val) || 0
@@ -868,12 +874,12 @@ function formatDate(dateStr) {
       // ── Финансы ───────────────────────────────────────────
       const _totalAmt  = booking.amount     || 0
       const _prepayAmt = booking.prepayment || 0
-      const _toPayAmt  = Math.max(0, _totalAmt - _prepayAmt)
       _qmBookingAmount     = _totalAmt
       _qmBookingPrepayment = _prepayAmt
+      _qmPaidSum           = 0
 
       document.getElementById('qm-total-amount').textContent = fmtMoney(_totalAmt) + ' ₽'
-      document.getElementById('qm-amount').textContent       = fmtMoney(_toPayAmt) + ' ₽'
+      updateQmAmountDisplay()
       document.getElementById('qm-prepayment').textContent   = _prepayAmt > 0 ? 'Предоплата: ' + fmtMoney(_prepayAmt) + ' ₽' : ''
 
       document.getElementById('qm-payments-list').innerHTML = ''
@@ -986,6 +992,11 @@ function formatDate(dateStr) {
     const list = document.getElementById('qm-payments-list')
     list.innerHTML = ''
 
+    _qmPaidSum = (payments || []).reduce((sum, p) => {
+      return p.status === 'PAID' ? sum + Number(p.amount || 0) : sum
+    }, 0)
+    updateQmAmountDisplay()
+
     const STATUS_LABEL = { PAID: 'Оплачен', PENDING: 'Ожидание', FAILED: 'Ошибка', RETURNED: 'Возврат' }
 
     const visible = (payments || []).filter(p => {
@@ -1026,7 +1037,7 @@ function formatDate(dateStr) {
   let _addPayMaxAmount = 0
 
   function addManualPayment() {
-    _addPayMaxAmount = Math.max(0, _qmBookingAmount - _qmBookingPrepayment)
+    _addPayMaxAmount = Math.max(0, _qmBookingAmount - _qmBookingPrepayment - _qmPaidSum)
     const inp = document.getElementById('add-payment-input')
     inp.value = _addPayMaxAmount % 1 === 0 ? String(_addPayMaxAmount) : String(_addPayMaxAmount.toFixed(2))
     inp.max = _addPayMaxAmount
