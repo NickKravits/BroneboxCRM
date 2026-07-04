@@ -655,42 +655,57 @@
   white-space: nowrap; flex-shrink: 0;
 }
 
-/* Payment rows */
-.qm-payments-wrap { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
-.qm-add-pay-btn {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 5px 12px; border-radius: 7px; font-size: 12px;
-  background: rgba(255,255,255,0.05); border: 0.5px solid rgba(255,255,255,0.1);
-  color: rgba(255,255,255,0.6); cursor: pointer; transition: background 0.15s, color 0.15s;
+/* Payment section */
+.qm-payments-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 0.5px solid rgba(255,255,255,0.07);
 }
-.qm-add-pay-btn:hover { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.85); }
-.qm-payment-row {
+.qm-payments-head {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 6px 8px; background: rgba(255,255,255,0.04);
-  border: 0.5px solid rgba(255,255,255,0.06);
-  border-radius: 6px; gap: 8px; width: 100%; box-sizing: border-box;
+  margin-bottom: 4px;
 }
-.qm-pay-info { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
-.qm-pay-amount { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.85); }
-.qm-pay-meta   { font-size: 11px; color: rgba(255,255,255,0.32); }
+.qm-payments-label {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.7px;
+  text-transform: uppercase; color: rgba(255,255,255,0.28);
+}
+.qm-add-pay-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 6px; font-size: 11px;
+  background: rgba(255,255,255,0.06); border: 0.5px solid rgba(255,255,255,0.13);
+  color: rgba(255,255,255,0.55); cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.qm-add-pay-btn:hover { background: rgba(255,255,255,0.11); color: rgba(255,255,255,0.85); border-color: rgba(255,255,255,0.2); }
+.qm-payment-row {
+  display: flex; align-items: center;
+  padding: 8px 0; gap: 8px;
+  border-bottom: 0.5px solid rgba(255,255,255,0.06);
+}
+.qm-payment-row:last-child { border-bottom: none; }
+.qm-pay-info { flex: 1; min-width: 0; }
+.qm-pay-amount { display: block; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.88); }
+.qm-pay-meta   { display: block; font-size: 11px; color: rgba(255,255,255,0.32); margin-top: 2px; }
 .qm-pay-action {
   display: flex; align-items: center; justify-content: center;
   width: 26px; height: 26px; flex-shrink: 0;
-  background: rgba(255,255,255,0.04); border: 0.5px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04); border: 0.5px solid rgba(255,255,255,0.09);
   border-radius: 5px; cursor: pointer; font-size: 13px;
-  color: rgba(255,255,255,0.3); transition: background 0.15s, color 0.15s, border-color 0.15s;
+  color: rgba(255,255,255,0.28); transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-.qm-pay-action:hover { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.7); border-color: rgba(255,255,255,0.14); }
-.qm-pay-action.danger:hover { background: rgba(248,79,79,0.08); color: rgba(248,79,79,0.85); border-color: rgba(248,79,79,0.2); }
-.qm-pay-action[disabled] { cursor: default; opacity: 0.35; pointer-events: none; }
-html[data-theme="light"] .qm-add-pay-btn { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.1); color: rgba(0,0,0,0.55); }
-html[data-theme="light"] .qm-add-pay-btn:hover { background: rgba(0,0,0,0.07); color: rgba(0,0,0,0.8); }
-html[data-theme="light"] .qm-payment-row { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.06); }
+.qm-pay-action:hover { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.7); border-color: rgba(255,255,255,0.15); }
+.qm-pay-action.danger:hover { background: rgba(248,79,79,0.1); color: rgba(248,79,79,0.9); border-color: rgba(248,79,79,0.22); }
+.qm-pay-action[disabled] { cursor: default; opacity: 0.3; pointer-events: none; }
+html[data-theme="light"] .qm-payments-section { border-top-color: rgba(0,0,0,0.07); }
+html[data-theme="light"] .qm-payments-label { color: rgba(0,0,0,0.28); }
+html[data-theme="light"] .qm-add-pay-btn { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.1); color: rgba(0,0,0,0.5); }
+html[data-theme="light"] .qm-add-pay-btn:hover { background: rgba(0,0,0,0.07); color: rgba(0,0,0,0.78); }
+html[data-theme="light"] .qm-payment-row { border-bottom-color: rgba(0,0,0,0.06); }
 html[data-theme="light"] .qm-pay-amount { color: rgba(0,0,0,0.82); }
 html[data-theme="light"] .qm-pay-meta   { color: rgba(0,0,0,0.38); }
-html[data-theme="light"] .qm-pay-action { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.1); color: rgba(0,0,0,0.28); }
+html[data-theme="light"] .qm-pay-action { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.09); color: rgba(0,0,0,0.28); }
 html[data-theme="light"] .qm-pay-action:hover { background: rgba(0,0,0,0.07); color: rgba(0,0,0,0.65); }
-html[data-theme="light"] .qm-pay-action.danger:hover { background: rgba(200,40,40,0.06); color: rgba(200,40,40,0.85); border-color: rgba(200,40,40,0.18); }
+html[data-theme="light"] .qm-pay-action.danger:hover { background: rgba(200,40,40,0.07); color: rgba(200,40,40,0.85); border-color: rgba(200,40,40,0.2); }
 
 /* Maid select */
 .qm-select {

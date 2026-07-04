@@ -624,10 +624,13 @@ function formatDate(dateStr) {
             <span class="qm-finance-sub" id="qm-prepayment"></span>
           </div>
         </div>
-        <div class="qm-payments-wrap">
-          <button class="qm-add-pay-btn" onclick="addManualPayment()">
-            <i class="ti ti-plus" style="font-size:12px;"></i> Добавить оплату
-          </button>
+        <div class="qm-payments-section">
+          <div class="qm-payments-head">
+            <span class="qm-payments-label">Оплаты</span>
+            <button class="qm-add-pay-btn" onclick="addManualPayment()">
+              <i class="ti ti-plus"></i> Добавить
+            </button>
+          </div>
           <div id="qm-payments-list"></div>
         </div>
         <div class="qm-finance-row" id="qm-deposit-row" style="display:none">
