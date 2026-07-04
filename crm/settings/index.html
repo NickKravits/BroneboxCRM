@@ -294,7 +294,7 @@
             }
         });
 
-        const { okidoki, tochka, permissions } = await res.json();
+        const { okidoki, tochka, permissions, tochkaMerchantId } = await res.json();
 
         if (okidoki) {
             document.getElementById('okidoki-con-label').textContent = 'Подключено';
@@ -363,6 +363,22 @@
                 <div style="display:flex; gap:8px;">
                     <button class="btn" onclick="selectmerchantfunc()" style="flex:1; justify-content:center;">
                         <i class="ti ti-file-text"></i> Закончить интеграцию
+                    </button>
+                    <button class="btn btn-danger" onclick="deleteTochkaIntegration()">
+                        <i class="ti ti-trash"></i>
+                    </button>
+                </div>
+            `;
+            } else {
+              document.getElementById('tochka-actions').innerHTML = ``;
+            }
+        } else if (tochka == "NOT_READY_PAYMENT") {
+          document.getElementById('tochka-con-label').textContent = 'Не готово';
+            if (permissions == true) {
+              document.getElementById('tochka-actions').innerHTML = `
+                <div style="display:flex; gap:8px;">
+                    <button class="btn" onclick="selectpaymentfunc('${tochkaMerchantId}')" style="flex:1; justify-content:center;">
+                        <i class="ti ti-credit-card"></i> Выбрать способы оплаты
                     </button>
                     <button class="btn btn-danger" onclick="deleteTochkaIntegration()">
                         <i class="ti ti-trash"></i>
@@ -1781,6 +1797,57 @@ function clearEditPhotos() {
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-tochka-customer-select">
+  <div class="modal-box modal-box-lg">
+    <div class="modal-head">
+      <span class="modal-title">Выбор клиента</span>
+      <button class="modal-close" onclick="closeTochkaCustomerSelect()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div class="modal-body modal-scroll">
+      <div class="field-hint" style="margin-top:-4px;">
+        К указанному токену привязано несколько клиентов. Выберите того, которого нужно подключить к BroneBox.
+      </div>
+
+      <div class="retailer-list" id="tochka-customer-list">
+        <!-- строки рендерятся через JS -->
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn" onclick="closeTochkaCustomerSelect()">Отмена</button>
+      <button class="btn btn-save" id="tochka-customer-confirm" disabled onclick="confirmTochkaCustomerSelection()">
+        <i class="ti ti-check"></i> Выбрать
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-tochka-payment-select">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-title">Способы оплаты</span>
+      <button class="modal-close" onclick="closeTochkaPaymentSelect()"><i class="ti ti-x"></i></button>
+    </div>
+
+    <div class="modal-body modal-scroll">
+      <div class="field-hint" style="margin-top:-4px;">
+        Выберите способы оплаты, которые будут предложены гостям. Необходимо выбрать минимум один.
+      </div>
+      <div id="tochka-payment-modes-list" style="margin-top:12px;">
+        <!-- чекбоксы рендерятся через JS -->
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn" onclick="closeTochkaPaymentSelect()">Отмена</button>
+      <button class="btn btn-save" id="tochka-payment-confirm" onclick="confirmTochkaPaymentSelection()">
+        <i class="ti ti-check"></i> Сохранить
+      </button>
+    </div>
+  </div>
+</div>
+
 <script>
   async function selectmerchantfunc() {
     try {
@@ -1885,34 +1952,146 @@ function closeTochkaRetailerSelect() {
   document.getElementById('modal-tochka-retailer-select').classList.remove('open');
 }
 
+let tochkaCustomers = [];
+let selectedTochkaCustomer = null;
+
+function openTochkaCustomerSelect(customers) {
+  tochkaCustomers = customers || [];
+  selectedTochkaCustomer = null;
+
+  const listEl = document.getElementById('tochka-customer-list');
+  listEl.innerHTML = '';
+
+  tochkaCustomers.forEach((customer, index) => {
+    const row = document.createElement('div');
+    row.className = 'retailer-row';
+    row.onclick = () => selectTochkaCustomer(index);
+
+    const displayName = escapeHtml(customer.shortName || customer.fullName || customer.customerCode);
+    const inn = customer.taxCode ? `ИНН: ${escapeHtml(customer.taxCode)}` : '';
+
+    row.innerHTML = `
+      <div class="retailer-radio"></div>
+      <div class="retailer-info">
+        <div class="retailer-name-row">
+          <span class="retailer-name">${displayName}</span>
+        </div>
+        ${inn ? `<div class="retailer-meta"><span>${inn}</span></div>` : ''}
+      </div>`;
+
+    listEl.appendChild(row);
+  });
+
+  document.getElementById('tochka-customer-confirm').disabled = true;
+  document.getElementById('modal-tochka-customer-select').classList.add('open');
+}
+
+function selectTochkaCustomer(index) {
+  selectedTochkaCustomer = tochkaCustomers[index];
+  document.querySelectorAll('#tochka-customer-list .retailer-row').forEach((row, i) => {
+    row.classList.toggle('selected', i === index);
+  });
+  document.getElementById('tochka-customer-confirm').disabled = false;
+}
+
+function closeTochkaCustomerSelect() {
+  document.getElementById('modal-tochka-customer-select').classList.remove('open');
+}
+
+async function confirmTochkaCustomerSelection() {
+  if (!selectedTochkaCustomer) {
+    showToast('Выберите клиента!', 'info');
+    return;
+  }
+  closeTochkaCustomerSelect();
+  await saveTochkaIntegration(selectedTochkaCustomer.customerCode);
+}
+
+let tochkaPaymentMerchantId = null;
+
+function openTochkaPaymentSelect(paymentModes, merchantId) {
+  tochkaPaymentMerchantId = merchantId;
+  const listEl = document.getElementById('tochka-payment-modes-list');
+  listEl.innerHTML = '';
+
+  if (!paymentModes || paymentModes.length === 0) {
+    listEl.innerHTML = '<div class="field-hint">В данной торговой точке нет доступных способов оплаты. Обратитесь в банк для их настройки.</div>';
+    document.getElementById('tochka-payment-confirm').disabled = true;
+  } else {
+    document.getElementById('tochka-payment-confirm').disabled = false;
+    paymentModes.forEach(mode => {
+      const info = TOCHKA_PAYMENT_MODE_LABELS[mode] || { icon: 'ti-credit-card', label: mode };
+      const row = document.createElement('label');
+      row.className = 'perm-row';
+      row.style.cursor = 'pointer';
+      row.innerHTML = `
+        <span class="perm-label"><i class="ti ${info.icon}"></i> ${escapeHtml(info.label)}</span>
+        <input type="checkbox" class="toggle-input tochka-payment-checkbox" value="${escapeHtml(mode)}" checked>
+        <span class="toggle-slider"></span>`;
+      listEl.appendChild(row);
+    });
+  }
+
+  document.getElementById('modal-tochka-payment-select').classList.add('open');
+}
+
+function closeTochkaPaymentSelect() {
+  document.getElementById('modal-tochka-payment-select').classList.remove('open');
+}
+
+async function confirmTochkaPaymentSelection() {
+  const checked = [...document.querySelectorAll('.tochka-payment-checkbox:checked')].map(el => el.value);
+  if (checked.length === 0) {
+    showToast('Выберите минимум один способ оплаты', 'info');
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem('broneboxtoken');
+    const res = await fetch(`${API}/integration/tochka/select-merchant`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ merchantId: tochkaPaymentMerchantId, paymentModes: checked })
+    });
+
+    if (!res.ok) throw new Error('Ошибка сохранения');
+
+    showToast('Интеграция подключена', 'success');
+    closeTochkaPaymentSelect();
+    getIntegrations();
+  } catch (e) {
+    showToast(e.message || 'Не удалось сохранить способы оплаты', 'danger');
+  }
+}
+
+async function selectpaymentfunc(merchantId) {
+  try {
+    const token = localStorage.getItem('broneboxtoken');
+    const res = await fetch(API + '/integration/tochka/get-merchants', {
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    const retailers = data.dataMerchant?.Data?.Retailer || [];
+    const retailer = retailers.find(r => r.merchantId === merchantId);
+    if (!retailer) {
+      showToast('Торговая точка не найдена. Удалите интеграцию и попробуйте снова', 'danger');
+      return;
+    }
+    openTochkaPaymentSelect(retailer.paymentModes, merchantId);
+  } catch (e) {
+    showToast('Не удалось получить список способов оплаты. Попробуйте позже', 'danger');
+  }
+}
+
 async function confirmTochkaRetailerSelection() {
   if (!selectedTochkaRetailer) {
     showToast('Укажите торговую точку!', 'info')
     return;
   }
- 
-  try {
-    const token = localStorage.getItem('broneboxtoken')
-    const res = await fetch(API + '/integration/tochka/select-merchant', {
-      method: 'POST',
-      headers: { 
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json' 
-      },
-      body: JSON.stringify({
-        merchantId: selectedTochkaRetailer.merchantId,
-        paymentModes: selectedTochkaRetailer.paymentModes
-      })
-    });
- 
-    if (!res.ok) throw new Error('Ошибка сохранения торговой точки');
- 
-    showToast('Торговая точка подключена', 'success');
-    getIntegrations();
-    closeTochkaRetailerSelect();
-  } catch (e) {
-    showToast(e.message || 'Не удалось подключить торговую точку', 'danger');
-  }
+  closeTochkaRetailerSelect();
+  openTochkaPaymentSelect(selectedTochkaRetailer.paymentModes, selectedTochkaRetailer.merchantId);
 }
 
 function escapeHtml(str) {
@@ -1964,23 +2143,25 @@ function escapeHtml(str) {
     getIntegrations();
   }
 
-  async function saveTochkaIntegration() {
+  async function saveTochkaIntegration(customerCode = null) {
 
     const phone = document.getElementById('tochka-supplier-phone').value.trim();
     const apiKey = document.getElementById('tochka-token').value.trim();
     const vatType = document.getElementById('tochka-vat').value;
     const purpose = document.getElementById('tochka-payment-desc').value.trim();
     const name = document.getElementById('tochka-service-name').value.trim();
-    
+
     try {
       const token = localStorage.getItem('broneboxtoken')
+      const body = { phone, apiKey, vatType, purpose, name };
+      if (customerCode) body.customerCode = customerCode;
       const res = await fetch(`${API}/integration/tochka/save`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
          },
-        body: JSON.stringify({ phone, apiKey, vatType, purpose, name })
+        body: JSON.stringify(body)
       })
 
       if (!res.ok) {
@@ -1997,6 +2178,11 @@ function escapeHtml(str) {
         return; // Выходим из функции
       } else {
         const messageData = await res.json();
+        if (messageData.customerResult === 'MULTIPLE') {
+          openTochkaCustomerSelect(messageData.customers);
+          showToast('Найдено несколько клиентов, выберите нужного', 'info');
+          return;
+        }
         const Message = messageData.message || 'Что-то пошло не так, обновите страницу';
         const MerchantData = messageData.merchantResult || "";
         if (MerchantData == "MULTIPLE") {
