@@ -481,6 +481,48 @@ function formatDate(dateStr) {
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════════
+     Модалка добавления платежа
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-add-payment" onclick="handleAddPaymentOverlay(event)">
+  <div class="modal-box" style="width:360px;">
+    <div class="modal-head">
+      <span class="modal-title">Добавить оплату</span>
+      <button class="modal-close" onclick="closeAddPaymentModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label class="field-label">Сумма, ₽</label>
+        <input class="field-input" type="number" id="add-payment-input" min="0" step="0.01" placeholder="0">
+        <span class="field-hint" id="add-payment-hint"></span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeAddPaymentModal()">Отмена</button>
+      <button class="btn btn-save" id="add-payment-confirm-btn" onclick="confirmAddPayment()"><i class="ti ti-check"></i> Добавить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     Модалка подтверждения удаления платежа
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-remove-payment" onclick="handleRemovePaymentOverlay(event)">
+  <div class="modal-box" style="width:340px;">
+    <div class="modal-head">
+      <span class="modal-title">Удалить платёж?</span>
+      <button class="modal-close" onclick="closeRemovePaymentModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <p style="margin:0;color:var(--text-secondary);font-size:14px;">Это действие нельзя отменить.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeRemovePaymentModal()">Отмена</button>
+      <button class="btn btn-danger" id="remove-payment-confirm-btn" onclick="confirmRemovePayment()"><i class="ti ti-trash"></i> Удалить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
      Quick-view modal
      ═══════════════════════════════════════════════════════════════ -->
 <div class="qm-overlay" id="quick-modal" onclick="closeQuickModal(event)">
@@ -582,18 +624,18 @@ function formatDate(dateStr) {
             <span class="qm-finance-sub" id="qm-prepayment"></span>
           </div>
         </div>
+        <div class="qm-payments-wrap">
+          <button class="qm-add-pay-btn" onclick="addManualPayment()">
+            <i class="ti ti-plus" style="font-size:12px;"></i> Добавить оплату
+          </button>
+          <div id="qm-payments-list"></div>
+        </div>
         <div class="qm-finance-row" id="qm-deposit-row" style="display:none">
           <div class="qm-finance-item">
             <span class="qm-lbl">Залог</span>
             <span class="qm-finance-val" id="qm-deposit">—</span>
           </div>
           <span class="qm-channel-badge" id="qm-dep-channel" style="display:none"></span>
-        </div>
-        <div class="qm-payments-wrap">
-          <button class="qm-add-pay-btn" onclick="addManualPayment()">
-            <i class="ti ti-plus" style="font-size:12px;"></i> Добавить оплату
-          </button>
-          <div id="qm-payments-list"></div>
         </div>
       </div>
 
@@ -977,21 +1019,45 @@ function formatDate(dateStr) {
     })
   }
 
-  async function addManualPayment() {
-    const maxAmount = Math.max(0, _qmBookingAmount - _qmBookingPrepayment)
-    const input = prompt(`Введите сумму оплаты (максимум ${fmtMoney(maxAmount)} ₽):`, fmtMoney(maxAmount))
-    if (input === null) return
+  // ── Модалка добавления платежа ──────────────────────────────
+  let _addPayMaxAmount = 0
 
-    const amount = parseFloat(String(input).replace(',', '.').replace(/\s/g, ''))
+  function addManualPayment() {
+    _addPayMaxAmount = Math.max(0, _qmBookingAmount - _qmBookingPrepayment)
+    const inp = document.getElementById('add-payment-input')
+    inp.value = _addPayMaxAmount % 1 === 0 ? String(_addPayMaxAmount) : String(_addPayMaxAmount.toFixed(2))
+    inp.max = _addPayMaxAmount
+    document.getElementById('add-payment-hint').textContent = `Максимум: ${fmtMoney(_addPayMaxAmount)} ₽`
+    document.getElementById('modal-add-payment').classList.add('open')
+    setTimeout(() => inp.focus(), 80)
+  }
+
+  function closeAddPaymentModal() {
+    document.getElementById('modal-add-payment').classList.remove('open')
+  }
+
+  function handleAddPaymentOverlay(e) {
+    if (e.target === document.getElementById('modal-add-payment')) closeAddPaymentModal()
+  }
+
+  document.getElementById('add-payment-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') confirmAddPayment()
+    if (e.key === 'Escape') closeAddPaymentModal()
+  })
+
+  async function confirmAddPayment() {
+    const raw = document.getElementById('add-payment-input').value
+    const amount = parseFloat(String(raw).replace(',', '.').replace(/\s/g, ''))
     if (isNaN(amount) || amount < 0) {
       showToast('Введите корректную сумму', 'danger')
       return
     }
-    if (amount > maxAmount) {
-      showToast(`Сумма не может превышать ${fmtMoney(maxAmount)} ₽`, 'danger')
+    if (amount > _addPayMaxAmount) {
+      showToast(`Сумма не может превышать ${fmtMoney(_addPayMaxAmount)} ₽`, 'danger')
       return
     }
-
+    const btn = document.getElementById('add-payment-confirm-btn')
+    btn.disabled = true
     try {
       const token = localStorage.getItem('broneboxtoken')
       const res = await fetch(`${API}/payments/manualcreate`, {
@@ -1004,31 +1070,56 @@ function formatDate(dateStr) {
         showToast(err.error || 'Ошибка создания платежа', 'danger')
         return
       }
+      closeAddPaymentModal()
       showToast('Платёж добавлен', 'success')
       loadQmPayments(_qmBookingId)
     } catch {
       showToast('Ошибка создания платежа', 'danger')
+    } finally {
+      btn.disabled = false
     }
   }
 
-  async function removeManualPayment(paymentId) {
-    if (!confirm('Удалить платёж?')) return
+  // ── Модалка удаления платежа ─────────────────────────────────
+  let _removePaymentId = null
+
+  function removeManualPayment(paymentId) {
+    _removePaymentId = paymentId
+    document.getElementById('modal-remove-payment').classList.add('open')
+  }
+
+  function closeRemovePaymentModal() {
+    document.getElementById('modal-remove-payment').classList.remove('open')
+    _removePaymentId = null
+  }
+
+  function handleRemovePaymentOverlay(e) {
+    if (e.target === document.getElementById('modal-remove-payment')) closeRemovePaymentModal()
+  }
+
+  async function confirmRemovePayment() {
+    if (!_removePaymentId) return
+    const btn = document.getElementById('remove-payment-confirm-btn')
+    btn.disabled = true
     try {
       const token = localStorage.getItem('broneboxtoken')
       const res = await fetch(`${API}/payments/manualremove`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentId })
+        body: JSON.stringify({ paymentId: _removePaymentId })
       })
       if (!res.ok) {
         const err = await res.json()
         showToast(err.error || 'Ошибка удаления', 'danger')
         return
       }
+      closeRemovePaymentModal()
       showToast('Платёж удалён', 'success')
       loadQmPayments(_qmBookingId)
     } catch {
       showToast('Ошибка удаления платежа', 'danger')
+    } finally {
+      btn.disabled = false
     }
   }
 
