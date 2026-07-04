@@ -655,6 +655,40 @@
   white-space: nowrap; flex-shrink: 0;
 }
 
+/* Payment rows */
+.qm-payments-wrap { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.qm-add-pay-btn {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 7px 12px; border-radius: 7px; font-size: 12px;
+  background: rgba(255,255,255,0.05); border: 0.5px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.65); cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+.qm-add-pay-btn:hover { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.88); }
+.qm-payment-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 8px; background: rgba(255,255,255,0.04);
+  border-radius: 6px; gap: 8px;
+}
+.qm-pay-info { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+.qm-pay-amount { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.85); }
+.qm-pay-meta   { font-size: 11px; color: rgba(255,255,255,0.32); }
+.qm-pay-action {
+  background: none; border: none; cursor: pointer; padding: 4px 5px; border-radius: 4px;
+  color: rgba(255,255,255,0.3); display: flex; align-items: center; transition: color 0.15s;
+  flex-shrink: 0;
+}
+.qm-pay-action:hover { color: rgba(255,255,255,0.7); }
+.qm-pay-action.danger:hover { color: rgba(248,79,79,0.85); }
+.qm-pay-action[disabled] { cursor: default; opacity: 0.35; }
+html[data-theme="light"] .qm-add-pay-btn { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.1); color: rgba(0,0,0,0.55); }
+html[data-theme="light"] .qm-add-pay-btn:hover { background: rgba(0,0,0,0.07); color: rgba(0,0,0,0.8); }
+html[data-theme="light"] .qm-payment-row { background: rgba(0,0,0,0.03); }
+html[data-theme="light"] .qm-pay-amount { color: rgba(0,0,0,0.82); }
+html[data-theme="light"] .qm-pay-meta   { color: rgba(0,0,0,0.38); }
+html[data-theme="light"] .qm-pay-action { color: rgba(0,0,0,0.28); }
+html[data-theme="light"] .qm-pay-action:hover { color: rgba(0,0,0,0.65); }
+html[data-theme="light"] .qm-pay-action.danger:hover { color: rgba(200,40,40,0.85); }
+
 /* Maid select */
 .qm-select {
   flex: 1; font-size: 13px; font-family: 'Sora', sans-serif;
