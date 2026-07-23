@@ -113,7 +113,7 @@
     function getContractStatus(booking) {
       if(!booking.contract_link) {
         return null;
-      } else if (booking.contract_status == "" || booking.contract_status == "Выставлен") {
+      } else if (booking.contract_status == "" || booking.contract_status == "Выставлен" || !booking.contract_status) {
         return "Договор не подписан";
       } else if (booking.contract_status == "Черновик")  {
         return "Договор - черновик";
