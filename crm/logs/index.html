@@ -30,6 +30,10 @@
 </head>
 <body>
 
+<div id="page-loader">
+  <i class="ti ti-loader-2 ti-spin"></i>
+</div>
+
 <div class="ambient ambient-tr"></div>
 <div class="ambient ambient-bl"></div>
 
@@ -347,9 +351,14 @@
     }
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    getUserData();
-    loadLogs();
+  document.addEventListener('DOMContentLoaded', async () => {
+    try {
+      await Promise.all([getUserData(), loadLogs()]);
+    } finally {
+      const loader = document.getElementById('page-loader');
+      loader.classList.add('hidden');
+      setTimeout(() => loader.remove(), 300);
+    }
   });
 </script>
 <script src="app-shell.js"></script>

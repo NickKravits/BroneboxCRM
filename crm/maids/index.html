@@ -23,6 +23,8 @@
     var _scheduleDate = '';
     var _scheduleEntries = [];
     var _maids = [];
+    var _dirtyObjectIds = new Set();
+    var _scheduleLoaded = false;
 
     function tomorrow() {
       var d = new Date();
@@ -58,11 +60,19 @@
     async function loadSchedule() {
       var date = document.getElementById('schedule-date').value;
       if (!date) return;
+
+      // Фоновым обновлением (SSE-триггер) считаем повторный запрос той же даты —
+      // тогда не сбрасываем список и не затираем несохранённые правки менеджера
+      var isBackgroundRefresh = _scheduleLoaded && date === _scheduleDate;
       _scheduleDate = date;
 
       var token = localStorage.getItem('broneboxtoken');
       var list = document.getElementById('schedule-list');
-      list.innerHTML = '<div class="sched-empty"><i class="ti ti-loader-2 ti-spin"></i><span>Загрузка...</span></div>';
+
+      if (!isBackgroundRefresh) {
+        list.innerHTML = '<div class="sched-empty"><i class="ti ti-loader-2 ti-spin"></i><span>Загрузка...</span></div>';
+        _dirtyObjectIds.clear();
+      }
 
       try {
         var res = await fetch(API + '/maids/schedule?date=' + date, {
@@ -70,31 +80,73 @@
         });
         if (!res.ok) throw new Error('API error');
         var data = await res.json();
-        _scheduleEntries = data.entries;
         _maids = data.maids;
+
+        if (isBackgroundRefresh && _dirtyObjectIds.size) {
+          var localById = {};
+          _scheduleEntries.forEach(function(e) { localById[e.objectid] = e; });
+          _scheduleEntries = data.entries.map(function(fresh) {
+            return (_dirtyObjectIds.has(fresh.objectid) && localById[fresh.objectid])
+              ? localById[fresh.objectid]
+              : fresh;
+          });
+        } else {
+          _scheduleEntries = data.entries;
+        }
+
+        _scheduleLoaded = true;
         renderSchedule();
       } catch (err) {
-        list.innerHTML = '<div class="sched-empty"><i class="ti ti-alert-circle"></i><span>Ошибка загрузки данных</span></div>';
+        if (!isBackgroundRefresh) {
+          list.innerHTML = '<div class="sched-empty"><i class="ti ti-alert-circle"></i><span>Ошибка загрузки данных</span></div>';
+        }
         console.error(err);
       }
     }
 
     function renderSchedule() {
       var list = document.getElementById('schedule-list');
-      list.innerHTML = '';
 
       if (_scheduleEntries.length === 0) {
         list.innerHTML = '<div class="sched-empty"><i class="ti ti-sparkles"></i><span>Нет объектов в кабинете</span></div>';
         return;
       }
 
-      _scheduleEntries.forEach(function(entry, idx) {
+      // Дифф: убираем карточки объектов, которых больше нет в списке (и стартовый плейсхолдер)
+      var wantedIds = {};
+      _scheduleEntries.forEach(function(e) { wantedIds[e.objectid] = true; });
+      Array.from(list.children).forEach(function(child) {
+        if (!child.classList.contains('sched-card') || !wantedIds[child.dataset.objectid]) {
+          child.remove();
+        }
+      });
+
+      _scheduleEntries.forEach(function(entry) {
+        var existing = list.querySelector('[data-objectid="' + entry.objectid + '"]');
+
+        // Не трогаем карточку, если менеджер прямо сейчас в ней печатает/выбирает —
+        // иначе теряются несохранённые нажатия клавиш, которые ещё не долетели до onchange
+        if (existing && document.activeElement !== document.body && existing.contains(document.activeElement)) {
+          return;
+        }
+
+        var card = buildScheduleCard(entry);
+        if (existing) {
+          list.replaceChild(card, existing);
+        } else {
+          list.appendChild(card);
+        }
+      });
+    }
+
+    function buildScheduleCard(entry) {
         var card = document.createElement('div');
         var cardClass = 'sched-card';
         if (!entry.included) cardClass += ' sched-card--excluded';
         if (entry.status === 'ongoing') cardClass += ' sched-card--ongoing';
         card.className = cardClass;
-        card.dataset.idx = idx;
+        card.dataset.objectid = entry.objectid;
+        var idx = entry.objectid;
 
         var maidOptions = '<option value="">Не выбрано</option>';
         _maids.forEach(function(m) {
@@ -211,18 +263,23 @@
           datesBlock +
           detailsBlock;
 
-        list.appendChild(card);
-      });
+        return card;
     }
 
-    function toggleIncluded(idx, checked) {
-      _scheduleEntries[idx].included = checked;
+    function findEntry(objectid) {
+      return _scheduleEntries.find(function(e) { return e.objectid == objectid; });
+    }
+
+    function toggleIncluded(objectid, checked) {
+      var entry = findEntry(objectid);
+      if (!entry) return;
+      entry.included = checked;
+      _dirtyObjectIds.add(entry.objectid);
       // Re-render the single card so details show/hide correctly for 'ongoing'
-      var entry = _scheduleEntries[idx];
       if (entry.status === 'ongoing') {
         renderSchedule();
       } else {
-        var card = document.querySelector('[data-idx="' + idx + '"]');
+        var card = document.querySelector('[data-objectid="' + objectid + '"]');
         if (card) {
           card.classList.toggle('sched-card--excluded', !checked);
           var label = card.querySelector('.sched-toggle-label');
@@ -231,8 +288,11 @@
       }
     }
 
-    function updateField(idx, field, value) {
-      _scheduleEntries[idx][field] = value;
+    function updateField(objectid, field, value) {
+      var entry = findEntry(objectid);
+      if (!entry) return;
+      entry[field] = value;
+      _dirtyObjectIds.add(entry.objectid);
     }
 
     function changeDay(delta) {
@@ -240,7 +300,6 @@
       d.setDate(d.getDate() + delta);
       var s = d.toISOString().slice(0, 10);
       document.getElementById('schedule-date').value = s;
-      _scheduleDate = s;
       loadSchedule();
     }
 
@@ -266,6 +325,7 @@
           body: JSON.stringify({ date: _scheduleDate, entries: savePayload })
         });
         if (!res.ok) throw new Error('Save failed');
+        _dirtyObjectIds.clear();
         window.showToast('График сохранён', 'success', 3000);
       } catch (err) {
         window.showToast('Ошибка при сохранении', 'danger', 3000);
@@ -389,12 +449,16 @@
       }
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
-      getUserData();
+    document.addEventListener('DOMContentLoaded', async function() {
       var dateInput = document.getElementById('schedule-date');
       dateInput.value = tomorrow();
-      _scheduleDate = dateInput.value;
-      loadSchedule();
+      try {
+        await Promise.all([getUserData(), loadSchedule()]);
+      } finally {
+        var loader = document.getElementById('page-loader');
+        loader.classList.add('hidden');
+        setTimeout(function() { loader.remove(); }, 300);
+      }
     });
 
     window.addEventListener('bronebox:reload', function() { loadSchedule(); });
@@ -410,6 +474,10 @@
   <link rel="stylesheet" href="app-shell.css" />
 </head>
 <body>
+
+<div id="page-loader">
+  <i class="ti ti-loader-2 ti-spin"></i>
+</div>
 
 <div class="ambient ambient-tr"></div>
 <div class="ambient ambient-bl"></div>

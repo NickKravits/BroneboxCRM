@@ -127,10 +127,7 @@
 
     window.addEventListener('bronebox:reload', () => { getBookings(); });
 
-    document.addEventListener('DOMContentLoaded', () => {
-        getUserData();
-        getBookings();
-    
+    document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('filter-phone').addEventListener('input', function (e) {
         let val = e.target.value.replace(/\D/g, '') // оставляем только цифры
 
@@ -147,6 +144,14 @@
 
         e.target.value = result
     })
+
+        try {
+            await Promise.all([getUserData(), getBookings()]);
+        } finally {
+            const loader = document.getElementById('page-loader');
+            loader.classList.add('hidden');
+            setTimeout(() => loader.remove(), 300);
+        }
     });
 
 
@@ -163,6 +168,10 @@
   <link rel="stylesheet" href="app-shell.css">
 </head>
 <body>
+
+<div id="page-loader">
+  <i class="ti ti-loader-2 ti-spin"></i>
+</div>
 
 <div class="ambient ambient-tr"></div>
 <div class="ambient ambient-bl"></div>
