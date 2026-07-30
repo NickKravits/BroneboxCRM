@@ -826,6 +826,107 @@ body {
   color: var(--amber-text);
 }
 
+/* ── Модалка оплаты ── */
+.pay-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(26, 25, 23, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.pay-modal {
+  background: var(--bg-card);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: 0 24px 60px -20px rgba(26, 25, 23, 0.35);
+}
+
+.pay-modal-title {
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  margin-bottom: 6px;
+}
+
+.pay-modal-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin-bottom: 16px;
+}
+
+.pay-modal-field label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-hint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 5px;
+}
+
+.pay-modal-field input {
+  width: 100%;
+  font-family: var(--font-main);
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 11px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.pay-modal-field input:focus {
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 3px rgba(26, 25, 23, 0.07);
+}
+
+.pay-modal-field input.error {
+  border-color: #E07470;
+  box-shadow: 0 0 0 3px rgba(155, 51, 40, 0.1);
+}
+
+.pay-modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.btn-pay-cancel {
+  flex: 1;
+  font-family: var(--font-main);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: transparent;
+  border: 0.5px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-pay-cancel:hover { background: var(--bg-secondary); }
+
+.pay-modal-actions .btn-pay {
+  flex: 1;
+  padding: 10px;
+}
+
+.pay-modal-error {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--red-text);
+}
+
 /* ── Responsive дополнения ── */
 @media (max-width: 500px) {
   .location-row {

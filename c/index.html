@@ -230,6 +230,10 @@
       </div>
       <div id="pay-obj-action"></div>
     </div>
+    <div class="available-notice" id="payment-overpay-notice" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+      <span id="payment-overpay-text"></span>
+    </div>
     <div class="available-notice" id="payment-notice" style="display:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
       <span id="payment-notice-text"></span>
@@ -270,6 +274,23 @@
   </div>
 
 </div><!-- /.page -->
+
+<!-- ── Модалка оплаты ─────────────────────────────────────────────────── -->
+<div class="pay-modal-overlay" id="pay-modal-overlay" style="display:none" onclick="handlePayModalOverlay(event)">
+  <div class="pay-modal">
+    <div class="pay-modal-title">Оплата бронирования</div>
+    <p class="pay-modal-desc">Укажите email — на него будет отправлен чек об оплате.</p>
+    <div class="pay-modal-field">
+      <label for="pay-email">Email для чека</label>
+      <input type="email" id="pay-email" placeholder="you@example.com" />
+    </div>
+    <div class="pay-modal-actions">
+      <button class="btn-pay-cancel" onclick="closePaymentModal()">Отмена</button>
+      <button class="btn-pay" id="pay-modal-confirm" onclick="confirmPayment()">Перейти к оплате</button>
+    </div>
+    <div class="pay-modal-error" id="pay-modal-error" style="display:none"></div>
+  </div>
+</div>
 
 <script>
   
@@ -326,13 +347,15 @@
   }
 
   // ── Рендер задач ──────────────────────────────────────────────────────
-  function renderTodos(booking, objects, show, completed) {
+  function renderTodos(booking, objects, show, completed, paidAmount) {
     const todos = []
     const pay      = show.payanddeposit || {}
     const contract = show.contract      || {}
+    const toPay        = Math.max(0, (booking.balance_to_be_paid_1 || 0) - (paidAmount || 0))
+    const paymentBroken = objects?.paymentchanel === 'TOCHKA' && objects?.tochkaReady === false
 
     if (pay.active) {
-      if (booking.balance_to_be_paid_1 > 0 && objects?.paymentchanel !== 'NONE') {
+      if (toPay > 0 && objects?.paymentchanel !== 'NONE' && !paymentBroken) {
         todos.push({ label: 'Оплатить', icon: 'card' })
       }
     }
@@ -416,38 +439,128 @@
   </div>`
 
   // ── Блок оплаты ───────────────────────────────────────────────────────
-  function renderPayment(booking, objects, show) {
+  function renderPayment(booking, objects, show, paidAmount) {
     const pay = show.payanddeposit || {}
     if (!objects) return
 
     document.getElementById('card-payment').style.display = ''
-    const nights = countNights(booking.begin_date, booking.end_date)
-    document.getElementById('nights-label').textContent      = 'Итого за ' + nights + ' ' + nightsWord(nights)
-    document.getElementById('price-total').textContent       = formatPrice(booking.balance_to_be_paid_1)
-    document.getElementById('prepayment-amount').textContent = booking.prepayment
-      ? formatPrice(booking.prepayment) : 'не внесена'
-    document.getElementById('daily-price').textContent       = formatPrice(booking.price_per_day)
-    document.getElementById('total-price').textContent       = formatPrice(booking.amount)
+
+    const paid       = paidAmount || 0
+    const totalPaid  = (booking.prepayment || 0) + paid
+    const toPay      = Math.max(0, (booking.balance_to_be_paid_1 || 0) - paid)
+    const overpaid   = Math.max(0, paid - (booking.balance_to_be_paid_1 || 0))
+    const fullyPaid  = toPay === 0
+
+    const breakdown = document.querySelector('#card-payment .price-breakdown')
+    const overpayNotice = document.getElementById('payment-overpay-notice')
+
+    if (fullyPaid) {
+      document.getElementById('nights-label').textContent = 'Оплачено'
+      document.getElementById('price-total').textContent  = formatPrice(totalPaid)
+      breakdown.style.display = 'none'
+
+      if (overpaid > 0) {
+        document.getElementById('payment-overpay-text').textContent = 'Есть переплата: ' + formatPrice(overpaid)
+        overpayNotice.style.display = ''
+      } else {
+        overpayNotice.style.display = 'none'
+      }
+    } else {
+      const nights = countNights(booking.begin_date, booking.end_date)
+      document.getElementById('nights-label').textContent      = 'Итого за ' + nights + ' ' + nightsWord(nights)
+      document.getElementById('price-total').textContent       = formatPrice(toPay)
+      document.getElementById('prepayment-amount').textContent = totalPaid
+        ? formatPrice(totalPaid) : 'не внесена'
+      document.getElementById('daily-price').textContent       = formatPrice(booking.price_per_day)
+      document.getElementById('total-price').textContent       = formatPrice(booking.amount)
+      breakdown.style.display = ''
+      overpayNotice.style.display = 'none'
+    }
 
     const action = document.getElementById('pay-obj-action')
-    if (objects.paymentchanel === 'NONE' && booking.balance_to_be_paid_1 > 0) {
+    if (objects.paymentchanel === 'NONE' && toPay > 0) {
       document.getElementById('payment-notice-text').textContent = 'Оплата произодится через менеджера!'
       document.getElementById('payment-notice').style.display = ''
     }
 
-    if (!pay.active && pay.availableAt) {
+    if (fullyPaid) {
+      action.innerHTML = PAID_BADGE
+    } else if (!pay.active && pay.availableAt) {
       action.innerHTML = ''
       document.getElementById('payment-notice-text').textContent = 'Ссылка для оплаты появится ' + pay.availableAt
       document.getElementById('payment-notice').style.display = ''
-    } else if (booking.balance_to_be_paid_1 > 0) {
-      if (objects.paymentchanel !== 'NONE') {
-        action.innerHTML = `<button class="btn-pay">Оплатить ${formatPrice(booking.balance_to_be_paid_1)}</button>`
+    } else if (toPay > 0) {
+      if (objects.paymentchanel === 'TOCHKA') {
+        if (objects.tochkaReady) {
+          action.innerHTML = `<button class="btn-pay" onclick="openPaymentModal()">Оплатить ${formatPrice(toPay)}</button>`
+        } else {
+          action.innerHTML = ''
+          document.getElementById('payment-notice-text').textContent = 'Оплата через Точка Банк временно недоступна. Обратитесь к вашему менеджеру.'
+          document.getElementById('payment-notice').style.display = ''
+        }
+      } else if (objects.paymentchanel !== 'NONE') {
+        action.innerHTML = `<button class="btn-pay">Оплатить ${formatPrice(toPay)}</button>`
       }
-    } else {
-      action.innerHTML = PAID_BADGE
     }
 
     renderChannelTag('payment-channel-tag', objects.paymentchanel, 'Оплата через')
+  }
+
+  // ── Модалка оплаты (Точка) ──────────────────────────────────────────
+  function openPaymentModal() {
+    document.getElementById('pay-email').value = _state.booking.email || ''
+    document.getElementById('pay-email').classList.remove('error')
+    document.getElementById('pay-modal-error').style.display = 'none'
+    document.getElementById('pay-modal-overlay').style.display = 'flex'
+  }
+
+  function closePaymentModal() {
+    document.getElementById('pay-modal-overlay').style.display = 'none'
+  }
+
+  function handlePayModalOverlay(e) {
+    if (e.target.id === 'pay-modal-overlay') closePaymentModal()
+  }
+
+  function showPayModalError(msg) {
+    const el = document.getElementById('pay-modal-error')
+    el.textContent   = msg
+    el.style.display = ''
+  }
+
+  async function confirmPayment() {
+    const emailInput = document.getElementById('pay-email')
+    const email = emailInput.value.trim()
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      emailInput.classList.add('error')
+      showPayModalError('Введите корректный email')
+      return
+    }
+    emailInput.classList.remove('error')
+    document.getElementById('pay-modal-error').style.display = 'none'
+
+    const btn = document.getElementById('pay-modal-confirm')
+    btn.disabled    = true
+    btn.textContent = 'Подождите...'
+
+    try {
+      const res  = await fetch(API + '/guest/payment/getpaymenturl', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ id: getBookingLink(), email })
+      })
+      const data = await res.json()
+      if (res.ok && data.url) {
+        window.location.href = data.url
+        return
+      }
+      showPayModalError(data.error || 'Не удалось создать ссылку на оплату')
+    } catch {
+      showPayModalError('Не удалось связаться с сервером')
+    }
+
+    btn.disabled    = false
+    btn.textContent = 'Перейти к оплате'
   }
 
   // ── Блок залога ───────────────────────────────────────────────────────
@@ -542,7 +655,7 @@
   }
 
   // ── Применение данных ─────────────────────────────────────────────────
-  function applyData(booking, objects, photos, show, bookingState, checkoutPassed) {
+  function applyData(booking, objects, photos, show, bookingState, checkoutPassed, paidAmount) {
     const completed  = bookingState === 'booked' && checkoutPassed
     const isCanceled = bookingState === 'canceled' || bookingState === 'deleted'
     const isRequest  = bookingState === 'request'
@@ -568,7 +681,7 @@
     }
 
     // ── booked ─────────────────────────────────────────────────────────
-    _state = { booking, objects, show, completed }
+    _state = { booking, objects, show, completed, paidAmount }
 
     const nights   = countNights(booking.begin_date, booking.end_date)
     const checkin  = formatDate(booking.begin_date)
@@ -601,7 +714,7 @@
         document.getElementById('time-section').style.display = 'none'
       }
     } else {
-      renderTodos(booking, objects, show, completed)
+      renderTodos(booking, objects, show, completed, paidAmount)
       initTimeSaving()
     }
 
@@ -645,7 +758,7 @@
     // ── Оплата + Залог ───────────────────────────────────────────────────
     const pay = show.payanddeposit || {}
     if (pay.visible) {
-      renderPayment(booking, objects, show)
+      renderPayment(booking, objects, show, paidAmount)
       renderDeposit(booking, objects, show)
     }
 
@@ -677,8 +790,8 @@
       if (res.status === 404) { showNotFound(); return }
       if (!res.ok)            { showNotFound(); return }
 
-      const { booking, objects, photos, show, bookingState, checkoutPassed } = await res.json()
-      applyData(booking, objects, photos, show, bookingState, checkoutPassed)
+      const { booking, objects, photos, show, bookingState, checkoutPassed, paidAmount } = await res.json()
+      applyData(booking, objects, photos, show, bookingState, checkoutPassed, paidAmount)
 
     } catch (e) {
       console.error('Ошибка загрузки:', e)
@@ -728,7 +841,7 @@
       if (res.ok) {
         if (ciChanged) { _state.booking.begin_time = ci.value || null; ci.classList.add('success') }
         if (coChanged) { _state.booking.end_time   = co.value || null; co.classList.add('success') }
-        renderTodos(_state.booking, _state.objects, _state.show, _state.completed)
+        renderTodos(_state.booking, _state.objects, _state.show, _state.completed, _state.paidAmount)
         setTimeout(() => { ci.classList.remove('success'); co.classList.remove('success') }, 1500)
         // Кнопка остаётся неактивной — текущие значения совпадают с сохранёнными
       } else {

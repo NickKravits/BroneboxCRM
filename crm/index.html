@@ -276,23 +276,25 @@
           if ((beginStr <= todayStr && endStr > todayStr) || beginStr >= tomorrowStr) counter++
         }
 
-        // Подтягиваем суммы оплат и залогов параллельно — только для отображаемых карточек
-        const fetchAmount = (bookingId, payType) => fetch(API + '/payments/getpaymentamount', {
+        // Подтягиваем суммы оплат и залогов одним batch-запросом каждая —
+        // вместо N запросов на N карточек (упиралось в лимит пула соединений к БД)
+        const fetchAmounts = (bookingIds, payType) => fetch(API + '/payments/getpaymentamounts', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bookingId, type: payType })
-        }).then(r => r.json()).then(d => d.amount || 0).catch(() => 0)
+          body: JSON.stringify({ bookingIds, type: payType })
+        }).then(r => r.json()).then(d => d.amounts || {}).catch(() => ({}))
 
-        const [paidAmounts, depositAmounts] = await Promise.all([
-          Promise.all(cardJobs.map(({ booking }) => fetchAmount(booking.id, 'PAY'))),
-          Promise.all(cardJobs.map(({ booking }) => fetchAmount(booking.id, 'DEPOSIT')))
+        const bookingIds = cardJobs.map(({ booking }) => booking.id)
+        const [paidAmountsMap, depositAmountsMap] = await Promise.all([
+          fetchAmounts(bookingIds, 'PAY'),
+          fetchAmounts(bookingIds, 'DEPOSIT')
         ])
 
         // Строим желаемое содержимое каждой колонки, не трогая DOM
         const byBucket = { tomorrowIn: [], todayIn: [], living: [], todayOut: [], tomorrowOut: [] }
-        cardJobs.forEach(({ booking, object, type, bucket }, i) => {
-          const paidAmount    = paidAmounts[i]
-          const depositAmount = depositAmounts[i]
+        cardJobs.forEach(({ booking, object, type, bucket }) => {
+          const paidAmount    = paidAmountsMap[booking.id] || 0
+          const depositAmount = depositAmountsMap[booking.id] || 0
           let html
           if (type === 'checkin')       html = cardCheckin(booking, object, paidAmount, depositAmount)
           else if (type === 'checkout') html = cardCheckout(booking, object, paidAmount, depositAmount)
