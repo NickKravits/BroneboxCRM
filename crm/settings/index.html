@@ -719,6 +719,25 @@
           </button>
         </div>
 
+        <div class="service-card">
+          <div class="service-card-title"><i class="ti ti-lock"></i> Смена пароля</div>
+          <div class="field-group">
+            <label class="field-label" for="svc-pass-current">Текущий пароль</label>
+            <input class="field-input" id="svc-pass-current" type="password" autocomplete="current-password">
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="svc-pass-new">Новый пароль</label>
+            <input class="field-input" id="svc-pass-new" type="password" autocomplete="new-password">
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="svc-pass-repeat">Повторите новый пароль</label>
+            <input class="field-input" id="svc-pass-repeat" type="password" autocomplete="new-password">
+          </div>
+          <button class="btn btn-save" id="svc-pass-btn" onclick="changePassword()">
+            <i class="ti ti-check"></i> Сохранить
+          </button>
+        </div>
+
         <div class="service-card" id="svc-balance-section" style="display:none">
           <div class="service-card-title"><i class="ti ti-wallet"></i> Баланс кабинета</div>
           <div class="svc-balance-display" id="svc-balance-value">—</div>
@@ -3079,6 +3098,51 @@ async function saveUserName() {
         }
     } catch (err) {
         showToast('Ошибка при сохранении', 'danger');
+    }
+}
+
+async function changePassword() {
+    const currentPassword = document.getElementById('svc-pass-current').value;
+    const newPassword     = document.getElementById('svc-pass-new').value;
+    const repeatPassword  = document.getElementById('svc-pass-repeat').value;
+
+    if (!currentPassword || !newPassword || !repeatPassword) {
+        showToast('Заполните все поля', 'warning');
+        return;
+    }
+    if (newPassword.length < 6) {
+        showToast('Новый пароль должен быть не менее 6 символов', 'warning');
+        return;
+    }
+    if (newPassword !== repeatPassword) {
+        showToast('Пароли не совпадают', 'warning');
+        return;
+    }
+
+    const btn = document.getElementById('svc-pass-btn');
+    btn.disabled = true;
+    const token = localStorage.getItem('broneboxtoken');
+    try {
+        const res = await fetch(API + '/users/change-password', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ currentPassword, newPassword })
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data.token) localStorage.setItem('broneboxtoken', data.token);
+            showToast('Пароль изменён, остальные сеансы завершены', 'success');
+            document.getElementById('svc-pass-current').value = '';
+            document.getElementById('svc-pass-new').value = '';
+            document.getElementById('svc-pass-repeat').value = '';
+        } else {
+            const err = await res.json();
+            showToast(err.error || 'Ошибка при смене пароля', 'danger');
+        }
+    } catch (err) {
+        showToast('Ошибка при смене пароля', 'danger');
+    } finally {
+        btn.disabled = false;
     }
 }
 
