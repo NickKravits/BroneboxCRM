@@ -41,6 +41,46 @@
       } catch (err) { console.error(err); }
     }
 
+    let _objectsCache = null;
+
+    async function loadObjectsCache() {
+        if (_objectsCache) return _objectsCache;
+        const token = localStorage.getItem('broneboxtoken');
+        const res = await fetch(API + '/objects/getall', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const { objects } = await res.json();
+        _objectsCache = new Map((objects || []).map(o => [o.realtyid, o]));
+        return _objectsCache;
+    }
+
+    function buildBookingRowHtml(booking, object) {
+        return `
+            <div class="bk-guest">
+                <div class="bk-name">${booking.fio}</div>
+                <div class="bk-phone">${booking.phone}</div>
+            </div>
+            <div class="bk-divider"></div>
+            <div class="bk-object">
+                <div class="bk-object-name">${object?.name || '—'}</div>
+                <div class="bk-object-source">${booking.source}</div>
+            </div>
+            <div class="bk-divider"></div>
+            <div class="bk-dates">
+                <div class="bk-date-range">${formatDate(booking.begin_date)} - ${formatDate(booking.end_date)}</div>
+                <div class="bk-nights">${nightsCount(booking.begin_date, booking.end_date)} ночей</div>
+            </div>
+            <div class="bk-divider"></div>
+            <div class="bk-payment">
+                <div class="bk-paid">Долг: ${booking.balance_to_be_paid_1} ₽</div>
+                <div class="bk-remaining">Оплачено: ${booking.prepayment} ₽</div>
+            </div>
+            <div class="bk-actions">
+                <button class="btn-edit" onclick="editBookingModal(${booking.id})"><i class="ti ti-pencil"></i> Изменить</button>
+            </div>
+        `;
+    }
+
     async function getBookings() {
         const token = localStorage.getItem('broneboxtoken');
         const filterObject = document.getElementById('filter-object').value;
@@ -50,16 +90,15 @@
 
         const container = document.getElementById('bookings-list');
 
-        let counter = 0;
-
-        container.innerHTML = '';
-
         try {
-            const res = await fetch(API + '/bookings/get', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ object: filterObject, phone: filterPhone, checkin: filterCheckin, checkout: filterCheckout })
-            });
+            const [res, objectsMap] = await Promise.all([
+                fetch(API + '/bookings/get', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ object: filterObject, phone: filterPhone, checkin: filterCheckin, checkout: filterCheckout })
+                }),
+                loadObjectsCache()
+            ]);
 
             if (!res.ok) {
                 console.error('Ошибка при получении бронирований:', res.statusText);
@@ -68,48 +107,30 @@
 
             const {permissions, bookings} = await res.json();
 
-            for (const booking of bookings) {
+            // Дифф: убираем строки, которых больше нет в свежем списке (и стартовый плейсхолдер)
+            const wantedIds = new Set(bookings.map(b => String(b.id)));
+            Array.from(container.children).forEach(child => {
+                if (!child.classList.contains('booking-row') || !wantedIds.has(child.dataset.bookingId)) {
+                    child.remove();
+                }
+            });
 
-                const getObj = await fetch(API + '/objects/getbyrid', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ rId: booking.realty_id })
-                });
+            bookings.forEach(booking => {
+                const object = objectsMap.get(booking.realty_id);
+                const html = buildBookingRowHtml(booking, object);
+                let row = container.querySelector(`.booking-row[data-booking-id="${booking.id}"]`);
+                if (row) {
+                    if (row.innerHTML !== html) row.innerHTML = html;
+                } else {
+                    row = document.createElement('div');
+                    row.className = 'booking-row';
+                    row.dataset.bookingId = booking.id;
+                    row.innerHTML = html;
+                    container.appendChild(row);
+                }
+            });
 
-                const {object} = await getObj.json();
-
-                const row = document.createElement('div');
-                row.className = 'booking-row';
-                counter++;
-                row.innerHTML = `
-                    <div class="bk-guest">
-                        <div class="bk-name">${booking.fio}</div>
-                        <div class="bk-phone">${booking.phone}</div>
-                    </div>
-                    <div class="bk-divider"></div>
-                    <div class="bk-object">
-                        <div class="bk-object-name">${object.name}</div>
-                        <div class="bk-object-source">${booking.source}</div>
-                    </div>
-                    <div class="bk-divider"></div>
-                    <div class="bk-dates">
-                        <div class="bk-date-range">${formatDate(booking.begin_date)} - ${formatDate(booking.end_date)}</div>
-                        <div class="bk-nights">${nightsCount(booking.begin_date, booking.end_date)} ночей</div>
-                    </div>
-                    <div class="bk-divider"></div>
-                    <div class="bk-payment">
-                        <div class="bk-paid">Долг: ${booking.balance_to_be_paid_1} ₽</div>
-                        <div class="bk-remaining">Оплачено: ${booking.prepayment} ₽</div>
-                    </div>
-                    <div class="bk-actions">
-                        <button class="btn-edit" onclick="editBookingModal(${booking.id})"><i class="ti ti-pencil"></i> Изменить</button>
-                    </div>
-                `;
-
-                container.appendChild(row)
-            };
-
-            document.getElementById('results-meta').textContent = "Показано " + counter + " бронирований";
+            document.getElementById('results-meta').textContent = "Показано " + bookings.length + " бронирований";
 
         } catch (err) {
             console.error(err);
@@ -171,6 +192,7 @@
 
 <div id="page-loader">
   <i class="ti ti-loader-2 ti-spin"></i>
+  <span class="page-loader-text">Подождите, страница загружается</span>
 </div>
 
 <div class="ambient ambient-tr"></div>
