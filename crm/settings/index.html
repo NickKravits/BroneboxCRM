@@ -1735,6 +1735,16 @@ function clearEditPhotos() {
         </span>
       </div>
 
+      <div class="field-group">
+        <label class="field-label">
+          Client ID приложения
+          <span class="field-hint-icon" title="Client ID вашего приложения в Точка Банке — нужен для подключения вебхука подтверждения оплаты">
+            <i class="ti ti-info-circle"></i>
+          </span>
+        </label>
+        <input class="field-input" id="tochka-client-id" type="text" placeholder="Вставьте Client ID">
+      </div>
+
       <div class="modal-section-divider">Настройки платежа</div>
 
       <div class="field-group">
@@ -2167,13 +2177,14 @@ function escapeHtml(str) {
 
     const phone = document.getElementById('tochka-supplier-phone').value.trim();
     const apiKey = document.getElementById('tochka-token').value.trim();
+    const clientId = document.getElementById('tochka-client-id').value.trim();
     const vatType = document.getElementById('tochka-vat').value;
     const purpose = document.getElementById('tochka-payment-desc').value.trim();
     const name = document.getElementById('tochka-service-name').value.trim();
 
     try {
       const token = localStorage.getItem('broneboxtoken')
-      const body = { phone, apiKey, vatType, purpose, name };
+      const body = { phone, apiKey, clientId, vatType, purpose, name };
       if (customerCode) body.customerCode = customerCode;
       const res = await fetch(`${API}/integration/tochka/save`, {
         method: 'POST',

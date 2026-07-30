@@ -927,6 +927,78 @@ body {
   color: var(--red-text);
 }
 
+/* ── Модалка ожидания оплаты ── */
+.wait-pay-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: var(--bg-page);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.wait-pay-box {
+  text-align: center;
+  max-width: 320px;
+}
+
+.wait-pay-spinner {
+  display: flex;
+  justify-content: center;
+  color: var(--text-primary);
+}
+
+.wait-pay-spinner svg {
+  width: 44px;
+  height: 44px;
+  animation: waitPaySpin 1s linear infinite;
+}
+
+@keyframes waitPaySpin {
+  to { transform: rotate(360deg); }
+}
+
+.wait-pay-icon-success {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--green-bg);
+  border: 0.5px solid var(--green-border);
+  color: var(--green-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.wait-pay-icon-success svg {
+  width: 28px;
+  height: 28px;
+}
+
+.wait-pay-title {
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  margin-top: 18px;
+  margin-bottom: 8px;
+}
+
+.wait-pay-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.wait-pay-box .btn-pay-cancel {
+  display: inline-block;
+  flex: none;
+  min-width: 140px;
+  margin-top: 18px;
+}
+
 /* ── Responsive дополнения ── */
 @media (max-width: 500px) {
   .location-row {

@@ -292,6 +292,21 @@
   </div>
 </div>
 
+<!-- ── Модалка ожидания оплаты (Точка) ───────────────────────────────── -->
+<div class="wait-pay-overlay" id="wait-pay-overlay" style="display:none">
+  <div class="wait-pay-box">
+    <div class="wait-pay-spinner" id="wait-pay-spinner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+    </div>
+    <div class="wait-pay-icon-success" id="wait-pay-success-icon" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+    </div>
+    <div class="wait-pay-title" id="wait-pay-title">Ожидание оплаты</div>
+    <p class="wait-pay-desc" id="wait-pay-desc">Обычно это занимает несколько секунд. Не закрывайте страницу.</p>
+    <button class="btn-pay-cancel" id="wait-pay-close-btn" style="display:none" onclick="closeWaitPayOverlay()">Хорошо</button>
+  </div>
+</div>
+
 <script>
   
 
@@ -799,6 +814,78 @@
     }
   }
 
+  // ── Ожидание подтверждения оплаты (Точка) ─────────────────────────────
+  let _waitPayTimer    = null
+  let _waitPayAttempts = 0
+  const WAIT_PAY_INTERVAL_MS  = 3000
+  const WAIT_PAY_MAX_ATTEMPTS = 10 // 30 секунд
+
+  function openWaitPayOverlay() {
+    document.getElementById('wait-pay-spinner').style.display      = ''
+    document.getElementById('wait-pay-success-icon').style.display = 'none'
+    document.getElementById('wait-pay-title').textContent = 'Ожидание оплаты'
+    document.getElementById('wait-pay-desc').textContent  = 'Обычно это занимает несколько секунд. Не закрывайте страницу.'
+    document.getElementById('wait-pay-close-btn').textContent   = 'Закрыть'
+    document.getElementById('wait-pay-close-btn').style.display = ''
+    document.getElementById('wait-pay-overlay').style.display   = 'flex'
+  }
+
+  function closeWaitPayOverlay() {
+    document.getElementById('wait-pay-overlay').style.display = 'none'
+    if (_waitPayTimer) { clearTimeout(_waitPayTimer); _waitPayTimer = null }
+    // Убираем ?red=tochka из адреса, чтобы обновление страницы не открывало модалку заново
+    const url = new URL(window.location.href)
+    url.searchParams.delete('red')
+    window.history.replaceState({}, '', url)
+  }
+
+  function showWaitPaySuccess() {
+    if (_waitPayTimer) { clearTimeout(_waitPayTimer); _waitPayTimer = null }
+    document.getElementById('wait-pay-spinner').style.display      = 'none'
+    document.getElementById('wait-pay-success-icon').style.display = 'flex'
+    document.getElementById('wait-pay-title').textContent = 'Оплата прошла успешно!'
+    document.getElementById('wait-pay-desc').textContent  = 'Спасибо! Данные бронирования обновлены.'
+    document.getElementById('wait-pay-close-btn').textContent   = 'Хорошо'
+    document.getElementById('wait-pay-close-btn').style.display = ''
+  }
+
+  function showWaitPayTimeout() {
+    document.getElementById('wait-pay-spinner').style.display = 'none'
+    document.getElementById('wait-pay-title').textContent = 'Оплата в обработке'
+    document.getElementById('wait-pay-desc').textContent  = 'Проверьте, пожалуйста, чуть позже — обновите страницу через минуту.'
+    document.getElementById('wait-pay-close-btn').textContent   = 'Закрыть'
+    document.getElementById('wait-pay-close-btn').style.display = ''
+  }
+
+  async function pollTochkaPayment(link) {
+    _waitPayAttempts++
+    try {
+      const res = await fetch(API + '/guest/get', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ id: link })
+      })
+      if (res.ok) {
+        const data  = await res.json()
+        const toPay = Math.max(0, (data.booking?.balance_to_be_paid_1 || 0) - (data.paidAmount || 0))
+        if (toPay === 0) {
+          applyData(data.booking, data.objects, data.photos, data.show, data.bookingState, data.checkoutPassed, data.paidAmount)
+          showWaitPaySuccess()
+          return
+        }
+      }
+    } catch (e) {
+      console.error('Ошибка проверки оплаты:', e)
+    }
+
+    if (_waitPayAttempts >= WAIT_PAY_MAX_ATTEMPTS) {
+      showWaitPayTimeout()
+      return
+    }
+
+    _waitPayTimer = setTimeout(() => pollTochkaPayment(link), WAIT_PAY_INTERVAL_MS)
+  }
+
   // ── Отслеживание изменений времени ──────────────────────────────────
   function initTimeSaving() {
     const ci  = document.getElementById('ci')
@@ -903,6 +990,11 @@
 
   if (link && new URLSearchParams(window.location.search).get('red') === 'okidoki') {
     checkContractStatus(link)
+  }
+
+  if (link && new URLSearchParams(window.location.search).get('red') === 'tochka') {
+    openWaitPayOverlay()
+    pollTochkaPayment(link)
   }
 </script>
 
