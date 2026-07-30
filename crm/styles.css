@@ -503,6 +503,8 @@
 /* Канал связи */
 .card-footer-row {
   display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   margin-top: 10px;
   border-top: 0.5px solid var(--border);
   padding-top: 8px;

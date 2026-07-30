@@ -654,7 +654,7 @@ html[data-theme="light"] .unread-pill { color: #1768C2; }
   font-size: 10px; font-weight: 500; padding: 3px 8px; border-radius: 20px;
   background: var(--surface-hover); color: var(--text-secondary); border: 0.5px solid var(--border);
 }
-.card-footer-row { display: flex; gap: 6px; padding-top: 6px; margin-top: 2px; border-top: 0.5px solid var(--border); }
+.card-footer-row { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 6px; margin-top: 2px; border-top: 0.5px solid var(--border); }
 .channel-tag {
   font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 20px;
   background: rgba(79,156,249,0.1); color: var(--accent-blue); border: 0.5px solid rgba(79,156,249,.2);
