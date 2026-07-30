@@ -1181,6 +1181,7 @@ function formatDate(dateStr) {
       showToast(_addPayKind === 'DEPOSIT' ? 'Залог добавлен' : 'Платёж добавлен', 'success')
       if (_addPayKind === 'DEPOSIT') loadQmDeposits(_qmBookingId)
       else loadQmPayments(_qmBookingId)
+      getBookings()
     } catch {
       showToast('Ошибка создания платежа', 'danger')
     } finally {
@@ -1227,6 +1228,7 @@ function formatDate(dateStr) {
       showToast(_removePaymentKind === 'DEPOSIT' ? 'Залог удалён' : 'Платёж удалён', 'success')
       if (_removePaymentKind === 'DEPOSIT') loadQmDeposits(_qmBookingId)
       else loadQmPayments(_qmBookingId)
+      getBookings()
     } catch {
       showToast('Ошибка удаления платежа', 'danger')
     } finally {
