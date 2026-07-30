@@ -449,7 +449,7 @@
 
 /* Базовый шаблон для ВСЕХ плашек в карточке (ночи, варнинги, каналы) 
    чтобы они были идентичны геометрически */
-.guest-tag, .warn-tag, .channel-tag {
+.guest-tag, .warn-tag, .channel-tag, .pay-over-tag {
   display: inline-flex;  /* Возвращаем инлайн-флекс для правильного схлопывания по ширине */
   align-items: center;
   justify-content: center;
@@ -473,9 +473,15 @@
 }
 
 .warn-tag {
-  background: rgba(214, 83, 126, 0.08); 
+  background: rgba(214, 83, 126, 0.08);
   color: #ff87a8;
   border: 0.5px solid rgba(214, 83, 126, 0.25);
+}
+
+.pay-over-tag {
+  background: rgba(239, 159, 39, 0.12);
+  color: var(--accent-amber);
+  border: 0.5px solid rgba(239, 159, 39, 0.25);
 }
 
 /* Счетчик остальных предупреждений — под высоту плашек */

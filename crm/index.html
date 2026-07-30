@@ -89,7 +89,14 @@
       return card
     }
 
-    function cardCheckin(booking, object) {
+    function getPaymentBadge(booking, paidAmount) {
+      const remaining = (booking.balance_to_be_paid_1 || 0) - (paidAmount || 0)
+      if (remaining === 0) return ''
+      if (remaining < 0) return `<div class="card-footer-row"><span class="pay-over-tag">Переплата</span></div>`
+      return `<div class="card-footer-row"><span class="warn-tag">Неоплачено</span></div>`
+    }
+
+    function cardCheckin(booking, object, paidAmount) {
       return `
         <div class="card-header-row">
           <div class="guest-name">${booking.fio}</div>
@@ -107,6 +114,7 @@
         </div>
         ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row"><span class="channel-tag">${booking.channel}</span></div>`}
         ${getContractStatus(booking) === null ? '' : `<div class="card-footer-row"><span class="warn-tag">${getContractStatus(booking)}</span></div>`}
+        ${getPaymentBadge(booking, paidAmount)}
       `
     }
 
@@ -130,7 +138,7 @@
       }
     }
 
-    function cardCheckout(booking, object) {
+    function cardCheckout(booking, object, paidAmount) {
       return `
         <div class="card-header-row">
           <div class="guest-name">${booking.fio}</div>
@@ -147,10 +155,11 @@
           <span class="guest-tag">${nightsCount(booking.begin_date, booking.end_date)} ночей</span>
         </div>
         ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row"><span class="channel-tag">${booking.channel}</span></div>`}
+        ${getPaymentBadge(booking, paidAmount)}
       `
     }
 
-    function cardLiving(booking, object) {
+    function cardLiving(booking, object, paidAmount) {
       return `
         <div class="card-header-row">
           <div class="guest-name">${booking.fio}</div>
@@ -162,6 +171,7 @@
           <span class="guest-tag">${nightsCount(booking.begin_date, booking.end_date)} ночей</span>
         </div>
         ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row"><span class="channel-tag">${booking.channel}</span></div>`}
+        ${getPaymentBadge(booking, paidAmount)}
       `
     }
 
@@ -214,36 +224,51 @@
         let counter = 0, counterTomorowIn = 0, counterTodayIn = 0
         let counterLiving = 0, counterTodayOut = 0, counterTomorrowOut = 0
 
+        // Первый проход: считаем счётчики и собираем карточки, которые реально покажем
+        const cardJobs = []
+
         for (const booking of bookings) {
           const object   = objectsMap.get(booking.realty_id)
           const beginStr = booking.begin_date.split('T')[0]
           const endStr   = booking.end_date.split('T')[0]
-          const card     = buildCard(booking, object)
 
           if (beginStr === tomorrowStr) {
             counterTomorowIn++
-            card.innerHTML = cardCheckin(booking, object)
-            tomorrowInContainer.appendChild(card)
+            cardJobs.push({ booking, object, type: 'checkin', container: tomorrowInContainer })
           } else if (beginStr === todayStr) {
             counterTodayIn++
-            card.innerHTML = cardCheckin(booking, object)
-            todayInContainer.appendChild(card)
+            cardJobs.push({ booking, object, type: 'checkin', container: todayInContainer })
           } else if (endStr === todayStr) {
             counterTodayOut++
-            card.innerHTML = cardCheckout(booking, object)
-            todayOutContainer.appendChild(card)
+            cardJobs.push({ booking, object, type: 'checkout', container: todayOutContainer })
           } else if (endStr === tomorrowStr) {
             counterTomorrowOut++
-            card.innerHTML = cardCheckout(booking, object)
-            tomorrowOutContainer.appendChild(card)
+            cardJobs.push({ booking, object, type: 'checkout', container: tomorrowOutContainer })
           } else if (beginStr <= todayStr && endStr > todayStr) {
             counterLiving++
-            card.innerHTML = cardLiving(booking, object)
-            livingContainer.appendChild(card)
+            cardJobs.push({ booking, object, type: 'living', container: livingContainer })
           }
 
           if ((beginStr <= todayStr && endStr > todayStr) || beginStr >= tomorrowStr) counter++
         }
+
+        // Подтягиваем суммы оплат параллельно — только для отображаемых карточек
+        const paidAmounts = await Promise.all(cardJobs.map(({ booking }) =>
+          fetch(API + '/payments/getpaymentamount', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bookingId: booking.id })
+          }).then(r => r.json()).then(d => d.amount || 0).catch(() => 0)
+        ))
+
+        cardJobs.forEach(({ booking, object, type, container }, i) => {
+          const paidAmount = paidAmounts[i]
+          const card = buildCard(booking, object)
+          if (type === 'checkin')       card.innerHTML = cardCheckin(booking, object, paidAmount)
+          else if (type === 'checkout') card.innerHTML = cardCheckout(booking, object, paidAmount)
+          else                          card.innerHTML = cardLiving(booking, object, paidAmount)
+          container.appendChild(card)
+        })
 
         document.getElementById('num-container').textContent          = counter
         document.getElementById('col-count-tomorrow-in').textContent  = counterTomorowIn
