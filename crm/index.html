@@ -103,11 +103,21 @@
       return ''
     }
 
+    function getTimeBadge(booking) {
+      const noCheckin  = !booking.begin_time
+      const noCheckout = !booking.end_time
+      if (noCheckin && noCheckout) return `<span class="pay-over-tag">Не указано время заезда и выезда</span>`
+      if (noCheckin)  return `<span class="pay-over-tag">Не указано время заезда</span>`
+      if (noCheckout) return `<span class="pay-over-tag">Не указано время выезда</span>`
+      return ''
+    }
+
     function cardCheckin(booking, object, paidAmount, depositAmount) {
       const contractBadge = getContractStatus(booking) === null ? '' : `<span class="warn-tag">${getContractStatus(booking)}</span>`
       const paymentBadge  = getPaymentBadge(booking, paidAmount)
       const depositBadge  = getDepositBadge(object, depositAmount)
-      const statusRow = (contractBadge || paymentBadge || depositBadge) ? `<div class="card-footer-row">${contractBadge}${paymentBadge}${depositBadge}</div>` : ''
+      const timeBadge     = getTimeBadge(booking)
+      const statusRow = (contractBadge || paymentBadge || depositBadge || timeBadge) ? `<div class="card-footer-row">${contractBadge}${paymentBadge}${depositBadge}${timeBadge}</div>` : ''
       return `
         <div class="card-header-row">
           <div class="guest-name">${booking.fio}</div>
@@ -151,7 +161,8 @@
     function cardCheckout(booking, object, paidAmount, depositAmount) {
       const paymentBadge = getPaymentBadge(booking, paidAmount)
       const depositBadge = getDepositBadge(object, depositAmount)
-      const statusRow = (paymentBadge || depositBadge) ? `<div class="card-footer-row">${paymentBadge}${depositBadge}</div>` : ''
+      const timeBadge     = getTimeBadge(booking)
+      const statusRow = (paymentBadge || depositBadge || timeBadge) ? `<div class="card-footer-row">${paymentBadge}${depositBadge}${timeBadge}</div>` : ''
       return `
         <div class="card-header-row">
           <div class="guest-name">${booking.fio}</div>
@@ -175,7 +186,8 @@
     function cardLiving(booking, object, paidAmount, depositAmount) {
       const paymentBadge = getPaymentBadge(booking, paidAmount)
       const depositBadge = getDepositBadge(object, depositAmount)
-      const statusRow = (paymentBadge || depositBadge) ? `<div class="card-footer-row">${paymentBadge}${depositBadge}</div>` : ''
+      const timeBadge     = getTimeBadge(booking)
+      const statusRow = (paymentBadge || depositBadge || timeBadge) ? `<div class="card-footer-row">${paymentBadge}${depositBadge}${timeBadge}</div>` : ''
       return `
         <div class="card-header-row">
           <div class="guest-name">${booking.fio}</div>
