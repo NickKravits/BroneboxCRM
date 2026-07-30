@@ -194,17 +194,13 @@
     async function getBookings() {
       const token = localStorage.getItem('broneboxtoken')
 
-      const tomorrowInContainer  = document.getElementById('tomorrow-in-container')
-      const todayInContainer     = document.getElementById('today-in-container')
-      const livingContainer      = document.getElementById('living-container')
-      const todayOutContainer    = document.getElementById('today-out-container')
-      const tomorrowOutContainer = document.getElementById('tomorrow-out-container')
-
-      tomorrowInContainer.innerHTML  = ''
-      todayInContainer.innerHTML     = ''
-      livingContainer.innerHTML      = ''
-      todayOutContainer.innerHTML    = ''
-      tomorrowOutContainer.innerHTML = ''
+      const containers = {
+        tomorrowIn:  document.getElementById('tomorrow-in-container'),
+        todayIn:     document.getElementById('today-in-container'),
+        living:      document.getElementById('living-container'),
+        todayOut:    document.getElementById('today-out-container'),
+        tomorrowOut: document.getElementById('tomorrow-out-container'),
+      }
 
       try {
         // Загружаем брони и объекты параллельно
@@ -250,19 +246,19 @@
 
           if (beginStr === tomorrowStr) {
             counterTomorowIn++
-            cardJobs.push({ booking, object, type: 'checkin', container: tomorrowInContainer })
+            cardJobs.push({ booking, object, type: 'checkin', bucket: 'tomorrowIn' })
           } else if (beginStr === todayStr) {
             counterTodayIn++
-            cardJobs.push({ booking, object, type: 'checkin', container: todayInContainer })
+            cardJobs.push({ booking, object, type: 'checkin', bucket: 'todayIn' })
           } else if (endStr === todayStr) {
             counterTodayOut++
-            cardJobs.push({ booking, object, type: 'checkout', container: todayOutContainer })
+            cardJobs.push({ booking, object, type: 'checkout', bucket: 'todayOut' })
           } else if (endStr === tomorrowStr) {
             counterTomorrowOut++
-            cardJobs.push({ booking, object, type: 'checkout', container: tomorrowOutContainer })
+            cardJobs.push({ booking, object, type: 'checkout', bucket: 'tomorrowOut' })
           } else if (beginStr <= todayStr && endStr > todayStr) {
             counterLiving++
-            cardJobs.push({ booking, object, type: 'living', container: livingContainer })
+            cardJobs.push({ booking, object, type: 'living', bucket: 'living' })
           }
 
           if ((beginStr <= todayStr && endStr > todayStr) || beginStr >= tomorrowStr) counter++
@@ -280,14 +276,39 @@
           Promise.all(cardJobs.map(({ booking }) => fetchAmount(booking.id, 'DEPOSIT')))
         ])
 
-        cardJobs.forEach(({ booking, object, type, container }, i) => {
+        // Строим желаемое содержимое каждой колонки, не трогая DOM
+        const byBucket = { tomorrowIn: [], todayIn: [], living: [], todayOut: [], tomorrowOut: [] }
+        cardJobs.forEach(({ booking, object, type, bucket }, i) => {
           const paidAmount    = paidAmounts[i]
           const depositAmount = depositAmounts[i]
-          const card = buildCard(booking, object)
-          if (type === 'checkin')       card.innerHTML = cardCheckin(booking, object, paidAmount, depositAmount)
-          else if (type === 'checkout') card.innerHTML = cardCheckout(booking, object, paidAmount, depositAmount)
-          else                          card.innerHTML = cardLiving(booking, object, paidAmount, depositAmount)
-          container.appendChild(card)
+          let html
+          if (type === 'checkin')       html = cardCheckin(booking, object, paidAmount, depositAmount)
+          else if (type === 'checkout') html = cardCheckout(booking, object, paidAmount, depositAmount)
+          else                          html = cardLiving(booking, object, paidAmount, depositAmount)
+          byBucket[bucket].push({ booking, object, html })
+        })
+
+        // Дифф: обновляем существующие карточки на месте, добавляем новые, убираем лишние —
+        // без полной перерисовки колонки, чтобы не сбрасывать то, на что смотрит менеджер
+        Object.keys(containers).forEach(bucket => {
+          const container = containers[bucket]
+          const wanted    = byBucket[bucket]
+          const wantedIds = new Set(wanted.map(w => String(w.booking.id)))
+
+          Array.from(container.children).forEach(child => {
+            if (!wantedIds.has(child.dataset.bookingId)) child.remove()
+          })
+
+          wanted.forEach(({ booking, object, html }) => {
+            let card = container.querySelector(`.guest-card[data-booking-id="${booking.id}"]`)
+            if (card) {
+              if (card.innerHTML !== html) card.innerHTML = html
+            } else {
+              card = buildCard(booking, object)
+              card.innerHTML = html
+              container.appendChild(card)
+            }
+          })
         })
 
         document.getElementById('num-container').textContent          = counter
