@@ -420,10 +420,12 @@ body {
 }
 
 .btn-deposit {
+  display: inline-block;
   font-family: var(--font-main);
   font-size: 13px;
   font-weight: 500;
   color: var(--text-primary);
+  text-decoration: none;
   background: transparent;
   border: 0.5px solid var(--border-strong);
   border-radius: var(--radius-sm);

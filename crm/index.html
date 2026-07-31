@@ -113,7 +113,8 @@
     }
 
     function cardCheckin(booking, object, paidAmount, depositAmount) {
-      const contractBadge = getContractStatus(booking) === null ? '' : `<span class="warn-tag">${getContractStatus(booking)}</span>`
+      const contractStatus = getContractStatus(booking)
+      const contractBadge  = contractStatus === null ? '' : `<span class="warn-tag">${contractStatus}</span>`
       const paymentBadge  = getPaymentBadge(booking, paidAmount)
       const depositBadge  = getDepositBadge(object, depositAmount)
       const timeBadge     = getTimeBadge(booking)
@@ -159,10 +160,12 @@
     }
 
     function cardCheckout(booking, object, paidAmount, depositAmount) {
+      const contractStatus = getContractStatus(booking)
+      const contractBadge  = contractStatus === null ? '' : `<span class="warn-tag">${contractStatus}</span>`
       const paymentBadge = getPaymentBadge(booking, paidAmount)
       const depositBadge = getDepositBadge(object, depositAmount)
       const timeBadge     = getTimeBadge(booking)
-      const statusRow = (paymentBadge || depositBadge || timeBadge) ? `<div class="card-footer-row">${paymentBadge}${depositBadge}${timeBadge}</div>` : ''
+      const statusRow = (contractBadge || paymentBadge || depositBadge || timeBadge) ? `<div class="card-footer-row">${contractBadge}${paymentBadge}${depositBadge}${timeBadge}</div>` : ''
       return `
         <div class="card-header-row">
           <div class="guest-name">${booking.fio}</div>
@@ -184,10 +187,12 @@
     }
 
     function cardLiving(booking, object, paidAmount, depositAmount) {
+      const contractStatus = getContractStatus(booking)
+      const contractBadge  = contractStatus === null ? '' : `<span class="warn-tag">${contractStatus}</span>`
       const paymentBadge = getPaymentBadge(booking, paidAmount)
       const depositBadge = getDepositBadge(object, depositAmount)
       const timeBadge     = getTimeBadge(booking)
-      const statusRow = (paymentBadge || depositBadge || timeBadge) ? `<div class="card-footer-row">${paymentBadge}${depositBadge}${timeBadge}</div>` : ''
+      const statusRow = (contractBadge || paymentBadge || depositBadge || timeBadge) ? `<div class="card-footer-row">${contractBadge}${paymentBadge}${depositBadge}${timeBadge}</div>` : ''
       return `
         <div class="card-header-row">
           <div class="guest-name">${booking.fio}</div>
