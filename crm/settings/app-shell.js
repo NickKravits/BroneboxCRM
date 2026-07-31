@@ -134,7 +134,8 @@
   function initMobileSectionAnchor() {
     var columnsRow = document.getElementById('columns-row');
     var anchor = document.getElementById('mobile-section-anchor');
-    if (!columnsRow || !anchor) return;
+    var deskRow = document.getElementById('desktop-header-row');
+    if (!columnsRow) return;
 
     document.body.classList.add('has-section-anchor');
 
@@ -144,23 +145,28 @@
     var columns = columnsRow.children;
     var mainEl = document.querySelector('.main');
 
-    function positionAnchor() {
-      if (!mainEl) return;
+    function positionBar(el) {
+      if (!el || !mainEl) return;
       if (window.innerWidth <= 768) {
-        anchor.style.left = '';
-        anchor.style.right = '';
+        el.style.left = '';
+        el.style.right = '';
         return;
       }
       var rect = mainEl.getBoundingClientRect();
-      anchor.style.left = rect.left + 'px';
-      anchor.style.right = (window.innerWidth - rect.right) + 'px';
+      el.style.left = rect.left + 'px';
+      el.style.right = (window.innerWidth - rect.right) + 'px';
+    }
+
+    function positionAll() {
+      positionBar(anchor);
+      positionBar(deskRow);
     }
 
     if (mainEl && window.ResizeObserver) {
-      new ResizeObserver(positionAnchor).observe(mainEl);
+      new ResizeObserver(positionAll).observe(mainEl);
     }
-    window.addEventListener('resize', positionAnchor);
-    positionAnchor();
+    window.addEventListener('resize', positionAll);
+    positionAll();
 
     function activeColumn() {
       var mid = columnsRow.scrollLeft + columnsRow.clientWidth / 2;
@@ -175,7 +181,8 @@
       return best;
     }
 
-    function sync() {
+    function syncAnchor() {
+      if (!anchor) return;
       var col = activeColumn();
       if (!col) return;
       var header = col.querySelector('.col-header');
@@ -185,6 +192,27 @@
       if (dotEl && dot) dotEl.style.background = dot.style.background;
       if (labelEl) labelEl.textContent = header.getAttribute('data-label') || '';
       if (countEl && count) countEl.textContent = count.textContent;
+    }
+
+    function syncDeskRow() {
+      if (!deskRow) return;
+      for (var i = 0; i < columns.length; i++) {
+        var header = columns[i].querySelector('.col-header');
+        if (!header) continue;
+        var dot = header.querySelector('.col-dot');
+        var count = header.querySelector('.col-count');
+        var itemDot = document.getElementById('dh-dot-' + i);
+        var itemLabel = document.getElementById('dh-label-' + i);
+        var itemCount = document.getElementById('dh-count-' + i);
+        if (itemDot && dot) itemDot.style.background = dot.style.background;
+        if (itemLabel) itemLabel.textContent = header.getAttribute('data-label') || '';
+        if (itemCount && count) itemCount.textContent = count.textContent;
+      }
+    }
+
+    function sync() {
+      syncAnchor();
+      syncDeskRow();
     }
 
     columnsRow.addEventListener('scroll', sync, { passive: true });
