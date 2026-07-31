@@ -142,6 +142,25 @@
     var labelEl = document.getElementById('mobile-anchor-label');
     var countEl = document.getElementById('mobile-anchor-count');
     var columns = columnsRow.children;
+    var mainEl = document.querySelector('.main');
+
+    function positionAnchor() {
+      if (!mainEl) return;
+      if (window.innerWidth <= 768) {
+        anchor.style.left = '';
+        anchor.style.right = '';
+        return;
+      }
+      var rect = mainEl.getBoundingClientRect();
+      anchor.style.left = rect.left + 'px';
+      anchor.style.right = (window.innerWidth - rect.right) + 'px';
+    }
+
+    if (mainEl && window.ResizeObserver) {
+      new ResizeObserver(positionAnchor).observe(mainEl);
+    }
+    window.addEventListener('resize', positionAnchor);
+    positionAnchor();
 
     function activeColumn() {
       var mid = columnsRow.scrollLeft + columnsRow.clientWidth / 2;
