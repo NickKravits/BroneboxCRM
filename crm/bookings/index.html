@@ -168,6 +168,10 @@
 
         try {
             await Promise.all([getUserData(), getBookings()]);
+
+            // Deep-link со страницы "Финансы" (кнопка "Перейти") — открываем карточку брони сразу
+            const openId = new URLSearchParams(window.location.search).get('openBooking')
+            if (openId) editBookingModal(parseInt(openId))
         } finally {
             const loader = document.getElementById('page-loader');
             loader.classList.add('hidden');
@@ -228,6 +232,10 @@
       <a class="nav-item" href="/crm/logs">
         <i class="ti ti-info-circle" aria-hidden="true"></i>
         <span class="nav-label">Логи</span>
+      </a>
+      <a class="nav-item" href="/crm/finances">
+        <i class="ti ti-report-money" aria-hidden="true"></i>
+        <span class="nav-label">Финансы</span>
       </a>
       <a class="nav-item" href="/crm/settings">
         <i class="ti ti-settings-2" aria-hidden="true"></i>

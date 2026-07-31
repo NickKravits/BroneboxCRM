@@ -24,6 +24,48 @@
   color: rgba(255,255,255,0.35);
 }
 
+/* Блокирующий оверлей на время сетевых запросов (например, интеграции) —
+   в отличие от #page-loader не удаляется из DOM, переключается классом .active */
+.busy-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(2px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+.busy-overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+.busy-spinner {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--bg-light, #161614);
+  border: 0.5px solid var(--border-mid, rgba(255,255,255,0.12));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  color: var(--text-secondary, rgba(255,255,255,0.45));
+  box-shadow: 0 12px 30px -10px rgba(0,0,0,0.5);
+}
+.busy-overlay-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.75);
+  letter-spacing: 0.01em;
+}
+html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
+
     :root {
       --bg: #0d0d0c;
       --surface: rgba(255,255,255,0.04);

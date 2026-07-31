@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <script src="/config.js"></script>
+  <script>
+    (function () {
+      try {
+        if (localStorage.getItem('bronebox-theme') === 'light') {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      } catch (e) {}
+    })();
+  </script>
+
+  <script>
+    (function() {
+      const token = localStorage.getItem('broneboxtoken');
+      if (!token) {
+        localStorage.removeItem('broneboxtoken');
+        window.location.href = '/login';
+      }
+    })();
+  </script>
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BroneBox CRM — Финансы</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="app-shell.css">
+</head>
+<body>
+
+<div id="page-loader">
+  <i class="ti ti-loader-2 ti-spin"></i>
+  <span class="page-loader-text">Подождите, страница загружается</span>
+</div>
+
+<div class="ambient ambient-tr"></div>
+<div class="ambient ambient-bl"></div>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="avatar-wrap">
+      <div class="avatar">
+        <span id="main_avatar">??</span>
+      </div>
+      <div class="avatar-info">
+        <span class="avatar-name">...</span>
+        <span class="avatar-role"></span>
+      </div>
+    </div>
+
+    <nav class="nav-items">
+      <a class="nav-item" href="/crm">
+        <i class="ti ti-layout-dashboard" aria-hidden="true"></i>
+        <span class="nav-label">Главное</span>
+      </a>
+      <a class="nav-item" href="/crm/bookings">
+        <i class="ti ti-calendar-event" aria-hidden="true"></i>
+        <span class="nav-label">Бронирования</span>
+      </a>
+      <a class="nav-item" href="/crm/maids">
+        <i class="ti ti-sparkles" aria-hidden="true"></i>
+        <span class="nav-label">Уборки</span>
+      </a>
+      <a class="nav-item" href="/crm/logs">
+        <i class="ti ti-info-circle" aria-hidden="true"></i>
+        <span class="nav-label">Логи</span>
+      </a>
+      <a class="nav-item active" href="#">
+        <i class="ti ti-report-money" aria-hidden="true"></i>
+        <span class="nav-label">Финансы</span>
+      </a>
+      <a class="nav-item" href="/crm/settings">
+        <i class="ti ti-settings-2" aria-hidden="true"></i>
+        <span class="nav-label">Настройки</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="toggle-btn" onclick="toggleSidebar()" id="toggle-btn">
+        <i class="ti ti-chevrons-right" aria-hidden="true"></i>
+        <span class="toggle-label">Свернуть</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- Header -->
+    <div class="page-header">
+      <h1 class="page-title">Финансы</h1>
+    </div>
+
+    <!-- Charts -->
+    <div class="finance-charts">
+      <div class="chart-card">
+        <div class="chart-card-title">Статистика за 30 дней</div>
+        <div id="trend-chart-wrap"><div class="chart-empty">Загрузка...</div></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Статистика по источникам за 30 дней</div>
+        <div id="donut-wrap"><div class="chart-empty">Загрузка...</div></div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-bar">
+      <div class="filter-group">
+        <span class="filter-label">Источник</span>
+        <select class="filter-select" id="filter-source" onchange="loadPayments()">
+          <option value="">Все источники</option>
+          <option value="TOCHKA">Точка</option>
+          <option value="TBANK">Т-Банк</option>
+          <option value="MANAGER">Ручной ввод</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Статус</span>
+        <select class="filter-select" id="filter-status" onchange="loadPayments()">
+          <option value="">Все статусы</option>
+          <option value="PAID">Оплачено</option>
+          <option value="PENDING">Ожидание</option>
+          <option value="FAILED">Ошибка</option>
+          <option value="RETURNED">Возвращено</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Тип</span>
+        <select class="filter-select" id="filter-type" onchange="loadPayments()">
+          <option value="">Все типы</option>
+          <option value="PAY">Оплата</option>
+          <option value="DEPOSIT">Залог</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Payments list -->
+    <div id="payments-container">
+      <!-- рендерится из JS -->
+    </div>
+
+  </main>
+</div>
+
+<!-- Модалка «Информация по оплате» -->
+<div class="modal-overlay" id="payment-modal" onclick="handlePaymentModalOverlay(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <span class="modal-label">Информация по оплате</span>
+        <span class="modal-id" id="pm-id">№ —</span>
+      </div>
+      <button class="modal-close" onclick="closePaymentModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="pay-modal-booking-row">
+        <span id="pm-booking-label">Бронирование №—</span>
+        <button class="pay-goto" id="pm-goto-btn"><i class="ti ti-arrow-right"></i> Перейти</button>
+      </div>
+
+      <div class="pay-modal-block">
+        <div class="pay-modal-row"><span class="lbl">Оплачено</span><span class="val" id="pm-amount">—</span></div>
+        <div class="pay-modal-row"><span class="lbl">Возвращено</span><span class="val" id="pm-returned">—</span></div>
+        <div class="pay-modal-row"><span class="lbl">Тип</span><span class="val" id="pm-type">—</span></div>
+      </div>
+
+      <div class="pay-modal-block">
+        <div class="pay-modal-row"><span class="lbl">Метод</span><span class="val" id="pm-method">—</span></div>
+        <div class="pay-modal-row"><span class="lbl">Статус</span><span class="val" id="pm-status">—</span></div>
+        <div class="pay-modal-row"><span class="lbl">Создано</span><span class="val" id="pm-created">—</span></div>
+        <div class="pay-modal-row"><span class="lbl">Оплачено</span><span class="val" id="pm-paidat">—</span></div>
+        <div class="pay-modal-row"><span class="lbl">Возвращено</span><span class="val" id="pm-returnedat">Возврата нет</span></div>
+        <button class="btn-return" id="pm-return-btn" style="align-self:flex-start; margin-top:4px;">
+          <i class="ti ti-arrow-back-up"></i> Вернуть
+        </button>
+      </div>
+
+      <div class="pay-modal-block" id="pm-tochka-block" style="display:none">
+        <div class="pay-modal-row"><span class="lbl">Статус в Точке</span><span class="val" id="pm-tochka-status">—</span></div>
+        <div class="pay-modal-row"><span class="lbl">Тип оплаты</span><span class="val" id="pm-tochka-type">—</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка возврата -->
+<div class="modal-overlay" id="modal-return-payment" onclick="handleReturnPaymentOverlay(event)">
+  <div class="modal" style="width:380px;">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <span class="modal-label">Возврат средств</span>
+      </div>
+      <button class="modal-close" onclick="closeReturnPaymentModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-field full-width">
+        <label class="field-label">Сумма возврата, ₽</label>
+        <input class="field-input" type="number" id="return-payment-input" min="0" step="0.01" placeholder="0">
+        <span style="font-size:11px;color:var(--text-muted);margin-top:4px;display:block;" id="return-payment-hint"></span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn task" onclick="closeReturnPaymentModal()">Отмена</button>
+      <button class="modal-btn save" id="return-payment-confirm-btn" onclick="confirmReturnPayment()">
+        <i class="ti ti-arrow-back-up"></i> Вернуть
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SOURCE_LABELS = { TOCHKA: 'Точка', TBANK: 'Т-Банк', MANAGER: 'Ручной ввод' };
+  const SOURCE_COLORS = { TOCHKA: '#a855f7', TBANK: '#eab308', MANAGER: '#9ca3af' };
+  const STATUS_LABELS = { PAID: 'Оплачено', PENDING: 'Ожидание', FAILED: 'Ошибка', RETURNED: 'Возвращено' };
+  const TYPE_LABELS   = { PAY: 'Оплата', DEPOSIT: 'Залог' };
+
+  let _payments = [];
+
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+  }
+
+  function fmtMoney(val) {
+    const n = Number(val) || 0;
+    return n % 1 === 0 ? n.toLocaleString('ru-RU') : n.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function fmtShort(val) {
+    const n = Number(val) || 0;
+    if (n >= 1000) return Math.round(n / 1000) + ' т.р.';
+    return Math.round(n) + ' ₽';
+  }
+
+  function fmtDate(str) {
+    if (!str) return null;
+    return new Date(str).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  function fmtDateTime(str) {
+    if (!str) return null;
+    return new Date(str).toLocaleString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function showToast(msg, type) {
+    window.showToast && window.showToast(msg, type);
+  }
+
+  async function getUserData() {
+    const token = localStorage.getItem('broneboxtoken');
+    if (!token) { window.location.href = '/login'; return; }
+    try {
+      const res = await fetch(`${API}/users/getme`, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) { localStorage.removeItem('broneboxtoken'); window.location.href = '/login'; return; }
+      const data = await res.json();
+      const roleMap = { ADMINISTRATOR: 'Администратор', STAFF: 'Менеджер' };
+      const initials = data.name ? data.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '??';
+      document.querySelector('.avatar-name').textContent = data.name || 'Без имени';
+      document.querySelector('.avatar-role').textContent = roleMap[data.role] || 'Неизвестная роль';
+      document.getElementById('main_avatar').textContent = initials;
+    } catch (err) {
+      console.error('Ошибка при получении данных пользователя:', err);
+    }
+  }
+
+  // ── Графики ──────────────────────────────────────────────────────────
+
+  // Сглаженный путь через точки (квадратичные кривые через середины отрезков)
+  function smoothPath(points) {
+    if (points.length < 2) return '';
+    let d = `M ${points[0][0]} ${points[0][1]}`;
+    for (let i = 0; i < points.length - 1; i++) {
+      const [x1, y1] = points[i];
+      const [x2, y2] = points[i + 1];
+      const mx = (x1 + x2) / 2;
+      d += ` Q ${x1} ${y1} ${mx} ${(y1 + y2) / 2}`;
+    }
+    const last = points[points.length - 1];
+    d += ` T ${last[0]} ${last[1]}`;
+    return d;
+  }
+
+  function renderTrendChart(daily) {
+    const wrap = document.getElementById('trend-chart-wrap');
+    const total = daily.reduce((s, d) => s + d.total, 0);
+    if (!daily.length || total === 0) {
+      wrap.innerHTML = `<div class="chart-empty">За 30 дней платежей не было</div>`;
+      return;
+    }
+
+    const W = 560, H = 150, PAD = 8;
+    const max = Math.max(...daily.map(d => d.total), 1);
+    const stepX = (W - PAD * 2) / (daily.length - 1);
+
+    const points = daily.map((d, i) => {
+      const x = PAD + i * stepX;
+      const y = H - PAD - (d.total / max) * (H - PAD * 2 - 20);
+      return [x, y];
+    });
+
+    const linePath = smoothPath(points);
+    const areaPath = `${linePath} L ${points[points.length - 1][0]} ${H} L ${points[0][0]} ${H} Z`;
+
+    // Пик — самый крупный день
+    let peakIdx = 0;
+    daily.forEach((d, i) => { if (d.total > daily[peakIdx].total) peakIdx = i; });
+    const peak = points[peakIdx];
+
+    wrap.innerHTML = `
+      <div class="trend-chart-wrap">
+        <div class="trend-chart-inner">
+          <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#7aa2ff" stop-opacity="0.5"/>
+                <stop offset="100%" stop-color="#7aa2ff" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path d="${areaPath}" fill="url(#trendFill)" stroke="none"/>
+            <path d="${linePath}" fill="none" stroke="#7aa2ff" stroke-width="2"/>
+            ${daily[peakIdx].total > 0 ? `<line x1="${peak[0]}" y1="0" x2="${peak[0]}" y2="${H}" stroke="#ff6b6b" stroke-width="1" stroke-dasharray="3 3"/>` : ''}
+          </svg>
+          ${daily[peakIdx].total > 0 ? `<div class="trend-marker-label" style="left:${(peak[0] / W) * 100}%; top:${(peak[1] / H) * 100}%;">${fmtShort(daily[peakIdx].total)}</div>` : ''}
+        </div>
+        <div class="trend-axis">
+          <span>1</span><span>5</span><span>10</span><span>15</span><span>20</span><span>25</span><span>${daily.length}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderDonutChart(bySource) {
+    const wrap = document.getElementById('donut-wrap');
+    const total = bySource.reduce((s, x) => s + x.amount, 0);
+    if (!bySource.length || total === 0) {
+      wrap.innerHTML = `<div class="chart-empty">За 30 дней платежей не было</div>`;
+      return;
+    }
+
+    const sorted = [...bySource].sort((a, b) => b.amount - a.amount);
+    const r = 46, cx = 60, cy = 60, circumference = 2 * Math.PI * r;
+    let offsetAcc = 0;
+
+    const circles = sorted.map(s => {
+      const pct = s.amount / total;
+      const dash = pct * circumference;
+      const circle = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${SOURCE_COLORS[s.method] || '#888'}"
+        stroke-width="16" stroke-dasharray="${dash} ${circumference}" stroke-dashoffset="${-offsetAcc}"
+        transform="rotate(-90 ${cx} ${cy})" stroke-linecap="butt"/>`;
+      offsetAcc += dash;
+      return circle;
+    }).join('');
+
+    const legend = sorted.map(s => {
+      const pct = Math.round((s.amount / total) * 100);
+      return `
+        <div class="donut-legend-item">
+          <span class="donut-legend-dot" style="background:${SOURCE_COLORS[s.method] || '#888'}"></span>
+          <span><span class="donut-legend-label">${SOURCE_LABELS[s.method] || s.method}</span> — ${pct}% (${fmtMoney(s.amount)} ₽)</span>
+        </div>`;
+    }).join('');
+
+    wrap.innerHTML = `
+      <div class="donut-wrap">
+        <svg class="donut-svg" width="120" height="120" viewBox="0 0 120 120">${circles}</svg>
+        <div class="donut-legend">${legend}</div>
+      </div>
+    `;
+  }
+
+  async function loadStats() {
+    const token = localStorage.getItem('broneboxtoken');
+    try {
+      const res = await fetch(`${API}/payments/stats`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error();
+      const { daily, bySource } = await res.json();
+      renderTrendChart(daily || []);
+      renderDonutChart(bySource || []);
+    } catch (err) {
+      console.error('Ошибка загрузки статистики:', err);
+      document.getElementById('trend-chart-wrap').innerHTML = `<div class="chart-empty">Не удалось загрузить</div>`;
+      document.getElementById('donut-wrap').innerHTML = `<div class="chart-empty">Не удалось загрузить</div>`;
+    }
+  }
+
+  // ── Список платежей ─────────────────────────────────────────────────
+
+  function renderPaymentRow(p) {
+    const nothingLeft = Number(p.amount || 0) <= 0;
+    const wasPaid = p.status === 'PAID' || p.status === 'RETURNED';
+    const alreadyRefundedOnce = Number(p.returnedAmount || 0) > 0;
+
+    let actionHtml = '';
+    if (p.method === 'MANAGER') {
+      actionHtml += `<button class="btn-return" style="background:rgba(212,83,126,0.12);border-color:rgba(212,83,126,0.28);color:var(--accent-pink)" onclick="event.stopPropagation(); removePayment(${p.id})" title="Удалить"><i class="ti ti-trash"></i> Удалить</button>`;
+    }
+    if (!nothingLeft && wasPaid) {
+      if (p.method === 'MANAGER') {
+        actionHtml += `<button class="btn-return" onclick="event.stopPropagation(); openReturnPaymentModal(${p.id}, ${p.amount}, '${p.method}')"><i class="ti ti-arrow-back-up"></i> Вернуть</button>`;
+      } else if (p.method === 'TOCHKA' && !alreadyRefundedOnce) {
+        actionHtml += `<button class="btn-return" onclick="event.stopPropagation(); openReturnPaymentModal(${p.id}, ${p.amount}, '${p.method}')"><i class="ti ti-arrow-back-up"></i> Вернуть</button>`;
+      } else if (p.method === 'TBANK') {
+        actionHtml += `<button class="btn-return" disabled title="Возврат для этого способа оплаты пока недоступен"><i class="ti ti-arrow-back-up"></i> Вернуть</button>`;
+      }
+    }
+
+    const bookingLabel = p.bookingFio ? `Бронирование №${p.bookingId} · ${escapeHtml(p.bookingFio)}` : `Бронирование №${p.bookingId}`;
+
+    return `
+      <div class="payment-row" onclick="openPaymentModal(${p.id})">
+        <div class="pay-info">
+          <span class="pay-title">Оплата №${p.id} · ${TYPE_LABELS[p.type] || p.type}</span>
+          <span class="pay-meta-line">Источник: ${SOURCE_LABELS[p.method] || p.method}</span>
+          <span class="pay-meta-line"><span class="status-dot status-dot--${p.status}"></span> Статус: ${STATUS_LABELS[p.status] || p.status}</span>
+        </div>
+        <div class="pay-booking">
+          <span class="pay-booking-chip">${bookingLabel}</span>
+          <button class="pay-goto" onclick="event.stopPropagation(); goToBooking(${p.bookingId})"><i class="ti ti-arrow-right"></i> Перейти</button>
+        </div>
+        <div class="pay-amount-wrap">
+          <span class="pay-amount">Сумма: ${fmtMoney(p.amount)} ₽</span>
+          <div class="pay-actions">${actionHtml}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function renderEmpty() {
+    return `
+      <div class="empty-state">
+        <i class="ti ti-receipt-off"></i>
+        <p>Платежей не найдено</p>
+      </div>
+    `;
+  }
+
+  async function loadPayments() {
+    const token = localStorage.getItem('broneboxtoken');
+    const container = document.getElementById('payments-container');
+    const params = new URLSearchParams();
+    const source = document.getElementById('filter-source').value;
+    const status = document.getElementById('filter-status').value;
+    const type   = document.getElementById('filter-type').value;
+    if (source) params.set('source', source);
+    if (status) params.set('status', status);
+    if (type)   params.set('type', type);
+
+    try {
+      const res = await fetch(`${API}/payments/getall?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        container.innerHTML = renderEmpty();
+        return;
+      }
+      const { payments } = await res.json();
+      _payments = payments || [];
+
+      if (!_payments.length) {
+        container.innerHTML = renderEmpty();
+        return;
+      }
+
+      container.innerHTML = `<div class="payments-list">${_payments.map(renderPaymentRow).join('')}</div>`;
+    } catch (err) {
+      console.error('Ошибка загрузки платежей:', err);
+      container.innerHTML = renderEmpty();
+    }
+  }
+
+  function goToBooking(bookingId) {
+    window.open(`/crm/bookings?openBooking=${bookingId}`, '_blank');
+  }
+
+  // ── Модалка «Информация по оплате» ──────────────────────────────────
+
+  function openPaymentModal(id) {
+    const p = _payments.find(x => x.id === id);
+    if (!p) return;
+
+    document.getElementById('pm-id').textContent = '№ ' + p.id;
+    document.getElementById('pm-booking-label').textContent = p.bookingFio
+      ? `Бронирование №${p.bookingId} · ${p.bookingFio}` : `Бронирование №${p.bookingId}`;
+    document.getElementById('pm-goto-btn').onclick = () => goToBooking(p.bookingId);
+
+    document.getElementById('pm-amount').textContent = fmtMoney(p.amount) + ' ₽';
+    document.getElementById('pm-returned').textContent = fmtMoney(p.returnedAmount || 0) + ' ₽';
+    document.getElementById('pm-type').textContent = TYPE_LABELS[p.type] || p.type;
+
+    document.getElementById('pm-method').textContent = SOURCE_LABELS[p.method] || p.method;
+    document.getElementById('pm-status').textContent = STATUS_LABELS[p.status] || p.status;
+    document.getElementById('pm-created').textContent = fmtDate(p.createdAt) || '—';
+    document.getElementById('pm-paidat').textContent = fmtDate(p.paidAt) || 'Не оплачено';
+    document.getElementById('pm-returnedat').textContent = p.returnedAt ? fmtDate(p.returnedAt) : 'Возврата нет';
+
+    const nothingLeft = Number(p.amount || 0) <= 0;
+    const wasPaid = p.status === 'PAID' || p.status === 'RETURNED';
+    const alreadyRefundedOnce = Number(p.returnedAmount || 0) > 0;
+    const returnBtn = document.getElementById('pm-return-btn');
+
+    let canReturn = false;
+    if (!nothingLeft && wasPaid) {
+      if (p.method === 'MANAGER') canReturn = true;
+      else if (p.method === 'TOCHKA' && !alreadyRefundedOnce) canReturn = true;
+    }
+    returnBtn.style.display = (wasPaid && !nothingLeft) ? '' : 'none';
+    returnBtn.disabled = !canReturn;
+    returnBtn.title = canReturn ? '' :
+      (p.method === 'TBANK' ? 'Возврат для этого способа оплаты пока недоступен' :
+       alreadyRefundedOnce ? 'Через Точку можно вернуть только один раз' : '');
+    returnBtn.onclick = () => openReturnPaymentModal(p.id, p.amount, p.method);
+
+    // Статус в Точке и тип оплаты — только для метода "Точка"
+    const tochkaBlock = document.getElementById('pm-tochka-block');
+    if (p.method === 'TOCHKA') {
+      document.getElementById('pm-tochka-status').textContent = p.tochkaStatus || '—';
+      document.getElementById('pm-tochka-type').textContent = p.tochkaPaymentType || '—';
+      tochkaBlock.style.display = '';
+    } else {
+      tochkaBlock.style.display = 'none';
+    }
+
+    document.getElementById('payment-modal').classList.add('active');
+  }
+
+  function closePaymentModal() {
+    document.getElementById('payment-modal').classList.remove('active');
+  }
+
+  function handlePaymentModalOverlay(e) {
+    if (e.target.id === 'payment-modal') closePaymentModal();
+  }
+
+  // ── Удаление ручного платежа ────────────────────────────────────────
+
+  async function removePayment(id) {
+    if (!confirm('Удалить этот платёж?')) return;
+    const token = localStorage.getItem('broneboxtoken');
+    try {
+      const res = await fetch(`${API}/payments/manualremove`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId: id })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        showToast(err.error || 'Ошибка удаления', 'danger');
+        return;
+      }
+      showToast('Платёж удалён', 'success');
+      closePaymentModal();
+      loadPayments();
+    } catch {
+      showToast('Ошибка удаления', 'danger');
+    }
+  }
+
+  // ── Модалка возврата ────────────────────────────────────────────────
+
+  let _returnPaymentId     = null;
+  let _returnPaymentMax    = 0;
+  let _returnPaymentMethod = 'MANAGER';
+
+  function openReturnPaymentModal(paymentId, maxAmount, method) {
+    _returnPaymentId     = paymentId;
+    _returnPaymentMax    = Number(maxAmount) || 0;
+    _returnPaymentMethod = method || 'MANAGER';
+
+    const inp = document.getElementById('return-payment-input');
+    inp.value = _returnPaymentMax % 1 === 0 ? String(_returnPaymentMax) : String(_returnPaymentMax.toFixed(2));
+    inp.max = _returnPaymentMax;
+    document.getElementById('return-payment-hint').textContent = `Максимум: ${fmtMoney(_returnPaymentMax)} ₽`;
+    document.getElementById('modal-return-payment').classList.add('active');
+    setTimeout(() => inp.focus(), 80);
+  }
+
+  function closeReturnPaymentModal() {
+    document.getElementById('modal-return-payment').classList.remove('active');
+    _returnPaymentId = null;
+  }
+
+  function handleReturnPaymentOverlay(e) {
+    if (e.target.id === 'modal-return-payment') closeReturnPaymentModal();
+  }
+
+  async function confirmReturnPayment() {
+    if (!_returnPaymentId) return;
+    const raw = document.getElementById('return-payment-input').value;
+    const amount = parseFloat(String(raw).replace(',', '.').replace(/\s/g, ''));
+    if (isNaN(amount) || amount <= 0) {
+      showToast('Введите корректную сумму', 'danger');
+      return;
+    }
+    if (amount > _returnPaymentMax) {
+      showToast(`Сумма не может превышать ${fmtMoney(_returnPaymentMax)} ₽`, 'danger');
+      return;
+    }
+
+    const btn = document.getElementById('return-payment-confirm-btn');
+    btn.disabled = true;
+    try {
+      const token = localStorage.getItem('broneboxtoken');
+      const endpoint = _returnPaymentMethod === 'TOCHKA' ? '/payments/returnTochkaPayment' : '/payments/manualreturn';
+      const res = await fetch(`${API}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId: _returnPaymentId, amount })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        showToast(err.error || 'Ошибка возврата', 'danger');
+        return;
+      }
+      closeReturnPaymentModal();
+      closePaymentModal();
+      showToast('Возврат оформлен', 'success');
+      loadPayments();
+      loadStats();
+    } catch {
+      showToast('Ошибка возврата', 'danger');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ── Запуск ───────────────────────────────────────────────────────────
+
+  window.addEventListener('bronebox:reload', () => { loadPayments(); loadStats(); });
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    try {
+      await Promise.all([getUserData(), loadPayments(), loadStats()]);
+    } finally {
+      const loader = document.getElementById('page-loader');
+      loader.classList.add('hidden');
+      setTimeout(() => loader.remove(), 300);
+    }
+  });
+</script>
+<script src="app-shell.js"></script>
+</body>
+</html>

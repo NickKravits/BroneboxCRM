@@ -30,11 +30,13 @@
   position: fixed;
   inset: 0;
   z-index: 500;
-  background: rgba(0,0,0,0.45);
+  background: rgba(0,0,0,0.6);
   backdrop-filter: blur(2px);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 16px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s ease;
@@ -44,18 +46,25 @@
   pointer-events: all;
 }
 .busy-spinner {
-  width: 52px;
-  height: 52px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   background: var(--bg-light, #161614);
   border: 0.5px solid var(--border-mid, rgba(255,255,255,0.12));
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 26px;
   color: var(--text-secondary, rgba(255,255,255,0.45));
   box-shadow: 0 12px 30px -10px rgba(0,0,0,0.5);
 }
+.busy-overlay-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.75);
+  letter-spacing: 0.01em;
+}
+html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
 
     :root {
       --bg: #0d0d0c;
@@ -729,8 +738,8 @@ html[data-theme="light"] .qm-edit-btn:hover { background: rgba(0,0,0,0.07); colo
   margin-bottom: 4px;
 }
 .qm-payments-label {
-  font-size: 10px; font-weight: 600; letter-spacing: 0.7px;
-  text-transform: uppercase; color: rgba(255,255,255,0.28);
+  font-size: 13px; font-weight: 600; letter-spacing: 0.1px;
+  color: rgba(255,255,255,0.75);
 }
 .qm-add-pay-btn {
   display: inline-flex; align-items: center; gap: 4px;
@@ -762,7 +771,7 @@ html[data-theme="light"] .qm-edit-btn:hover { background: rgba(0,0,0,0.07); colo
 .qm-pay-returned { font-size: 11px; color: rgba(255,255,255,0.32); flex-shrink: 0; white-space: nowrap; }
 html[data-theme="light"] .qm-pay-returned { color: rgba(0,0,0,0.38); }
 html[data-theme="light"] .qm-payments-section { border-top-color: rgba(0,0,0,0.07); border-bottom-color: rgba(0,0,0,0.07); }
-html[data-theme="light"] .qm-payments-label { color: rgba(0,0,0,0.28); }
+html[data-theme="light"] .qm-payments-label { color: rgba(0,0,0,0.75); }
 html[data-theme="light"] .qm-add-pay-btn { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.1); color: rgba(0,0,0,0.5); }
 html[data-theme="light"] .qm-add-pay-btn:hover { background: rgba(0,0,0,0.07); color: rgba(0,0,0,0.78); }
 html[data-theme="light"] .qm-payment-row { border-bottom-color: rgba(0,0,0,0.06); }

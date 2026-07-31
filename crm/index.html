@@ -495,6 +495,10 @@ function formatDate(dateStr) {
       <i class="ti ti-info-circle" aria-hidden="true"></i>
       <span class="nav-label">Логи</span>
     </a>
+    <a class="nav-item" href="/crm/finances">
+      <i class="ti ti-report-money" aria-hidden="true"></i>
+      <span class="nav-label">Финансы</span>
+    </a>
     <a class="nav-item" href="/crm/settings">
       <i class="ti ti-settings-2" aria-hidden="true"></i>
       <span class="nav-label">Настройки</span>
@@ -771,7 +775,7 @@ function formatDate(dateStr) {
         </div>
       </div>
 
-      <!-- Финансы -->
+      <!-- Оплата -->
       <div class="qm-block">
         <div class="qm-finance-row">
           <div class="qm-finance-item">
@@ -796,6 +800,10 @@ function formatDate(dateStr) {
           </div>
           <div id="qm-payments-list"></div>
         </div>
+      </div>
+
+      <!-- Залог -->
+      <div class="qm-block">
         <div class="qm-finance-row">
           <div class="qm-finance-item">
             <span class="qm-lbl">Сумма залога</span>
@@ -1257,7 +1265,12 @@ function formatDate(dateStr) {
           if (p.method === 'MANAGER') {
             actionHtml += `<button class="qm-pay-action" onclick="openReturnPaymentModal(${p.id}, ${p.amount}, '${kind}', '${p.method}')" title="${returnLabel}"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
           } else if (p.method === 'TOCHKA') {
-            if (_canReturnPayments) {
+            // Точка позволяет вернуть платёж только один раз — если возврат уже был
+            // (returnedAmount > 0), повторный запрос к банку упадёт с ошибкой
+            const alreadyRefundedOnce = Number(p.returnedAmount || 0) > 0
+            if (alreadyRefundedOnce) {
+              actionHtml += `<button class="qm-pay-action" disabled title="Через Точку можно вернуть только один раз — этот платёж уже частично возвращён"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
+            } else if (_canReturnPayments) {
               actionHtml += `<button class="qm-pay-action" onclick="openReturnPaymentModal(${p.id}, ${p.amount}, '${kind}', '${p.method}')" title="${returnLabel} (Точка)"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
             } else {
               actionHtml += `<button class="qm-pay-action" disabled title="Недостаточно прав для возврата платежей"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`

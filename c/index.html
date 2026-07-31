@@ -473,6 +473,12 @@
     const pay = show.payanddeposit || {}
     if (!objects) return
 
+    // Оплата явно не принимается онлайн (NONE) — весь блок гостю не показываем
+    if (objects.paymentchanel === 'NONE') {
+      document.getElementById('card-payment').style.display = 'none'
+      return
+    }
+
     document.getElementById('card-payment').style.display = ''
 
     const paid       = paidAmount || 0
@@ -508,10 +514,7 @@
     }
 
     const action = document.getElementById('pay-obj-action')
-    if (objects.paymentchanel === 'NONE' && toPay > 0) {
-      document.getElementById('payment-notice-text').textContent = 'Оплата произодится через менеджера!'
-      document.getElementById('payment-notice').style.display = ''
-    }
+    document.getElementById('payment-notice').style.display = 'none'
 
     if (fullyPaid) {
       action.innerHTML = PAID_BADGE
@@ -528,7 +531,7 @@
           document.getElementById('payment-notice-text').textContent = 'Оплата через Точка Банк временно недоступна. Обратитесь к вашему менеджеру.'
           document.getElementById('payment-notice').style.display = ''
         }
-      } else if (objects.paymentchanel !== 'NONE') {
+      } else {
         action.innerHTML = `<button class="btn-pay">Оплатить ${formatPrice(toPay)}</button>`
       }
     }
@@ -620,8 +623,8 @@
 
     depositTarget = depositTarget || 0
 
-    // Залог не требуется вовсе — весь блок скрываем
-    if (depositTarget === 0) {
+    // Залог не требуется вовсе, либо явно не принимается онлайн (NONE) — весь блок скрываем
+    if (depositTarget === 0 || objects.depositchanel === 'NONE') {
       document.getElementById('card-deposit').style.display = 'none'
       return
     }
@@ -696,13 +699,8 @@
         document.getElementById('deposit-notice-text').textContent = 'Ссылка для внесения залога временно недоступна. Обратитесь к вашему менеджеру.'
         document.getElementById('deposit-notice').style.display = ''
       }
-    } else if (objects.depositchanel !== 'NONE') {
+    } else {
       action.innerHTML = `<button class="btn-deposit">Внести залог</button>`
-    }
-
-    if (!checkoutPassed && objects.depositchanel === 'NONE') {
-      document.getElementById('deposit-notice-text').textContent = 'Внесение залога произодится через менеджера!'
-      document.getElementById('deposit-notice').style.display = ''
     }
 
     renderChannelTag('deposit-channel-tag', objects.depositchanel, 'Принимается через')
