@@ -1240,6 +1240,10 @@ function formatDate(dateStr) {
       // Нечего возвращать/удалять — весь платёж уже вернули
       const nothingLeft = Number(p.amount || 0) <= 0
 
+      // Возврат имеет смысл только для реально оплаченных платежей — FAILED (истёк/не прошёл)
+      // денег никогда не держал, возвращать нечего
+      const wasPaid = p.status === 'PAID' || p.status === 'RETURNED'
+
       let actionHtml = ''
       if (nothingLeft) {
         actionHtml = `<span class="qm-pay-returned">Возвращено</span>`
@@ -1248,17 +1252,19 @@ function formatDate(dateStr) {
           actionHtml += `<button class="qm-pay-action danger" onclick="removeManualPayment(${p.id}, '${kind}')" title="Удалить"><i class="ti ti-trash" style="font-size:14px;"></i></button>`
         }
 
-        const returnLabel = kind === 'DEPOSIT' ? 'Вернуть залог' : 'Вернуть оплату'
-        if (p.method === 'MANAGER') {
-          actionHtml += `<button class="qm-pay-action" onclick="openReturnPaymentModal(${p.id}, ${p.amount}, '${kind}', '${p.method}')" title="${returnLabel}"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
-        } else if (p.method === 'TOCHKA') {
-          if (_canReturnPayments) {
-            actionHtml += `<button class="qm-pay-action" onclick="openReturnPaymentModal(${p.id}, ${p.amount}, '${kind}', '${p.method}')" title="${returnLabel} (Точка)"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
-          } else {
-            actionHtml += `<button class="qm-pay-action" disabled title="Недостаточно прав для возврата платежей"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
+        if (wasPaid) {
+          const returnLabel = kind === 'DEPOSIT' ? 'Вернуть залог' : 'Вернуть оплату'
+          if (p.method === 'MANAGER') {
+            actionHtml += `<button class="qm-pay-action" onclick="openReturnPaymentModal(${p.id}, ${p.amount}, '${kind}', '${p.method}')" title="${returnLabel}"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
+          } else if (p.method === 'TOCHKA') {
+            if (_canReturnPayments) {
+              actionHtml += `<button class="qm-pay-action" onclick="openReturnPaymentModal(${p.id}, ${p.amount}, '${kind}', '${p.method}')" title="${returnLabel} (Точка)"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
+            } else {
+              actionHtml += `<button class="qm-pay-action" disabled title="Недостаточно прав для возврата платежей"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
+            }
+          } else if (p.method === 'TBANK') {
+            actionHtml += `<button class="qm-pay-action" disabled title="Возврат для этого способа оплаты пока недоступен"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
           }
-        } else if (p.method === 'TBANK') {
-          actionHtml += `<button class="qm-pay-action" disabled title="Возврат для этого способа оплаты пока недоступен"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
         }
       }
 
