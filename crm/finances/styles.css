@@ -592,7 +592,9 @@
 .pay-goto:hover { background: rgba(90,140,255,0.2); }
 
 .pay-amount-wrap { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; }
+.pay-amount-info { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
 .pay-amount { font-size: 16px; font-weight: 600; color: var(--text-primary); white-space: nowrap; }
+.pay-amount-sub { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
 
 .pay-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .btn-return {

@@ -54,16 +54,75 @@
         return _objectsCache;
     }
 
-    function buildBookingRowHtml(booking, object) {
+    function escapeHtml(str) {
+        return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function fmtMoney(val) {
+        const n = Number(val) || 0;
+        return n % 1 === 0 ? n.toLocaleString('ru-RU') : n.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // ── Бейджи статуса — та же логика, что и на главной странице (см. crm/index.html) ──
+    function getContractStatus(booking) {
+        if (!booking.contract_link) return null;
+        if (booking.contract_status == "" || booking.contract_status == "Выставлен" || !booking.contract_status) return "Договор не подписан";
+        if (booking.contract_status == "Черновик") return "Договор - черновик";
+        if (booking.contract_status == "Отклонен") return "Договор отклонён";
+        if (booking.contract_status == "Ожидает проверки") return "Договор ожидает проверки";
+        if (booking.contract_status == "Аннулирован") return "Договор аннулирован";
+        if (booking.contract_status == "Подписан") return null;
+        return "Что-то с договором!";
+    }
+
+    function getPaymentBadge(booking, paidAmount) {
+        // "Оплачено полностью" уже видно в основном тексте суммы — бейдж нужен только для отклонений
+        const remaining = (booking.balance_to_be_paid_1 || 0) - (paidAmount || 0);
+        if (remaining === 0) return '';
+        if (remaining < 0) return `<span class="pay-over-tag">Переплата</span>`;
+        return '';
+    }
+
+    function getDepositBadge(booking, object, depositAmount, depositReturned) {
+        const objectDeposit = parseFloat(object?.deposit) || 0;
+        const depositManualAllowed = object?.depositchanel === 'TOCHKA' || object?.depositchanel === 'TBANK';
+        const depositTarget = (depositManualAllowed && booking?.manual_deposit !== null && booking?.manual_deposit !== undefined)
+            ? booking.manual_deposit : objectDeposit;
+        const held = depositAmount || 0;
+        const returned = depositReturned || 0;
+
+        if (depositTarget === 0) return '';
+        if (returned > 0) {
+            if (held > 0) return `<span class="pay-over-tag">Залог возвращён частично</span>`;
+            return '';
+        }
+        if (held < depositTarget) return `<span class="warn-tag">Залог не внесён</span>`;
+        if (held > depositTarget) return `<span class="pay-over-tag">Переплата залога</span>`;
+        return '';
+    }
+
+    function buildBookingRowHtml(booking, object, paidAmount, depositAmount, depositReturned) {
+        const toPay = Math.max(0, (booking.balance_to_be_paid_1 || 0) - (paidAmount || 0));
+
+        const contractStatus = getContractStatus(booking);
+        const contractBadge  = contractStatus === null ? '' : `<span class="warn-tag">${escapeHtml(contractStatus)}</span>`;
+        const paymentBadge   = getPaymentBadge(booking, paidAmount);
+        const depositBadge   = getDepositBadge(booking, object, depositAmount, depositReturned);
+        const badges = [contractBadge, paymentBadge, depositBadge].filter(Boolean).join('');
+
+        const guestLinkBtn = booking.link
+            ? `<a class="btn-icon-link" href="${DOMEN}/c/?id=${booking.link}" target="_blank" rel="noopener" title="Гостевая ссылка" onclick="event.stopPropagation()"><i class="ti ti-external-link"></i></a>`
+            : '';
+
         return `
             <div class="bk-guest">
-                <div class="bk-name">${booking.fio}</div>
-                <div class="bk-phone">${booking.phone}</div>
+                <div class="bk-name">${escapeHtml(booking.fio || '—')}</div>
+                <div class="bk-phone">${escapeHtml(booking.phone || '—')}</div>
             </div>
             <div class="bk-divider"></div>
             <div class="bk-object">
-                <div class="bk-object-name">${object?.name || '—'}</div>
-                <div class="bk-object-source">${booking.source}</div>
+                <div class="bk-object-name">${escapeHtml(object?.name || '—')}</div>
+                <div class="bk-object-source">${escapeHtml(booking.source || '—')}</div>
             </div>
             <div class="bk-divider"></div>
             <div class="bk-dates">
@@ -72,11 +131,12 @@
             </div>
             <div class="bk-divider"></div>
             <div class="bk-payment">
-                <div class="bk-paid">Долг: ${booking.balance_to_be_paid_1} ₽</div>
-                <div class="bk-remaining">Оплачено: ${booking.prepayment} ₽</div>
+                <div class="bk-paid${toPay > 0 ? ' has-debt' : ''}">${toPay > 0 ? 'К оплате: ' + fmtMoney(toPay) + ' ₽' : 'Оплачено полностью'}</div>
+                ${badges ? `<div class="card-footer-row">${badges}</div>` : ''}
             </div>
             <div class="bk-actions">
-                <button class="btn-edit" onclick="editBookingModal(${booking.id})"><i class="ti ti-pencil"></i> Изменить</button>
+                ${guestLinkBtn}
+                <button class="btn-edit" onclick="openBookingDetail(${booking.id})"><i class="ti ti-eye"></i> Открыть</button>
             </div>
         `;
     }
@@ -107,6 +167,23 @@
 
             const {permissions, bookings} = await res.json();
 
+            // Суммы оплат и залогов одним batch-запросом каждая — как на главной странице,
+            // чтобы не устраивать N запросов на N строк
+            const fetchAmounts = (bookingIds, payType) => fetch(API + '/payments/getpaymentamounts', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bookingIds, type: payType })
+            }).then(r => r.json()).catch(() => ({}));
+
+            const bookingIds = bookings.map(b => b.id);
+            const [payData, depositData] = await Promise.all([
+                fetchAmounts(bookingIds, 'PAY'),
+                fetchAmounts(bookingIds, 'DEPOSIT')
+            ]);
+            const paidAmountsMap     = payData.amounts || {};
+            const depositAmountsMap  = depositData.amounts || {};
+            const depositReturnedMap = depositData.returnedAmounts || {};
+
             // Дифф: убираем строки, которых больше нет в свежем списке (и стартовый плейсхолдер)
             const wantedIds = new Set(bookings.map(b => String(b.id)));
             Array.from(container.children).forEach(child => {
@@ -117,7 +194,12 @@
 
             bookings.forEach(booking => {
                 const object = objectsMap.get(booking.realty_id);
-                const html = buildBookingRowHtml(booking, object);
+                const html = buildBookingRowHtml(
+                    booking, object,
+                    paidAmountsMap[booking.id] || 0,
+                    depositAmountsMap[booking.id] || 0,
+                    depositReturnedMap[booking.id] || 0
+                );
                 let row = container.querySelector(`.booking-row[data-booking-id="${booking.id}"]`);
                 if (row) {
                     if (row.innerHTML !== html) row.innerHTML = html;
@@ -166,12 +248,19 @@
         e.target.value = result
     })
 
-        try {
-            await Promise.all([getUserData(), getBookings()]);
+        // Deep-link со страницы "Финансы" (кнопка "Перейти") — открываем карточку брони сразу,
+        // НЕ дожидаясь загрузки списка (editBookingModal/openBookingDetail всегда сам по себе
+        // грузит бронь по ID и от списка не зависит — раньше эта строка стояла ПОСЛЕ await
+        // Promise.all([...]) и если getUserData/getBookings падали по любой причине, до неё
+        // просто не доходило выполнение, поэтому карточка открывалась "через раз")
+        const openId = new URLSearchParams(window.location.search).get('openBooking')
 
-            // Deep-link со страницы "Финансы" (кнопка "Перейти") — открываем карточку брони сразу
-            const openId = new URLSearchParams(window.location.search).get('openBooking')
-            if (openId) editBookingModal(parseInt(openId))
+        try {
+            await Promise.all([
+                getUserData(),
+                getBookings(),
+                openId ? openBookingDetail(parseInt(openId)) : Promise.resolve()
+            ]);
         } finally {
             const loader = document.getElementById('page-loader');
             loader.classList.add('hidden');
@@ -360,6 +449,7 @@
     }
 
     async function deleteBooking() {
+        if (!confirm('Удалить это бронирование?')) return;
         const token = localStorage.getItem('broneboxtoken');
         const bookingId = document.getElementById('modal-booking-id').textContent.replace('#', '');
         try {
@@ -369,14 +459,15 @@
                 body: JSON.stringify({ id: bookingId })
             });
             if (!res.ok) {
-                console.error('Ошибка при удалении бронирования:', res.statusText);
+                window.showToast && window.showToast('Ошибка при удалении бронирования', 'danger');
                 return;
             }
+            window.showToast && window.showToast('Бронирование удалено', 'success');
             closeModal();
             getBookings();
         } catch (err) {
             console.error(err);
-            return;
+            window.showToast && window.showToast('Ошибка при удалении бронирования', 'danger');
         }
     }
 
@@ -393,23 +484,24 @@
         const bookingId = document.getElementById('modal-booking-id').textContent.replace('#', '');
         const checkin = document.getElementById('m-begin-time').value;
         const checkout = document.getElementById('m-end-time').value;
-        const channel = document.getElementById('m-channel').value;
         try {
             const res = await fetch(API + '/bookings/update', {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: bookingId, checkin: checkin, checkout: checkout, channel: channel })
+                body: JSON.stringify({ id: bookingId, checkin: checkin, checkout: checkout })
             });
 
             if (!res.ok) {
-                console.error('Ошибка при обновлении бронирования:', res.statusText);
+                window.showToast && window.showToast('Ошибка при сохранении', 'danger');
                 return;
             }
 
+            window.showToast && window.showToast('Сохранено', 'success');
             closeModal();
+            getBookings();
         } catch (err) {
             console.error(err);
-            return;
+            window.showToast && window.showToast('Ошибка при сохранении', 'danger');
         }
     }
 
@@ -550,212 +642,207 @@
         }
     }
 
-    async function editBookingModal(bookingId) {
-        const token = localStorage.getItem('broneboxtoken');
-        try {
-            const res = await fetch(API + '/bookings/get-by-id', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: bookingId })
-            });
+    const STATUS_LABELS_RU = { booked: 'Забронировано', deleted: 'Удалено', canceled: 'Отменено', request: 'Запрос' };
+    const CHANNEL_LABELS_RU = { TOCHKA: 'Точка Банк', TBANK: 'Т-Банк', MONETA: 'Moneta', NONE: 'Через менеджера' };
 
-            if (!res.ok) {
-                console.error('Ошибка при получении бронирований:', res.statusText);
+    function renderChannelValue(elId, channel) {
+        document.getElementById(elId).textContent = (channel && channel !== 'NONE') ? (CHANNEL_LABELS_RU[channel] || channel) : 'Через менеджера';
+    }
+
+    let _currentGuestLink = '';
+
+    function copyGuestLink() {
+        if (!_currentGuestLink) return;
+        navigator.clipboard.writeText(_currentGuestLink).then(() => {
+            window.showToast && window.showToast('Ссылка скопирована', 'success');
+        });
+    }
+
+    // Открывает карточку брони по ID независимо от того, загрузился ли уже список
+    // (используется и по клику на "Открыть", и по deep-link ?openBooking= со страницы Финансов)
+    async function openBookingDetail(bookingId) {
+        const token = localStorage.getItem('broneboxtoken');
+
+        document.getElementById('booking-modal').classList.add('active');
+        document.getElementById('modal-booking-id').textContent = '#' + bookingId;
+        document.getElementById('modal-guest-name').textContent = 'Загрузка...';
+
+        try {
+            const [bRes, objectsMap] = await Promise.all([
+                fetch(API + '/bookings/get-by-id', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: bookingId })
+                }),
+                loadObjectsCache()
+            ]);
+
+            if (!bRes.ok) {
+                window.showToast && window.showToast('Не удалось загрузить бронирование', 'danger');
+                closeModal();
                 return;
             }
 
-            const {booking} = await res.json();
-
-            document.getElementById('modal-booking-id').textContent = '#' + booking.id;
-
-            if (booking.status == 'booked') {
-                document.getElementById('m-status').textContent = "Забронировано";
-            } else if (booking.status == 'deleted') {
-                document.getElementById('m-status').textContent = "Удалено";
-            } else if (booking.status == 'canceled') {
-                document.getElementById('m-status').textContent = "Отменено";
-            } else if (booking.status == 'request') {
-                document.getElementById('m-status').textContent = "Запрос";
-            } else {
-                document.getElementById('m-status').textContent = booking.status;
+            const { booking, scheduledMaid } = await bRes.json();
+            if (!booking) {
+                window.showToast && window.showToast('Бронирование не найдено', 'danger');
+                closeModal();
+                return;
             }
 
-            const res_obj = await fetch(API + '/objects/getbyrid', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ rId: booking.realty_id })
-            });
+            const object = objectsMap.get(booking.realty_id) || null;
 
-            const {object} = await res_obj.json();
-
-            if (object) {
-                document.getElementById('m-object').textContent = object.name || booking.realty_id;
-            } else {
-                document.getElementById('m-object').textContent = booking.realty_id;
-            }
-
+            document.getElementById('modal-guest-name').textContent = booking.fio || 'Бронирование';
+            document.getElementById('m-status').textContent = STATUS_LABELS_RU[booking.status] || booking.status;
+            document.getElementById('m-object').textContent = object?.name || booking.realty_id;
             document.getElementById('m-begin-date').textContent = formatDate(booking.begin_date);
             document.getElementById('m-end-date').textContent = formatDate(booking.end_date);
-
             document.getElementById('m-begin-time').value = booking.begin_time || '';
             document.getElementById('m-end-time').value = booking.end_time || '';
-
             document.getElementById('m-source').textContent = booking.source || '—';
-
-            const createdAt = new Date(booking.created_at);
-            document.getElementById('m-created-at').textContent = `${createdAt.getDate().toString().padStart(2, '0')}.${(createdAt.getMonth()+1).toString().padStart(2, '0')}.${createdAt.getFullYear()} ${createdAt.getHours().toString().padStart(2, '0')}:${createdAt.getMinutes().toString().padStart(2, '0')}`;
-            const updatedAt = new Date(booking.updated_at);
-            document.getElementById('m-updated-at').textContent = `${updatedAt.getDate().toString().padStart(2, '0')}.${(updatedAt.getMonth()+1).toString().padStart(2, '0')}.${updatedAt.getFullYear()} ${updatedAt.getHours().toString().padStart(2, '0')}:${updatedAt.getMinutes().toString().padStart(2, '0')}`;
+            document.getElementById('m-channel-display').textContent = (booking.channel && booking.channel.trim()) || '—';
             document.getElementById('m-notes').textContent = booking.notes || '—';
-
-            document.getElementById('m-amount').textContent = booking.amount + ' ₽';
-            document.getElementById('m-price-per-day').textContent = booking.price_per_day + ' ₽';
-            document.getElementById('m-prepayment').textContent = booking.prepayment + ' ₽';
-            document.getElementById('m-balance').textContent = booking.balance_to_be_paid_1 + ' ₽';
-            document.getElementById('m-deposit').textContent = booking.deposit + ' ₽';
+            document.getElementById('m-maid').textContent = scheduledMaid?.name || 'Не назначена';
 
             document.getElementById('m-fio').textContent = booking.fio || '—';
             document.getElementById('m-email').textContent = booking.email || '—';
             document.getElementById('m-phone').textContent = booking.phone || '—';
             document.getElementById('m-additional-phone').textContent = booking.additional_phone || '—';
 
-            document.getElementById('m-channel').value = booking.channel || '';
+            // ── Гостевая ссылка ──
+            const guestLinkSection = document.getElementById('guestlink-section');
+            if (booking.link) {
+                _currentGuestLink = `${DOMEN}/c/?id=${booking.link}`;
+                document.getElementById('m-guest-link-text').textContent = _currentGuestLink;
+                document.getElementById('m-guest-link-open').href = _currentGuestLink;
+                guestLinkSection.style.display = '';
+            } else {
+                _currentGuestLink = '';
+                guestLinkSection.style.display = 'none';
+            }
 
-            document.getElementById('m-review').innerHTML = renderReviewStars(booking.review);
+            // ── Оценка уборки ──
+            const reviewSection = document.getElementById('review-section');
+            if (booking.review) {
+                document.getElementById('m-review').innerHTML = renderReviewStars(booking.review);
+                reviewSection.style.display = '';
+            } else {
+                reviewSection.style.display = 'none';
+            }
 
-            document.getElementById('m-contract-id').value = booking.contract_id || '';
-            document.getElementById('m-contract-link').value = booking.contract_link || '';
+            // ── Договор ──
+            const contractSection = document.getElementById('contract-section');
+            if (booking.contract_link) {
+                document.getElementById('m-contract-status').textContent = getContractStatus(booking) || 'Подписан';
+                const linkEl = document.getElementById('m-contract-link');
+                linkEl.href = booking.contract_link;
+                linkEl.textContent = booking.contract_link;
+                document.getElementById('m-contract-link-wrap').style.display = '';
+                contractSection.style.display = '';
+            } else {
+                contractSection.style.display = 'none';
+            }
+
+            // ── Оплата и залог — отдельным запросом, не блокирует показ остальной карточки ──
+            loadBookingFinance(bookingId, object, booking);
 
         } catch (err) {
             console.error(err);
-            return;
+            window.showToast && window.showToast('Ошибка при загрузке бронирования', 'danger');
+            closeModal();
         }
+    }
 
-        document.getElementById('booking-modal').classList.add('active')
-  }
+    async function loadBookingFinance(bookingId, object, booking) {
+        const token = localStorage.getItem('broneboxtoken');
+        try {
+            const [payRes, depRes] = await Promise.all([
+                fetch(`${API}/payments/getbybooking?bookingId=${bookingId}&type=PAY`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                fetch(`${API}/payments/getbybooking?bookingId=${bookingId}&type=DEPOSIT`, { headers: { 'Authorization': `Bearer ${token}` } })
+            ]);
+            const payData = payRes.ok ? await payRes.json() : { payments: [] };
+            const depData = depRes.ok ? await depRes.json() : { payments: [] };
+
+            const sumField = (payments, field) => (payments || []).reduce((s, p) => {
+                return (p.status === 'PAID' || p.status === 'RETURNED') ? s + Number(p[field] || 0) : s;
+            }, 0);
+
+            // ── Оплата ──
+            const paidHeld = sumField(payData.payments, 'amount');
+            document.getElementById('m-amount').textContent = fmtMoney(booking.amount) + ' ₽';
+            document.getElementById('m-paid').textContent = fmtMoney(paidHeld) + ' ₽';
+            const remaining = Math.max(0, (booking.balance_to_be_paid_1 || 0) - paidHeld);
+            document.getElementById('m-remaining').textContent = remaining > 0 ? fmtMoney(remaining) + ' ₽' : 'Оплачено полностью';
+            renderChannelValue('m-pay-channel', object?.paymentchanel);
+
+            // ── Залог (учитываем depositViaTochka так же, как на главной и на странице гостя) ──
+            const depositViaTochka = object?.depositchanel === 'TOCHKA';
+            const depositHeldFromPayments = sumField(depData.payments, 'amount');
+            const depositReturnedFromPayments = sumField(depData.payments, 'returnedAmount');
+            const depositHeld = depositViaTochka ? depositHeldFromPayments : (booking.deposit || 0) + depositHeldFromPayments;
+            const depositReturned = depositViaTochka ? depositReturnedFromPayments : (booking.returned || 0) + depositReturnedFromPayments;
+
+            const depositManualAllowed = object?.depositchanel === 'TOCHKA' || object?.depositchanel === 'TBANK';
+            const depositTarget = (depositManualAllowed && booking.manual_deposit !== null && booking.manual_deposit !== undefined)
+                ? booking.manual_deposit : (parseFloat(object?.deposit) || 0);
+
+            const depositSection = document.getElementById('deposit-section');
+            if (depositTarget > 0 && object?.depositchanel && object.depositchanel !== 'NONE') {
+                document.getElementById('m-deposit-target').textContent = fmtMoney(depositTarget) + ' ₽';
+                document.getElementById('m-deposit-held').textContent = fmtMoney(depositHeld) + ' ₽';
+                renderChannelValue('m-dep-channel', object?.depositchanel);
+                const returnedWrap = document.getElementById('m-deposit-returned-wrap');
+                if (depositReturned > 0) {
+                    document.getElementById('m-deposit-returned').textContent = fmtMoney(depositReturned) + ' ₽';
+                    returnedWrap.style.display = '';
+                } else {
+                    returnedWrap.style.display = 'none';
+                }
+                depositSection.style.display = '';
+            } else {
+                depositSection.style.display = 'none';
+            }
+        } catch (err) {
+            console.error('Ошибка загрузки финансов брони:', err);
+        }
+    }
 </script>
 
 <div class="modal-overlay" id="booking-modal" onclick="closeBookingModal(event)">
   <div class="modal" id="booking-modal-inner">
- 
+
     <!-- Header -->
     <div class="modal-header">
       <div class="modal-title-wrap">
-        <span class="modal-label">Бронирование</span>
+        <span class="modal-label" id="modal-guest-name">Бронирование</span>
         <span class="modal-id" id="modal-booking-id">#—</span>
       </div>
       <button class="modal-close" onclick="closeModal()"><i class="ti ti-x"></i></button>
     </div>
- 
+
     <!-- Scrollable body -->
     <div class="modal-body">
- 
-      <!-- ── Блок 1: Бронирование ── -->
-      <div class="modal-section">
-        <div class="modal-section-title">Бронирование</div>
-        <div class="modal-grid">
- 
-          <div class="modal-field readonly">
-            <span class="field-label">Статус</span>
-            <span class="field-value" id="m-status">—</span>
-          </div>
- 
-          <div class="modal-field readonly">
-            <span class="field-label">Объект</span>
-            <span class="field-value" id="m-object">—</span>
-          </div>
- 
-          <div class="modal-field readonly">
-            <span class="field-label">Дата заезда</span>
-            <span class="field-value" id="m-begin-date">—</span>
-          </div>
- 
-          <div class="modal-field readonly">
-            <span class="field-label">Дата выезда</span>
-            <span class="field-value" id="m-end-date">—</span>
-          </div>
- 
-          <div class="modal-field">
-            <span class="field-label">Время заезда</span>
-            <input class="field-input" type="time" id="m-begin-time" placeholder="Не указано" />
-          </div>
- 
-          <div class="modal-field">
-            <span class="field-label">Время выезда</span>
-            <input class="field-input" type="time" id="m-end-time" placeholder="Не указано" />
-          </div>
- 
-          <div class="modal-field readonly">
-            <span class="field-label">Источник</span>
-            <span class="field-value" id="m-source">—</span>
-          </div>
- 
-          <div class="modal-field readonly">
-            <span class="field-label">Дата создания</span>
-            <span class="field-value" id="m-created-at">—</span>
-          </div>
- 
-          <div class="modal-field readonly">
-            <span class="field-label">Последнее редактирование</span>
-            <span class="field-value" id="m-updated-at">—</span>
-          </div>
- 
-          <div class="modal-field readonly">
-            <span class="field-label">Заметки</span>
-            <span class="field-value" id="m-notes">—</span>
-          </div>
- 
+
+      <!-- ── Гостевая ссылка ── -->
+      <div class="modal-section" id="guestlink-section" style="display:none">
+        <div class="modal-section-title">Гостевая ссылка</div>
+        <div class="guestlink-row">
+          <span class="guestlink-text" id="m-guest-link-text">—</span>
+          <button class="btn-copy" onclick="copyGuestLink()" title="Копировать ссылку"><i class="ti ti-copy"></i></button>
+          <a class="btn-copy" id="m-guest-link-open" href="#" target="_blank" rel="noopener" title="Открыть"><i class="ti ti-external-link"></i></a>
         </div>
       </div>
- 
-      <!-- ── Блок 2: Финансы ── -->
-      <div class="modal-section">
-        <div class="modal-section-title">Финансы</div>
-        <div class="modal-grid">
- 
-          <div class="modal-field readonly">
-            <span class="field-label">Стоимость</span>
-            <span class="field-value" id="m-amount">—</span>
-          </div>
- 
-          <div class="modal-field readonly">
-            <span class="field-label">Стоимость 1 суток</span>
-            <span class="field-value" id="m-price-per-day">—</span>
-          </div>
- 
-          <div class="modal-field readonly">
-            <span class="field-label">Оплачено через RealtyCalendar</span>
-            <span class="field-value" id="m-prepayment">—</span>
-          </div>
- 
-          <div class="modal-field readonly">
-            <span class="field-label">Долг с учётом оплаты RC</span>
-            <span class="field-value debt" id="m-balance">—</span>
-          </div>
- 
-          <div class="modal-field readonly">
-            <span class="field-label">Залог через Монету</span>
-            <span class="field-value" id="m-deposit">—</span>
-          </div>
- 
-        </div>
-      </div>
- 
-      <!-- ── Блок 3: Клиент ── -->
+
+      <!-- ── Блок: Клиент ── -->
       <div class="modal-section">
         <div class="modal-section-title">Клиент</div>
         <div class="modal-grid">
- 
+
           <div class="modal-field readonly">
             <span class="field-label">ФИО</span>
             <span class="field-value" id="m-fio">—</span>
           </div>
- 
-          <div class="modal-field readonly">
-            <span class="field-label">Email</span>
-            <span class="field-value" id="m-email">—</span>
-          </div>
- 
+
           <div class="modal-field readonly">
             <span class="field-label">Телефон</span>
             <div class="phone-row">
@@ -770,72 +857,169 @@
             <span class="field-label">Доп. телефон</span>
             <span class="field-value" id="m-additional-phone">—</span>
           </div>
- 
-          <div class="modal-field">
-            <span class="field-label">Канал связи</span>
-            <select class="field-input" id="m-channel">
-              <option value=" ">Не выбран</option>
-              <option value="Max">Max</option>
-              <option value="Telegram">Telegram</option>
-              <option value="Whatsapp">Whatsapp</option>
-              <option value="Unknown">Неизвестно</option>
-            </select>
+
+          <div class="modal-field readonly">
+            <span class="field-label">Email</span>
+            <span class="field-value" id="m-email">—</span>
           </div>
- 
-          <div class="modal-field" id="channel-custom-wrap" style="display:none">
-            <span class="field-label">Канал (произвольно)</span>
-            <input class="field-input" type="text" id="m-channel-custom" placeholder="Введите канал" />
+
+          <div class="modal-field readonly">
+            <span class="field-label">Источник</span>
+            <span class="field-value" id="m-source">—</span>
           </div>
- 
+
+          <div class="modal-field readonly">
+            <span class="field-label">Канал</span>
+            <span class="field-value" id="m-channel-display">—</span>
+          </div>
+
         </div>
       </div>
- 
-      <!-- ── Блок 4: Обслуживание ── -->
+
+      <!-- ── Блок: Бронирование ── -->
       <div class="modal-section">
-        <div class="modal-section-title">Обслуживание</div>
+        <div class="modal-section-title">Бронирование</div>
         <div class="modal-grid">
 
           <div class="modal-field readonly">
-            <span class="field-label">Оценка уборки от гостя</span>
-            <span class="field-value" id="m-review">—</span>
+            <span class="field-label">Статус</span>
+            <span class="field-value" id="m-status">—</span>
+          </div>
+
+          <div class="modal-field readonly">
+            <span class="field-label">Объект</span>
+            <span class="field-value" id="m-object">—</span>
+          </div>
+
+          <div class="modal-field readonly">
+            <span class="field-label">Дата заезда</span>
+            <span class="field-value" id="m-begin-date">—</span>
+          </div>
+
+          <div class="modal-field readonly">
+            <span class="field-label">Дата выезда</span>
+            <span class="field-value" id="m-end-date">—</span>
+          </div>
+
+          <div class="modal-field">
+            <span class="field-label">Время заезда</span>
+            <input class="field-input" type="time" id="m-begin-time" placeholder="Не указано" />
+          </div>
+
+          <div class="modal-field">
+            <span class="field-label">Время выезда</span>
+            <input class="field-input" type="time" id="m-end-time" placeholder="Не указано" />
+          </div>
+
+          <div class="modal-field readonly">
+            <span class="field-label">Горничная</span>
+            <span class="field-value" id="m-maid">—</span>
+          </div>
+
+          <div class="modal-field readonly full-width">
+            <span class="field-label">Заметки</span>
+            <span class="field-value" id="m-notes">—</span>
           </div>
 
         </div>
       </div>
- 
-      <!-- ── Блок 5: Договор ── -->
-      <div class="modal-section">
-        <div class="modal-section-title">Договор</div>
+
+      <!-- ── Блок: Оплата ── -->
+      <div class="modal-section" id="payment-section">
+        <div class="modal-section-title">Оплата</div>
         <div class="modal-grid">
- 
-          <div class="modal-field">
-            <span class="field-label">Номер договора</span>
-            <input class="field-input" type="text" id="m-contract-id" placeholder="Не указан" />
+
+          <div class="modal-field readonly">
+            <span class="field-label">Стоимость</span>
+            <span class="field-value" id="m-amount">—</span>
           </div>
- 
-          <div class="modal-field">
-            <span class="field-label">Ссылка на договор</span>
-            <input class="field-input" type="url" id="m-contract-link" placeholder="https://..." />
+
+          <div class="modal-field readonly">
+            <span class="field-label">Оплачено</span>
+            <span class="field-value" id="m-paid">—</span>
           </div>
- 
+
+          <div class="modal-field readonly">
+            <span class="field-label">Остаток</span>
+            <span class="field-value" id="m-remaining">—</span>
+          </div>
+
+          <div class="modal-field readonly">
+            <span class="field-label">Канал оплаты</span>
+            <span class="field-value" id="m-pay-channel">—</span>
+          </div>
+
         </div>
       </div>
- 
+
+      <!-- ── Блок: Залог ── -->
+      <div class="modal-section" id="deposit-section" style="display:none">
+        <div class="modal-section-title">Залог</div>
+        <div class="modal-grid">
+
+          <div class="modal-field readonly">
+            <span class="field-label">Требуется</span>
+            <span class="field-value" id="m-deposit-target">—</span>
+          </div>
+
+          <div class="modal-field readonly">
+            <span class="field-label">Внесено</span>
+            <span class="field-value" id="m-deposit-held">—</span>
+          </div>
+
+          <div class="modal-field readonly" id="m-deposit-returned-wrap" style="display:none">
+            <span class="field-label">Возвращено</span>
+            <span class="field-value" id="m-deposit-returned">—</span>
+          </div>
+
+          <div class="modal-field readonly">
+            <span class="field-label">Канал залога</span>
+            <span class="field-value" id="m-dep-channel">—</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Блок: Договор ── -->
+      <div class="modal-section" id="contract-section" style="display:none">
+        <div class="modal-section-title">Договор</div>
+        <div class="modal-grid">
+
+          <div class="modal-field readonly">
+            <span class="field-label">Статус</span>
+            <span class="field-value" id="m-contract-status">—</span>
+          </div>
+
+          <div class="modal-field readonly full-width" id="m-contract-link-wrap">
+            <span class="field-label">Ссылка</span>
+            <a class="field-value" id="m-contract-link" href="#" target="_blank" rel="noopener" style="text-decoration:underline;cursor:pointer;">—</a>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Блок: Оценка уборки ── -->
+      <div class="modal-section" id="review-section" style="display:none">
+        <div class="modal-section-title">Оценка уборки от гостя</div>
+        <div class="modal-grid">
+          <div class="modal-field readonly full-width">
+            <span class="field-value" id="m-review">—</span>
+          </div>
+        </div>
+      </div>
+
     </div>
- 
+
     <!-- Footer -->
     <div class="modal-footer">
       <button class="modal-btn save" onclick="editBooking()">
-        <i class="ti ti-device-floppy"></i> Сохранить
-      </button>
-      <button class="modal-btn task" onclick="addTask()">
-        <i class="ti ti-checkbox"></i> Добавить задачу
+        <i class="ti ti-device-floppy"></i> Сохранить время
       </button>
       <button class="modal-btn delete" onclick="deleteBooking()">
         <i class="ti ti-trash"></i> Удалить
       </button>
     </div>
- 
+
   </div>
 </div>
 

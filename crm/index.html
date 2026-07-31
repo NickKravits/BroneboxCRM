@@ -833,9 +833,11 @@ function formatDate(dateStr) {
       <div class="qm-block">
         <div class="qm-info-row">
           <span class="qm-lbl">Горничная</span>
-          <select class="qm-select" id="qm-maid" onchange="assignMaid()">
-            <option value="">Не назначена</option>
-          </select>
+          <span id="qm-maid-name">—</span>
+        </div>
+        <div class="qm-info-row">
+          <span class="qm-lbl"></span>
+          <span style="font-size:11px;color:var(--text-muted);">Назначается в графике уборок</span>
         </div>
       </div>
 
@@ -1012,20 +1014,13 @@ function formatDate(dateStr) {
     document.getElementById('qm-status').textContent = ''
 
     try {
-      const [bRes, mRes] = await Promise.all([
-        fetch(API + '/bookings/get-by-id', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: bookingId })
-        }),
-        fetch(API + '/maids/getall', {
-          method: 'GET',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
-        })
-      ])
+      const bRes = await fetch(API + '/bookings/get-by-id', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: bookingId })
+      })
 
-      const { booking } = await bRes.json()
-      const { maids }   = await mRes.json()
+      const { booking, scheduledMaid } = await bRes.json()
 
       const objectsMap = await loadObjectsCache()
       const object = objectsMap.get(booking.realty_id) || null
@@ -1124,15 +1119,8 @@ function formatDate(dateStr) {
       loadQmDeposits(bookingId)
 
       // ── Горничная ─────────────────────────────────────────
-      const maidSel = document.getElementById('qm-maid')
-      maidSel.innerHTML = '<option value="">Не назначена</option>'
-      ;(maids || []).forEach(m => {
-        const opt    = document.createElement('option')
-        opt.value    = m.id
-        opt.textContent = m.name
-        if (m.id === booking.maid_id) opt.selected = true
-        maidSel.appendChild(opt)
-      })
+      // Назначается в графике уборок (CleaningSchedule по объекту и дате выезда), здесь только показываем
+      document.getElementById('qm-maid-name').textContent = scheduledMaid?.name || 'Не назначена'
 
       // ── Ссылки ────────────────────────────────────────────
       const bookLink   = booking.link ? `${DOMEN}/c/?id=${booking.link}` : null
@@ -1540,23 +1528,6 @@ function formatDate(dateStr) {
       showToast('Ошибка сохранения', 'danger')
     } finally {
       btn.disabled = false
-    }
-  }
-
-  async function assignMaid() {
-    const token  = localStorage.getItem('broneboxtoken')
-    const maidId = document.getElementById('qm-maid').value
-    try {
-      await fetch(API + '/bookings/update', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: _qmBookingId, maidid: maidId || null })
-      })
-      const sel = document.getElementById('qm-maid')
-      sel.classList.add('saved')
-      setTimeout(() => sel.classList.remove('saved'), 1600)
-    } catch (err) {
-      console.error('assignMaid error:', err)
     }
   }
 

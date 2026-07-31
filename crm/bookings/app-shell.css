@@ -672,6 +672,15 @@ html[data-theme="light"] .unread-pill { color: #1768C2; }
 }
 html[data-theme="light"] .channel-tag { color: #1768C2; }
 
+.warn-tag {
+  font-size: 10px; font-weight: 500; padding: 3px 9px; border-radius: 20px;
+  background: rgba(214,83,126,0.08); color: #ff87a8; border: 0.5px solid rgba(214,83,126,0.25);
+}
+.pay-over-tag {
+  font-size: 10px; font-weight: 500; padding: 3px 9px; border-radius: 20px;
+  background: rgba(239,159,39,0.12); color: var(--accent-amber); border: 0.5px solid rgba(239,159,39,0.25);
+}
+
 .section-title {
   font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
   color: var(--text-muted); margin-bottom: 10px;
@@ -844,7 +853,8 @@ html[data-theme="light"] .app-tabbar { --glass-bg: rgba(243,241,236,0.82); }
   .booking-row { flex-direction: column; align-items: stretch; gap: 10px; padding: 14px 16px; }
   .bk-guest, .bk-object, .bk-dates, .bk-payment, .bk-actions { flex: none; width: 100%; }
   .bk-divider { display: none; }
-  .bk-actions .btn-edit { width: 100%; justify-content: center; }
+  .bk-actions .btn-edit { flex: 1; justify-content: center; }
+  .bk-actions .btn-icon-link { flex-shrink: 0; }
 
   /* Booking-edit modal -> full-screen bottom sheet */
   .modal { transform: translateY(100%); border-radius: 20px 20px 0 0; }

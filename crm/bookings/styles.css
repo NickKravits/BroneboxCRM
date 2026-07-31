@@ -230,8 +230,20 @@
     .bk-nights { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
     .bk-paid { font-size: 13px; font-weight: 500; color: #2ed19d; }
+    .bk-paid.has-debt { color: var(--accent-amber); }
     .bk-remaining { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
     .bk-remaining.has-debt { color: var(--accent-amber); }
+    .bk-payment .card-footer-row { border-top: none; padding-top: 4px; margin-top: 4px; }
+    .bk-actions { display: flex; align-items: center; gap: 6px; }
+    .btn-icon-link {
+      display: flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px; flex-shrink: 0;
+      background: rgba(255,255,255,0.05); border: 0.5px solid var(--border);
+      border-radius: 8px; color: var(--text-secondary); cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      text-decoration: none; font-size: 14px;
+    }
+    .btn-icon-link:hover { background: rgba(255,255,255,0.09); color: var(--text-primary); border-color: var(--border-mid); }
 
     .btn-edit {
       display: flex; align-items: center; gap: 6px;
@@ -373,6 +385,20 @@
 /* ── Phone row with copy button ── */
 .phone-row {
   display: flex; align-items: center; gap: 6px;
+}
+
+/* ── Гостевая ссылка (в карточке брони) ── */
+.guestlink-row {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.03);
+  border: 0.5px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  padding: 9px 12px;
+}
+.guestlink-text {
+  flex: 1; min-width: 0;
+  font-size: 12px; color: rgba(255,255,255,0.65);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
 .btn-copy {

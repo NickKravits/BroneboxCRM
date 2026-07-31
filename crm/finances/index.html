@@ -166,7 +166,8 @@
       </div>
 
       <div class="pay-modal-block">
-        <div class="pay-modal-row"><span class="lbl">Оплачено</span><span class="val" id="pm-amount">—</span></div>
+        <div class="pay-modal-row"><span class="lbl">Оплачено всего</span><span class="val" id="pm-amount">—</span></div>
+        <div class="pay-modal-row"><span class="lbl">Остаток</span><span class="val" id="pm-remaining">—</span></div>
         <div class="pay-modal-row"><span class="lbl">Возвращено</span><span class="val" id="pm-returned">—</span></div>
         <div class="pay-modal-row"><span class="lbl">Тип</span><span class="val" id="pm-type">—</span></div>
       </div>
@@ -474,12 +475,25 @@
 
     const bookingLabel = p.bookingFio ? `Бронирование №${p.bookingId} · ${escapeHtml(p.bookingFio)}` : `Бронирование №${p.bookingId}`;
 
+    const returnedAmount = Number(p.returnedAmount || 0);
+    const totalAmount = Number(p.amount || 0) + returnedAmount;
+
+    let dateLine;
+    if (p.status === 'PAID') {
+      dateLine = `Оплачено: ${fmtDateTime(p.paidAt) || fmtDateTime(p.createdAt)}`;
+    } else if (p.status === 'RETURNED') {
+      dateLine = `Возвращено: ${fmtDateTime(p.returnedAt) || fmtDateTime(p.createdAt)}`;
+    } else {
+      dateLine = `Создано: ${fmtDateTime(p.createdAt)}`;
+    }
+
     return `
       <div class="payment-row" onclick="openPaymentModal(${p.id})">
         <div class="pay-info">
           <span class="pay-title">Оплата №${p.id} · ${TYPE_LABELS[p.type] || p.type}</span>
           <span class="pay-meta-line">Источник: ${SOURCE_LABELS[p.method] || p.method}</span>
           <span class="pay-meta-line"><span class="status-dot status-dot--${p.status}"></span> Статус: ${STATUS_LABELS[p.status] || p.status}</span>
+          <span class="pay-meta-line">${dateLine}</span>
         </div>
         <div class="pay-booking">
           <span class="pay-booking-chip">${bookingLabel}</span>
@@ -487,7 +501,10 @@
         </div>
         <div class="pay-amount-wrap">
           <div class="pay-actions">${actionHtml}</div>
-          <span class="pay-amount">Сумма: ${fmtMoney(p.amount)} ₽</span>
+          <div class="pay-amount-info">
+            <span class="pay-amount">Сумма: ${fmtMoney(totalAmount)} ₽</span>
+            ${returnedAmount > 0 ? `<span class="pay-amount-sub">Остаток: ${fmtMoney(p.amount)} ₽ · Возвращено: ${fmtMoney(returnedAmount)} ₽</span>` : ''}
+          </div>
         </div>
       </div>
     `;
@@ -555,8 +572,10 @@
       ? `Бронирование №${p.bookingId} · ${p.bookingFio}` : `Бронирование №${p.bookingId}`;
     document.getElementById('pm-goto-btn').onclick = () => goToBooking(p.bookingId);
 
-    document.getElementById('pm-amount').textContent = fmtMoney(p.amount) + ' ₽';
-    document.getElementById('pm-returned').textContent = fmtMoney(p.returnedAmount || 0) + ' ₽';
+    const pmReturnedAmount = Number(p.returnedAmount || 0);
+    document.getElementById('pm-amount').textContent = fmtMoney(Number(p.amount || 0) + pmReturnedAmount) + ' ₽';
+    document.getElementById('pm-remaining').textContent = fmtMoney(p.amount) + ' ₽';
+    document.getElementById('pm-returned').textContent = fmtMoney(pmReturnedAmount) + ' ₽';
     document.getElementById('pm-type').textContent = TYPE_LABELS[p.type] || p.type;
 
     document.getElementById('pm-method').textContent = SOURCE_LABELS[p.method] || p.method;
