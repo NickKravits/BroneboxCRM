@@ -112,6 +112,12 @@ html[data-theme="light"] .btn-edit:hover {
 html[data-theme="light"] .bk-paid {
   color: #0E7A56;
 }
+html[data-theme="light"] .btn-icon-link {
+  background: rgba(26,22,18,0.035);
+}
+html[data-theme="light"] .btn-icon-link:hover {
+  background: rgba(26,22,18,0.065);
+}
 
 /* ------------------------------------------------------------
    7. Booking-edit modal (.modal-overlay.active .modal)

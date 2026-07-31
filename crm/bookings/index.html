@@ -54,6 +54,18 @@
         return _objectsCache;
     }
 
+    async function populateObjectFilter() {
+        const select = document.getElementById('filter-object');
+        const objectsMap = await loadObjectsCache();
+        const sorted = [...objectsMap.values()].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ru'));
+        sorted.forEach(o => {
+            const opt = document.createElement('option');
+            opt.value = o.realtyid;
+            opt.textContent = o.name || o.realtyid;
+            select.appendChild(opt);
+        });
+    }
+
     function escapeHtml(str) {
         return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
@@ -259,6 +271,7 @@
             await Promise.all([
                 getUserData(),
                 getBookings(),
+                populateObjectFilter(),
                 openId ? openBookingDetail(parseInt(openId)) : Promise.resolve()
             ]);
         } finally {
@@ -365,11 +378,8 @@
     <div class="filters-bar">
       <div class="filter-group">
         <span class="filter-label">Объект</span>
-        <select class="filter-select" id="filter-object">
+        <select class="filter-select" id="filter-object" onchange="getBookings()">
           <option value="">Все объекты</option>
-          <option>Тверская 18</option>
-          <option>Арбат 12</option>
-          <option>Пушкинская 5</option>
         </select>
       </div>
 
