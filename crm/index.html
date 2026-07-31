@@ -71,6 +71,7 @@
     let _manualDepositEdit = false
     let _bankPaymentEdit   = false
     let _bankDepositEdit   = false
+    let _depositAmountEdit = false
 
     async function loadObjectsCache() {
       if (_objectsCache) return _objectsCache
@@ -255,6 +256,7 @@
         _manualDepositEdit = !!meRes.manualDepositEdit
         _bankPaymentEdit   = !!meRes.bankPaymentEdit
         _bankDepositEdit   = !!meRes.bankDepositEdit
+        _depositAmountEdit = !!meRes.depositAmountEdit
         updateQmAddButtonsPermission()
         const userTimezone = meRes.cabinet?.Timezone || 'Europe/Moscow'
         const fmt = { timeZone: userTimezone, year: 'numeric', month: '2-digit', day: '2-digit' }
@@ -767,7 +769,7 @@ function formatDate(dateStr) {
             <span class="qm-lbl">Сумма залога</span>
             <span class="qm-finance-val" id="qm-deposit-target">—</span>
           </div>
-          <button class="qm-edit-btn" onclick="openDepositTargetModal()">Изменить</button>
+          <button class="qm-edit-btn" id="qm-deposit-target-edit-btn" onclick="openDepositTargetModal()">Изменить</button>
         </div>
         <div class="qm-finance-row">
           <div class="qm-finance-item">
@@ -1249,6 +1251,11 @@ function formatDate(dateStr) {
     if (depBtn) {
       depBtn.disabled = !_manualDepositEdit
       depBtn.title = _manualDepositEdit ? '' : 'Недостаточно прав для создания залога'
+    }
+    const depTargetBtn = document.getElementById('qm-deposit-target-edit-btn')
+    if (depTargetBtn) {
+      depTargetBtn.disabled = !_depositAmountEdit
+      depTargetBtn.title = _depositAmountEdit ? '' : 'Недостаточно прав для изменения суммы залога'
     }
   }
 

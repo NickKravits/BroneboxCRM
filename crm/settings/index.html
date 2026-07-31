@@ -831,6 +831,10 @@
         <div class="perm-info"><span class="perm-name">Просмотр залогов в финансах</span><span class="perm-desc">Может видеть все поступившие залоги во вкладке «Финансы»</span></div>
         <label class="toggle-switch"><input type="checkbox" id="perm-financesinformationdeposit"><span class="toggle-track"></span></label>
       </label>
+      <label class="perm-row">
+        <div class="perm-info"><span class="perm-name">Изменение суммы залога</span><span class="perm-desc">Может менять сумму залога, которая применяется к брони</span></div>
+        <label class="toggle-switch"><input type="checkbox" id="perm-depositamountedit"><span class="toggle-track"></span></label>
+      </label>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closePermissions()">Отмена</button>
@@ -2952,6 +2956,7 @@ for (const photo of photosData.photos) {
             document.getElementById('perm-bankdepositedit').checked = (permissions.bankdepositedit === "YES");
             document.getElementById('perm-financesinformationpayment').checked = (permissions.financesinformationpayment === "YES");
             document.getElementById('perm-financesinformationdeposit').checked = (permissions.financesinformationdeposit === "YES");
+            document.getElementById('perm-depositamountedit').checked = (permissions.depositamountedit === "YES");
         }
 
         document.getElementById('modal-username').textContent = data.name || 'Без имени';

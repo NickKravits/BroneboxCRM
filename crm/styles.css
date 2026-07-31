@@ -695,6 +695,7 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 .qm-edit-btn:hover { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.85); border-color: rgba(255,255,255,0.15); }
+.qm-edit-btn[disabled] { cursor: default; opacity: 0.3; pointer-events: none; }
 html[data-theme="light"] .qm-edit-btn { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.1); color: rgba(0,0,0,0.45); }
 html[data-theme="light"] .qm-edit-btn:hover { background: rgba(0,0,0,0.07); color: rgba(0,0,0,0.78); }
 
