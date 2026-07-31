@@ -609,6 +609,29 @@ function formatDate(dateStr) {
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════
+     Модалка возврата залога/оплаты
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-return-payment" onclick="handleReturnPaymentOverlay(event)">
+  <div class="modal-box" style="width:360px;">
+    <div class="modal-head">
+      <span class="modal-title">Возврат залога</span>
+      <button class="modal-close" onclick="closeReturnPaymentModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label class="field-label">Сумма возврата, ₽</label>
+        <input class="field-input" type="number" id="return-payment-input" min="0" step="0.01" placeholder="0">
+        <span class="field-hint" id="return-payment-hint"></span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeReturnPaymentModal()">Отмена</button>
+      <button class="btn btn-danger" id="return-payment-confirm-btn" onclick="confirmReturnPayment()"><i class="ti ti-arrow-back-up"></i> Вернуть</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
      Quick-view modal
      ═══════════════════════════════════════════════════════════════ -->
 <div class="qm-overlay" id="quick-modal" onclick="closeQuickModal(event)">
@@ -1110,8 +1133,9 @@ function formatDate(dateStr) {
     const list = document.getElementById(containerId)
     list.innerHTML = ''
 
+    // amount у платежа уже самоуменьшается при (частичном) возврате — считаем PAID и RETURNED вместе
     const paidSum = (payments || []).reduce((sum, p) => {
-      return p.status === 'PAID' ? sum + Number(p.amount || 0) : sum
+      return (p.status === 'PAID' || p.status === 'RETURNED') ? sum + Number(p.amount || 0) : sum
     }, 0)
     if (kind === 'PAY') {
       _qmPaidSum = paidSum
@@ -1133,14 +1157,23 @@ function formatDate(dateStr) {
       const metaParts = [dateStr]
       if (p.method === 'MANAGER' && p.madeBy) metaParts.push(p.madeBy)
       if (p.method === 'TOCHKA' || p.method === 'TBANK') metaParts.push(QM_PAY_STATUS_LABEL[p.status] || p.status)
+      if (Number(p.returnedAmount) > 0) metaParts.push('возвращено ' + fmtMoney(p.returnedAmount) + ' ₽')
+
+      // Нечего возвращать/удалять — весь платёж уже вернули
+      const nothingLeft = Number(p.amount || 0) <= 0
 
       let actionHtml = ''
-      if (p.status === 'RETURNED') {
+      if (nothingLeft) {
         actionHtml = `<span class="qm-pay-returned">Возвращено</span>`
-      } else if (p.method === 'MANAGER') {
-        actionHtml = `<button class="qm-pay-action danger" onclick="removeManualPayment(${p.id}, '${kind}')" title="Удалить"><i class="ti ti-trash" style="font-size:14px;"></i></button>`
-      } else if (p.method === 'TOCHKA' || p.method === 'TBANK') {
-        actionHtml = `<button class="qm-pay-action" disabled title="Возврат"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
+      } else {
+        if (p.method === 'MANAGER') {
+          actionHtml += `<button class="qm-pay-action danger" onclick="removeManualPayment(${p.id}, '${kind}')" title="Удалить"><i class="ti ti-trash" style="font-size:14px;"></i></button>`
+        }
+        if (kind === 'DEPOSIT') {
+          actionHtml += `<button class="qm-pay-action" onclick="openReturnPaymentModal(${p.id}, ${p.amount}, '${kind}')" title="Вернуть залог"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
+        } else if (p.method === 'TOCHKA' || p.method === 'TBANK') {
+          actionHtml += `<button class="qm-pay-action" disabled title="Возврат"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
+        }
       }
 
       row.innerHTML = `
@@ -1272,6 +1305,76 @@ function formatDate(dateStr) {
       getBookings()
     } catch {
       showToast('Ошибка удаления платежа', 'danger')
+    } finally {
+      btn.disabled = false
+    }
+  }
+
+  // ── Модалка возврата залога/оплаты ───────────────────────────
+  let _returnPaymentId   = null
+  let _returnPaymentMax  = 0
+  let _returnPaymentKind = 'DEPOSIT'
+
+  function openReturnPaymentModal(paymentId, maxAmount, kind) {
+    _returnPaymentId   = paymentId
+    _returnPaymentMax  = Number(maxAmount) || 0
+    _returnPaymentKind = kind || 'DEPOSIT'
+
+    document.querySelector('#modal-return-payment .modal-title').textContent =
+      _returnPaymentKind === 'DEPOSIT' ? 'Возврат залога' : 'Возврат оплаты'
+
+    const inp = document.getElementById('return-payment-input')
+    inp.value = _returnPaymentMax % 1 === 0 ? String(_returnPaymentMax) : String(_returnPaymentMax.toFixed(2))
+    inp.max = _returnPaymentMax
+    document.getElementById('return-payment-hint').textContent = `Максимум: ${fmtMoney(_returnPaymentMax)} ₽`
+    document.getElementById('modal-return-payment').classList.add('open')
+    setTimeout(() => inp.focus(), 80)
+  }
+
+  function closeReturnPaymentModal() {
+    document.getElementById('modal-return-payment').classList.remove('open')
+    _returnPaymentId = null
+  }
+
+  function handleReturnPaymentOverlay(e) {
+    if (e.target === document.getElementById('modal-return-payment')) closeReturnPaymentModal()
+  }
+
+  async function confirmReturnPayment() {
+    if (!_returnPaymentId) return
+    const raw = document.getElementById('return-payment-input').value
+    const amount = parseFloat(String(raw).replace(',', '.').replace(/\s/g, ''))
+    if (isNaN(amount) || amount <= 0) {
+      showToast('Введите корректную сумму', 'danger')
+      return
+    }
+    if (amount > _returnPaymentMax) {
+      showToast(`Сумма не может превышать ${fmtMoney(_returnPaymentMax)} ₽`, 'danger')
+      return
+    }
+
+    const btn = document.getElementById('return-payment-confirm-btn')
+    btn.disabled = true
+    try {
+      const token = localStorage.getItem('broneboxtoken')
+      const res = await fetch(`${API}/payments/manualreturn`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId: _returnPaymentId, amount })
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        showToast(err.error || 'Ошибка возврата', 'danger')
+        return
+      }
+      const kind = _returnPaymentKind
+      closeReturnPaymentModal()
+      showToast(kind === 'DEPOSIT' ? 'Возврат залога оформлен' : 'Возврат оплаты оформлен', 'success')
+      if (kind === 'DEPOSIT') loadQmDeposits(_qmBookingId)
+      else loadQmPayments(_qmBookingId)
+      getBookings()
+    } catch {
+      showToast('Ошибка возврата', 'danger')
     } finally {
       btn.disabled = false
     }
