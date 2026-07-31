@@ -286,8 +286,8 @@
 <!-- ── Модалка оплаты ─────────────────────────────────────────────────── -->
 <div class="pay-modal-overlay" id="pay-modal-overlay" style="display:none" onclick="handlePayModalOverlay(event)">
   <div class="pay-modal">
-    <div class="pay-modal-title">Оплата бронирования</div>
-    <p class="pay-modal-desc">Укажите email — на него будет отправлен чек об оплате.</p>
+    <div class="pay-modal-title" id="pay-modal-title">Оплата бронирования</div>
+    <p class="pay-modal-desc" id="pay-modal-desc">Укажите email — на него будет отправлен чек об оплате.</p>
     <div class="pay-modal-field">
       <label for="pay-email">Email для чека</label>
       <input type="email" id="pay-email" placeholder="you@example.com" />
@@ -370,16 +370,17 @@
   }
 
   // ── Рендер задач ──────────────────────────────────────────────────────
-  function renderTodos(booking, objects, show, completed, paidAmount, depositHeld) {
+  function renderTodos(booking, objects, show, completed, paidAmount, depositHeld, depositTarget) {
     const todos = []
     const pay      = show.payanddeposit || {}
     const contract = show.contract      || {}
     const toPay        = Math.max(0, (booking.balance_to_be_paid_1 || 0) - (paidAmount || 0))
     const paymentBroken = objects?.paymentchanel === 'TOCHKA' && objects?.tochkaReady === false
 
-    const depositTarget    = parseFloat(objects?.deposit) || 0
-    const depositRemaining = Math.max(0, depositTarget - (depositHeld || 0))
-    const depositBroken    = objects?.depositchanel === 'MONETA' && !booking.deposit_payment_link
+    const depositTargetVal = depositTarget || 0
+    const depositRemaining = Math.max(0, depositTargetVal - (depositHeld || 0))
+    const depositBroken    = (objects?.depositchanel === 'MONETA' && !booking.deposit_payment_link) ||
+      (objects?.depositchanel === 'TOCHKA' && objects?.tochkaDepositReady === false)
 
     if (pay.active) {
       if (toPay > 0 && objects?.paymentchanel !== 'NONE' && !paymentBroken) {
@@ -534,7 +535,25 @@
   }
 
   // ── Модалка оплаты (Точка) ──────────────────────────────────────────
+  // Одна модалка обслуживает и оплату, и залог — различаются только текст и эндпоинт
+  let _payModalKind = 'PAY' // 'PAY' | 'DEPOSIT'
+
   function openPaymentModal() {
+    _payModalKind = 'PAY'
+    document.getElementById('pay-modal-title').textContent = 'Оплата бронирования'
+    document.getElementById('pay-modal-desc').textContent  = 'Укажите email — на него будет отправлен чек об оплате.'
+    document.getElementById('pay-modal-confirm').textContent = 'Перейти к оплате'
+    document.getElementById('pay-email').value = _state.booking.email || ''
+    document.getElementById('pay-email').classList.remove('error')
+    document.getElementById('pay-modal-error').style.display = 'none'
+    document.getElementById('pay-modal-overlay').style.display = 'flex'
+  }
+
+  function openDepositPaymentModal() {
+    _payModalKind = 'DEPOSIT'
+    document.getElementById('pay-modal-title').textContent = 'Внесение залога'
+    document.getElementById('pay-modal-desc').textContent  = 'Укажите email — на него будет отправлен чек о внесении залога.'
+    document.getElementById('pay-modal-confirm').textContent = 'Перейти к оплате'
     document.getElementById('pay-email').value = _state.booking.email || ''
     document.getElementById('pay-email').classList.remove('error')
     document.getElementById('pay-modal-error').style.display = 'none'
@@ -570,8 +589,10 @@
     btn.disabled    = true
     btn.textContent = 'Подождите...'
 
+    const endpoint = _payModalKind === 'DEPOSIT' ? '/guest/deposit/getpaymenturl' : '/guest/payment/getpaymenturl'
+
     try {
-      const res  = await fetch(API + '/guest/payment/getpaymenturl', {
+      const res  = await fetch(API + endpoint, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ id: getBookingLink(), email })
@@ -591,7 +612,7 @@
   }
 
   // ── Блок залога ───────────────────────────────────────────────────────
-  function renderDeposit(booking, objects, show, depositHeld, depositReturned, checkoutPassed) {
+  function renderDeposit(booking, objects, show, depositHeld, depositReturned, checkoutPassed, depositTarget) {
     const pay = show.payanddeposit || {}
     if (!objects) return
 
@@ -599,7 +620,7 @@
 
     const held         = depositHeld || 0
     const returned     = depositReturned || 0
-    const depositTarget = parseFloat(objects.deposit) || 0
+    depositTarget        = depositTarget || 0
     const remaining     = Math.max(0, depositTarget - held)
     const overpaid       = Math.max(0, held - depositTarget)
     const depositPaid    = remaining === 0
@@ -646,6 +667,14 @@
       action.innerHTML = ''
       document.getElementById('deposit-notice-text').textContent = 'Кнопка внесения залога появится ' + pay.availableAt
       document.getElementById('deposit-notice').style.display = ''
+    } else if (objects.depositchanel === 'TOCHKA') {
+      if (objects.tochkaDepositReady) {
+        action.innerHTML = `<button class="btn-deposit" onclick="openDepositPaymentModal()">Внести залог ${formatPrice(remaining)}</button>`
+      } else {
+        action.innerHTML = ''
+        document.getElementById('deposit-notice-text').textContent = 'Приём залога через Точка Банк временно недоступен. Обратитесь к вашему менеджеру.'
+        document.getElementById('deposit-notice').style.display = ''
+      }
     } else if (objects.depositchanel === 'MONETA') {
       if (booking.deposit_payment_link) {
         action.innerHTML = `<a class="btn-deposit" href="${booking.deposit_payment_link}" target="_blank" rel="noopener">Внести залог</a>`
@@ -725,7 +754,7 @@
   }
 
   // ── Применение данных ─────────────────────────────────────────────────
-  function applyData(booking, objects, photos, show, bookingState, checkoutPassed, paidAmount, depositHeld, depositReturned) {
+  function applyData(booking, objects, photos, show, bookingState, checkoutPassed, paidAmount, depositHeld, depositReturned, depositTarget) {
     const completed  = bookingState === 'booked' && checkoutPassed
     const isCanceled = bookingState === 'canceled' || bookingState === 'deleted'
     const isRequest  = bookingState === 'request'
@@ -751,7 +780,7 @@
     }
 
     // ── booked ─────────────────────────────────────────────────────────
-    _state = { booking, objects, show, completed, checkoutPassed, paidAmount, depositHeld, depositReturned }
+    _state = { booking, objects, show, completed, checkoutPassed, paidAmount, depositHeld, depositReturned, depositTarget }
 
     const nights   = countNights(booking.begin_date, booking.end_date)
     const checkin  = formatDate(booking.begin_date)
@@ -784,7 +813,7 @@
         document.getElementById('time-section').style.display = 'none'
       }
     } else {
-      renderTodos(booking, objects, show, completed, paidAmount, depositHeld)
+      renderTodos(booking, objects, show, completed, paidAmount, depositHeld, depositTarget)
       initTimeSaving()
     }
 
@@ -829,7 +858,7 @@
     const pay = show.payanddeposit || {}
     if (pay.visible) {
       renderPayment(booking, objects, show, paidAmount)
-      renderDeposit(booking, objects, show, depositHeld, depositReturned, checkoutPassed)
+      renderDeposit(booking, objects, show, depositHeld, depositReturned, checkoutPassed, depositTarget)
     }
 
     // ── Оценка ───────────────────────────────────────────────────────────
@@ -860,8 +889,8 @@
       if (res.status === 404) { showNotFound(); return }
       if (!res.ok)            { showNotFound(); return }
 
-      const { booking, objects, photos, show, bookingState, checkoutPassed, paidAmount, depositHeld, depositReturned } = await res.json()
-      applyData(booking, objects, photos, show, bookingState, checkoutPassed, paidAmount, depositHeld, depositReturned)
+      const { booking, objects, photos, show, bookingState, checkoutPassed, paidAmount, depositHeld, depositReturned, depositTarget } = await res.json()
+      applyData(booking, objects, photos, show, bookingState, checkoutPassed, paidAmount, depositHeld, depositReturned, depositTarget)
 
     } catch (e) {
       console.error('Ошибка загрузки:', e)
@@ -875,10 +904,10 @@
   const WAIT_PAY_INTERVAL_MS  = 3000
   const WAIT_PAY_MAX_ATTEMPTS = 10 // 30 секунд
 
-  function openWaitPayOverlay() {
+  function openWaitPayOverlay(kind) {
     document.getElementById('wait-pay-spinner').style.display      = ''
     document.getElementById('wait-pay-success-icon').style.display = 'none'
-    document.getElementById('wait-pay-title').textContent = 'Ожидание оплаты'
+    document.getElementById('wait-pay-title').textContent = kind === 'deposit' ? 'Ожидание внесения залога' : 'Ожидание оплаты'
     document.getElementById('wait-pay-desc').textContent  = 'Обычно это занимает несколько секунд. Не закрывайте страницу.'
     document.getElementById('wait-pay-close-btn').textContent   = 'Закрыть'
     document.getElementById('wait-pay-close-btn').style.display = ''
@@ -894,25 +923,25 @@
     window.history.replaceState({}, '', url)
   }
 
-  function showWaitPaySuccess() {
+  function showWaitPaySuccess(kind) {
     if (_waitPayTimer) { clearTimeout(_waitPayTimer); _waitPayTimer = null }
     document.getElementById('wait-pay-spinner').style.display      = 'none'
     document.getElementById('wait-pay-success-icon').style.display = 'flex'
-    document.getElementById('wait-pay-title').textContent = 'Оплата прошла успешно!'
+    document.getElementById('wait-pay-title').textContent = kind === 'deposit' ? 'Залог внесён успешно!' : 'Оплата прошла успешно!'
     document.getElementById('wait-pay-desc').textContent  = 'Спасибо! Данные бронирования обновлены.'
     document.getElementById('wait-pay-close-btn').textContent   = 'Хорошо'
     document.getElementById('wait-pay-close-btn').style.display = ''
   }
 
-  function showWaitPayTimeout() {
+  function showWaitPayTimeout(kind) {
     document.getElementById('wait-pay-spinner').style.display = 'none'
-    document.getElementById('wait-pay-title').textContent = 'Оплата в обработке'
+    document.getElementById('wait-pay-title').textContent = kind === 'deposit' ? 'Залог в обработке' : 'Оплата в обработке'
     document.getElementById('wait-pay-desc').textContent  = 'Проверьте, пожалуйста, чуть позже — обновите страницу через минуту.'
     document.getElementById('wait-pay-close-btn').textContent   = 'Закрыть'
     document.getElementById('wait-pay-close-btn').style.display = ''
   }
 
-  async function pollTochkaPayment(link) {
+  async function pollTochkaPayment(link, kind) {
     _waitPayAttempts++
     try {
       const res = await fetch(API + '/guest/get', {
@@ -921,11 +950,13 @@
         body:    JSON.stringify({ id: link })
       })
       if (res.ok) {
-        const data  = await res.json()
-        const toPay = Math.max(0, (data.booking?.balance_to_be_paid_1 || 0) - (data.paidAmount || 0))
-        if (toPay === 0) {
-          applyData(data.booking, data.objects, data.photos, data.show, data.bookingState, data.checkoutPassed, data.paidAmount, data.depositHeld, data.depositReturned)
-          showWaitPaySuccess()
+        const data = await res.json()
+        const done = kind === 'deposit'
+          ? ((data.depositTarget || 0) > 0 && Math.max(0, (data.depositTarget || 0) - (data.depositHeld || 0)) === 0)
+          : (Math.max(0, (data.booking?.balance_to_be_paid_1 || 0) - (data.paidAmount || 0)) === 0)
+        if (done) {
+          applyData(data.booking, data.objects, data.photos, data.show, data.bookingState, data.checkoutPassed, data.paidAmount, data.depositHeld, data.depositReturned, data.depositTarget)
+          showWaitPaySuccess(kind)
           return
         }
       }
@@ -934,11 +965,11 @@
     }
 
     if (_waitPayAttempts >= WAIT_PAY_MAX_ATTEMPTS) {
-      showWaitPayTimeout()
+      showWaitPayTimeout(kind)
       return
     }
 
-    _waitPayTimer = setTimeout(() => pollTochkaPayment(link), WAIT_PAY_INTERVAL_MS)
+    _waitPayTimer = setTimeout(() => pollTochkaPayment(link, kind), WAIT_PAY_INTERVAL_MS)
   }
 
   // ── Отслеживание изменений времени ──────────────────────────────────
@@ -983,7 +1014,7 @@
       if (res.ok) {
         if (ciChanged) { _state.booking.begin_time = ci.value || null; ci.classList.add('success') }
         if (coChanged) { _state.booking.end_time   = co.value || null; co.classList.add('success') }
-        renderTodos(_state.booking, _state.objects, _state.show, _state.completed, _state.paidAmount, _state.depositHeld)
+        renderTodos(_state.booking, _state.objects, _state.show, _state.completed, _state.paidAmount, _state.depositHeld, _state.depositTarget)
         setTimeout(() => { ci.classList.remove('success'); co.classList.remove('success') }, 1500)
         // Кнопка остаётся неактивной — текущие значения совпадают с сохранёнными
       } else {
@@ -1048,8 +1079,9 @@
   }
 
   if (link && new URLSearchParams(window.location.search).get('red') === 'tochka') {
-    openWaitPayOverlay()
-    pollTochkaPayment(link)
+    const payKind = new URLSearchParams(window.location.search).get('kind') === 'deposit' ? 'deposit' : 'pay'
+    openWaitPayOverlay(payKind)
+    pollTochkaPayment(link, payKind)
   }
 </script>
 

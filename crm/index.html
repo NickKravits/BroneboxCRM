@@ -96,12 +96,14 @@
       return `<span class="warn-tag">Неоплачено</span>`
     }
 
-    function getDepositBadge(object, depositAmount, depositReturned, isTodayCheckout) {
+    function getDepositBadge(booking, object, depositAmount, depositReturned, isTodayCheckout) {
       const objectDeposit = parseFloat(object?.deposit) || 0
+      const depositTarget = (booking?.manual_deposit !== null && booking?.manual_deposit !== undefined)
+        ? booking.manual_deposit : objectDeposit
       const held     = depositAmount || 0
       const returned = depositReturned || 0
 
-      if (objectDeposit === 0) return '' // залог для этого объекта не требуется
+      if (depositTarget === 0) return '' // залог для этого объекта/брони не требуется
 
       if (returned > 0) {
         if (held > 0) return `<span class="pay-over-tag">Залог возвращён частично</span>`
@@ -113,8 +115,8 @@
         return `<span class="warn-tag">Залог не возвращён</span>`
       }
 
-      if (held < objectDeposit) return `<span class="warn-tag">Залог не внесён</span>`
-      if (held > objectDeposit) return `<span class="pay-over-tag">Переплата залога</span>`
+      if (held < depositTarget) return `<span class="warn-tag">Залог не внесён</span>`
+      if (held > depositTarget) return `<span class="pay-over-tag">Переплата залога</span>`
       return ''
     }
 
@@ -131,7 +133,7 @@
       const contractStatus = getContractStatus(booking)
       const contractBadge  = contractStatus === null ? '' : `<span class="warn-tag">${contractStatus}</span>`
       const paymentBadge  = getPaymentBadge(booking, paidAmount)
-      const depositBadge  = getDepositBadge(object, depositAmount, depositReturned, false)
+      const depositBadge  = getDepositBadge(booking, object, depositAmount, depositReturned, false)
       const timeBadge     = getTimeBadge(booking)
       const statusRow = (contractBadge || paymentBadge || depositBadge || timeBadge) ? `<div class="card-footer-row">${contractBadge}${paymentBadge}${depositBadge}${timeBadge}</div>` : ''
       return `
@@ -178,7 +180,7 @@
       const contractStatus = getContractStatus(booking)
       const contractBadge  = contractStatus === null ? '' : `<span class="warn-tag">${contractStatus}</span>`
       const paymentBadge = getPaymentBadge(booking, paidAmount)
-      const depositBadge = getDepositBadge(object, depositAmount, depositReturned, isTodayCheckout)
+      const depositBadge = getDepositBadge(booking, object, depositAmount, depositReturned, isTodayCheckout)
       const timeBadge     = getTimeBadge(booking)
       const statusRow = (contractBadge || paymentBadge || depositBadge || timeBadge) ? `<div class="card-footer-row">${contractBadge}${paymentBadge}${depositBadge}${timeBadge}</div>` : ''
       return `
@@ -205,7 +207,7 @@
       const contractStatus = getContractStatus(booking)
       const contractBadge  = contractStatus === null ? '' : `<span class="warn-tag">${contractStatus}</span>`
       const paymentBadge = getPaymentBadge(booking, paidAmount)
-      const depositBadge = getDepositBadge(object, depositAmount, depositReturned, false)
+      const depositBadge = getDepositBadge(booking, object, depositAmount, depositReturned, false)
       const timeBadge     = getTimeBadge(booking)
       const statusRow = (contractBadge || paymentBadge || depositBadge || timeBadge) ? `<div class="card-footer-row">${contractBadge}${paymentBadge}${depositBadge}${timeBadge}</div>` : ''
       return `
@@ -651,6 +653,32 @@ function formatDate(dateStr) {
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════
+     Модалка изменения суммы залога
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-deposit-target" onclick="handleDepositTargetOverlay(event)">
+  <div class="modal-box" style="width:360px;">
+    <div class="modal-head">
+      <span class="modal-title">Сумма залога</span>
+      <button class="modal-close" onclick="closeDepositTargetModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label class="field-label">Новая сумма залога, ₽</label>
+        <input class="field-input" type="number" id="deposit-target-input" min="0" step="0.01" placeholder="0">
+        <span class="field-hint">0 — без залога, либо больше 100 ₽ (ограничение платформы)</span>
+      </div>
+      <p style="margin:8px 0 0;color:var(--text-secondary);font-size:12px;line-height:1.5;">
+        Изменения будут применены только при внесении залога через Точку.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeDepositTargetModal()">Отмена</button>
+      <button class="btn btn-save" id="deposit-target-confirm-btn" onclick="confirmDepositTarget()"><i class="ti ti-check"></i> Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
      Quick-view modal
      ═══════════════════════════════════════════════════════════════ -->
 <div class="qm-overlay" id="quick-modal" onclick="closeQuickModal(event)">
@@ -763,6 +791,13 @@ function formatDate(dateStr) {
         </div>
         <div class="qm-finance-row">
           <div class="qm-finance-item">
+            <span class="qm-lbl">Сумма залога</span>
+            <span class="qm-finance-val" id="qm-deposit-target">—</span>
+          </div>
+          <button class="qm-edit-btn" onclick="openDepositTargetModal()">Изменить</button>
+        </div>
+        <div class="qm-finance-row">
+          <div class="qm-finance-item">
             <span class="qm-lbl">Залог</span>
             <span class="qm-finance-val" id="qm-deposit">—</span>
           </div>
@@ -832,10 +867,16 @@ function formatDate(dateStr) {
   let _qmBookingDepositBase = 0
   let _qmObjectDepositMax   = 0
   let _qmDepositPaidSum     = 0
+  let _qmManualDeposit      = null
 
   function updateQmAmountDisplay() {
     const remaining = Math.max(0, _qmBookingAmount - _qmBookingPrepayment - _qmPaidSum)
     document.getElementById('qm-amount').textContent = fmtMoney(remaining) + ' ₽'
+  }
+
+  function updateQmDepositTargetDisplay() {
+    const effective = _qmManualDeposit !== null ? _qmManualDeposit : _qmObjectDepositMax
+    document.getElementById('qm-deposit-target').textContent = fmtMoney(effective) + ' ₽'
   }
 
   function updateQmDepositDisplay() {
@@ -1048,10 +1089,16 @@ function formatDate(dateStr) {
         depChanEl.style.display = 'none'
       }
 
-      _qmBookingDepositBase = Number(booking.deposit || 0)
+      // Если залог принимается через Точку — Bookings.deposit больше не учитываем,
+      // всё держим только через Payments (см. depositViaTochka в guest/index.js)
+      _qmBookingDepositBase = depCh === 'TOCHKA' ? 0 : Number(booking.deposit || 0)
       _qmObjectDepositMax   = parseFloat(object?.deposit) || 0
       _qmDepositPaidSum     = 0
       updateQmDepositDisplay()
+
+      _qmManualDeposit = (booking.manual_deposit !== null && booking.manual_deposit !== undefined)
+        ? Number(booking.manual_deposit) : null
+      updateQmDepositTargetDisplay()
 
       document.getElementById('qm-deposits-list').innerHTML = ''
       loadQmDeposits(bookingId)
@@ -1218,7 +1265,8 @@ function formatDate(dateStr) {
 
   function addManualDeposit() {
     _addPayKind = 'DEPOSIT'
-    _addPayMaxAmount = Math.max(0, _qmObjectDepositMax - _qmBookingDepositBase - _qmDepositPaidSum)
+    const depositTarget = _qmManualDeposit !== null ? _qmManualDeposit : _qmObjectDepositMax
+    _addPayMaxAmount = Math.max(0, depositTarget - _qmBookingDepositBase - _qmDepositPaidSum)
     openAddPaymentModal('Добавить залог')
   }
 
@@ -1394,6 +1442,60 @@ function formatDate(dateStr) {
       getBookings()
     } catch {
       showToast('Ошибка возврата', 'danger')
+    } finally {
+      btn.disabled = false
+    }
+  }
+
+  // ── Модалка изменения суммы залога ───────────────────────────
+  function openDepositTargetModal() {
+    const inp = document.getElementById('deposit-target-input')
+    const current = _qmManualDeposit !== null ? _qmManualDeposit : _qmObjectDepositMax
+    inp.value = current % 1 === 0 ? String(current) : String(current.toFixed(2))
+    document.getElementById('modal-deposit-target').classList.add('open')
+    setTimeout(() => inp.focus(), 80)
+  }
+
+  function closeDepositTargetModal() {
+    document.getElementById('modal-deposit-target').classList.remove('open')
+  }
+
+  function handleDepositTargetOverlay(e) {
+    if (e.target === document.getElementById('modal-deposit-target')) closeDepositTargetModal()
+  }
+
+  async function confirmDepositTarget() {
+    const raw = document.getElementById('deposit-target-input').value
+    const amount = parseFloat(String(raw).replace(',', '.').replace(/\s/g, ''))
+    if (isNaN(amount) || amount < 0) {
+      showToast('Введите корректную сумму', 'danger')
+      return
+    }
+    if (amount !== 0 && amount <= 100) {
+      showToast('Сумма залога должна быть 0 либо больше 100 ₽', 'danger')
+      return
+    }
+
+    const btn = document.getElementById('deposit-target-confirm-btn')
+    btn.disabled = true
+    try {
+      const token = localStorage.getItem('broneboxtoken')
+      const res = await fetch(`${API}/bookings/update`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: _qmBookingId, manualDeposit: amount })
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        showToast(err.error || 'Ошибка сохранения', 'danger')
+        return
+      }
+      _qmManualDeposit = amount
+      updateQmDepositTargetDisplay()
+      closeDepositTargetModal()
+      showToast('Сумма залога изменена', 'success')
+    } catch {
+      showToast('Ошибка сохранения', 'danger')
     } finally {
       btn.disabled = false
     }

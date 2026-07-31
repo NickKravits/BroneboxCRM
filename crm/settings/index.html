@@ -1790,6 +1790,33 @@ function clearEditPhotos() {
         </div>
       </div>
 
+      <div class="modal-section-divider">Шаблоны текстов (залог)</div>
+
+      <div class="field-group">
+        <label class="field-label">Назначение платежа (залог)</label>
+        <textarea class="field-input" id="tochka-deposit-desc" rows="3"
+          placeholder="Обеспечительный платёж за {apartment_name}, {address}. Заезд: {checkin}, выезд: {checkout}"></textarea>
+        <div class="vars-row">
+          <span class="field-hint">Переменные:</span>
+          <span class="var-chip" onclick="insertVar('tochka-deposit-desc','{apartment_name}')">{название квартиры}</span>
+          <span class="var-chip" onclick="insertVar('tochka-deposit-desc','{address}')">{адрес}</span>
+          <span class="var-chip" onclick="insertVar('tochka-deposit-desc','{created_at}')">{дата создания}</span>
+          <span class="var-chip" onclick="insertVar('tochka-deposit-desc','{checkin}')">{дата заезда}</span>
+          <span class="var-chip" onclick="insertVar('tochka-deposit-desc','{checkout}')">{дата выезда}</span>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Название услуги (залог)</label>
+        <input class="field-input" id="tochka-deposit-service-name" type="text"
+          placeholder="Обеспечительный платёж за {apartment_name}">
+        <div class="vars-row">
+          <span class="field-hint">Переменные:</span>
+          <span class="var-chip" onclick="insertVar('tochka-deposit-service-name','{apartment_name}')">{название квартиры}</span>
+          <span class="var-chip" onclick="insertVar('tochka-deposit-service-name','{address}')">{адрес}</span>
+        </div>
+      </div>
+
     </div>
 
     <div class="modal-footer">
@@ -2181,10 +2208,12 @@ function escapeHtml(str) {
     const vatType = document.getElementById('tochka-vat').value;
     const purpose = document.getElementById('tochka-payment-desc').value.trim();
     const name = document.getElementById('tochka-service-name').value.trim();
+    const purposeDeposit = document.getElementById('tochka-deposit-desc').value.trim();
+    const nameDeposit = document.getElementById('tochka-deposit-service-name').value.trim();
 
     try {
       const token = localStorage.getItem('broneboxtoken')
-      const body = { phone, apiKey, clientId, vatType, purpose, name };
+      const body = { phone, apiKey, clientId, vatType, purpose, name, purposeDeposit, nameDeposit };
       if (customerCode) body.customerCode = customerCode;
       const res = await fetch(`${API}/integration/tochka/save`, {
         method: 'POST',
