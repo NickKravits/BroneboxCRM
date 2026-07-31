@@ -64,6 +64,7 @@
                 container.insertAdjacentHTML('afterbegin', `<button class="tab-btn active" id="tab-btn-staff" onclick="switchTab('admins', this)">Сотрудники</button>`);
                 document.getElementById('tab-admins').classList.add('active');
             }
+            loadStaffList();
         } else {
             if (!document.querySelector('#menu-tabs .tab-btn.active')) {
                 document.getElementById('tab-btn-maids').classList.add('active');
@@ -446,7 +447,6 @@
         try {
             await Promise.all([
                 getUserData(),
-                loadStaffList(),
                 loadMaidsList(),
                 loadObjectsList(),
                 getIntegrations(),

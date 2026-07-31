@@ -973,7 +973,19 @@ function formatDate(dateStr) {
         body: JSON.stringify({ id: bookingId })
       })
 
+      if (!bRes.ok) {
+        window.showToast && window.showToast('Не удалось загрузить бронирование', 'danger')
+        closeQuickModal()
+        return
+      }
+
       const { booking, scheduledMaid } = await bRes.json()
+
+      if (!booking) {
+        window.showToast && window.showToast('Бронирование не найдено', 'danger')
+        closeQuickModal()
+        return
+      }
 
       const objectsMap = await loadObjectsCache()
       const object = objectsMap.get(booking.realty_id) || null
