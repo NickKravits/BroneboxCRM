@@ -495,6 +495,10 @@
   <span class="page-loader-text">Подождите, страница загружается</span>
 </div>
 
+<div class="busy-overlay" id="busy-overlay">
+  <div class="busy-spinner"><i class="ti ti-loader-2 ti-spin"></i></div>
+</div>
+
 <div class="ambient ambient-tr"></div>
 <div class="ambient ambient-bl"></div>
 
@@ -1906,14 +1910,29 @@ function clearEditPhotos() {
 </div>
 
 <script>
+  // Блокирующий оверлей на время сетевых запросов интеграции — счётчик глубины
+  // на случай, если один обёрнутый вызов вызывает другой обёрнутый вызов
+  let _busyDepth = 0;
+  function setBusy(on) {
+    const el = document.getElementById('busy-overlay');
+    if (!el) return;
+    if (on) {
+      _busyDepth++;
+    } else {
+      _busyDepth = Math.max(0, _busyDepth - 1);
+    }
+    el.classList.toggle('active', _busyDepth > 0);
+  }
+
   async function selectmerchantfunc() {
+    setBusy(true);
     try {
       const token = localStorage.getItem('broneboxtoken');
       const res = await fetch(API + '/integration/tochka/get-merchants', {
         method: 'GET',
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json' 
+          'Content-Type': 'application/json'
         }
       });
 
@@ -1922,6 +1941,8 @@ function clearEditPhotos() {
       openTochkaRetailerSelect(data.dataMerchant);
     } catch (e) {
         showToast('Не удалось получить список торговых точек. Удалите интеграцию и попробуйте снова', 'danger');
+    } finally {
+      setBusy(false);
     }
   }
 </script>
@@ -2103,6 +2124,7 @@ async function confirmTochkaPaymentSelection() {
     return;
   }
 
+  setBusy(true);
   try {
     const token = localStorage.getItem('broneboxtoken');
     const res = await fetch(`${API}/integration/tochka/select-merchant`, {
@@ -2111,17 +2133,24 @@ async function confirmTochkaPaymentSelection() {
       body: JSON.stringify({ merchantId: tochkaPaymentMerchantId, paymentModes: checked })
     });
 
-    if (!res.ok) throw new Error('Ошибка сохранения');
+    if (!res.ok) {
+      let msg = 'Ошибка сохранения';
+      try { const errData = await res.json(); msg = errData.error || msg; } catch {}
+      throw new Error(msg);
+    }
 
     showToast('Интеграция подключена', 'success');
     closeTochkaPaymentSelect();
     getIntegrations();
   } catch (e) {
     showToast(e.message || 'Не удалось сохранить способы оплаты', 'danger');
+  } finally {
+    setBusy(false);
   }
 }
 
 async function selectpaymentfunc(merchantId) {
+  setBusy(true);
   try {
     const token = localStorage.getItem('broneboxtoken');
     const res = await fetch(API + '/integration/tochka/get-merchants', {
@@ -2139,6 +2168,8 @@ async function selectpaymentfunc(merchantId) {
     openTochkaPaymentSelect(retailer.paymentModes, merchantId);
   } catch (e) {
     showToast('Не удалось получить список способов оплаты. Попробуйте позже', 'danger');
+  } finally {
+    setBusy(false);
   }
 }
 
@@ -2181,6 +2212,7 @@ function escapeHtml(str) {
 
   async function deleteTochkaIntegration() {
     const token = localStorage.getItem('broneboxtoken')
+    setBusy(true);
     try {
       const res = await fetch(`${API}/integration/tochka/disconnect`, {
         method: 'POST',
@@ -2196,6 +2228,8 @@ function escapeHtml(str) {
     } catch {
       showToast('Произошла ошибка! Попробуйте позже!', 'danger')
       return
+    } finally {
+      setBusy(false);
     }
     getIntegrations();
   }
@@ -2211,6 +2245,7 @@ function escapeHtml(str) {
     const purposeDeposit = document.getElementById('tochka-deposit-desc').value.trim();
     const nameDeposit = document.getElementById('tochka-deposit-service-name').value.trim();
 
+    setBusy(true);
     try {
       const token = localStorage.getItem('broneboxtoken')
       const body = { phone, apiKey, clientId, vatType, purpose, name, purposeDeposit, nameDeposit };
@@ -2256,6 +2291,8 @@ function escapeHtml(str) {
       console.error("Вот настоящая ошибка из-за которой всё падает:", error); // <-- Это покажет точную строку и причину в консоли браузера (F12)
       showToast('Произошла ошибка! Попробуйте позже!', 'danger')
       return
+    } finally {
+      setBusy(false);
     }
 
     closeTochkaIntegration();
