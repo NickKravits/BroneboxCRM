@@ -113,6 +113,40 @@
     document.body.appendChild(nav);
   }
 
+  function logout() {
+    try { localStorage.removeItem('broneboxtoken'); } catch (e) {}
+    window.location.href = '/login';
+  }
+
+  function buildAvatarMenu() {
+    var avatarWrap = document.querySelector('.sidebar .avatar-wrap');
+    if (!avatarWrap || avatarWrap.querySelector('.avatar-menu')) return;
+
+    avatarWrap.classList.add('avatar-wrap--interactive');
+
+    var menu = document.createElement('div');
+    menu.className = 'avatar-menu';
+    menu.innerHTML =
+      '<button type="button" class="avatar-menu-item avatar-menu-logout">' +
+        '<i class="ti ti-logout-2" aria-hidden="true"></i><span>Выйти из аккаунта</span>' +
+      '</button>';
+    avatarWrap.appendChild(menu);
+
+    avatarWrap.addEventListener('click', function (e) {
+      e.stopPropagation();
+      avatarWrap.classList.toggle('avatar-menu-open');
+    });
+
+    menu.querySelector('.avatar-menu-logout').addEventListener('click', function (e) {
+      e.stopPropagation();
+      logout();
+    });
+
+    document.addEventListener('click', function () {
+      avatarWrap.classList.remove('avatar-menu-open');
+    });
+  }
+
   var TOAST_ICONS = {
     success: 'ti-circle-check',
     danger:  'ti-circle-x',
@@ -247,6 +281,7 @@
     buildSidebarToggle();
     buildTopbar();
     buildTabbar();
+    buildAvatarMenu();
     connectSSE();
   });
 })();

@@ -916,3 +916,46 @@ html[data-theme="light"] .qm-channel-pill.active {
   border-color: rgba(180,110,0,0.25);
   color: #B47A0A;
 }
+
+.avatar-wrap--interactive { position: relative; cursor: pointer; user-select: none; }
+
+.avatar-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 190px;
+  background: var(--bg-light);
+  border: 0.5px solid var(--border-mid);
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.4);
+  padding: 5px;
+  display: none;
+  z-index: 60;
+}
+.avatar-wrap--interactive.avatar-menu-open .avatar-menu { display: block; }
+
+.avatar-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 9px 10px;
+  border: none;
+  background: none;
+  border-radius: 7px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-secondary);
+  transition: background 0.15s, color 0.15s;
+}
+.avatar-menu-item i { font-size: 15px; flex-shrink: 0; }
+.avatar-menu-item:hover { background: rgba(255,255,255,0.07); color: var(--text-primary); }
+
+.avatar-menu-logout { color: #ff87a8; }
+.avatar-menu-logout:hover { background: rgba(212,83,126,0.12); color: #ff87a8; }
+
+html[data-theme="light"] .avatar-menu { box-shadow: 0 12px 30px -12px rgba(26,22,18,0.3); }
+html[data-theme="light"] .avatar-menu-item:hover { background: rgba(26,22,18,0.06); }
+html[data-theme="light"] .avatar-menu-logout { color: #A8345C; }
+html[data-theme="light"] .avatar-menu-logout:hover { background: rgba(168,52,92,0.1); color: #A8345C; }

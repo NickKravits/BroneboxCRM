@@ -659,7 +659,7 @@
           </div>
         </div>
 
-        <button class="btn btn-save" onclick="saveCleaningTemplate()">
+        <button class="btn btn-save" id="save-cleaning-template-btn" onclick="saveCleaningTemplate()">
           <i class="ti ti-device-floppy"></i> Сохранить шаблон
         </button>
       </div>
@@ -3230,6 +3230,12 @@ async function loadMsgTemplates() {
         _canEditTemplates = me.role === 'ADMINISTRATOR' || me.staff?.managetemplates === 'YES'
         const btn = document.getElementById('btn-new-tpl')
         if (btn && _canEditTemplates) btn.style.display = ''
+
+        const cleaningBtn = document.getElementById('save-cleaning-template-btn')
+        if (cleaningBtn) {
+            cleaningBtn.disabled = !_canEditTemplates
+            cleaningBtn.title = _canEditTemplates ? '' : 'Недостаточно прав для изменения шаблона'
+        }
 
         container.innerHTML = ''
         if (!templates || !templates.length) {
