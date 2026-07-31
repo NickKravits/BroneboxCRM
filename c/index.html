@@ -370,7 +370,7 @@
   }
 
   // ── Рендер задач ──────────────────────────────────────────────────────
-  function renderTodos(booking, objects, show, completed, paidAmount, depositHeld, depositTarget) {
+  function renderTodos(booking, objects, show, completed, paidAmount, depositHeld, depositTarget, depositReturned) {
     const todos = []
     const pay      = show.payanddeposit || {}
     const contract = show.contract      || {}
@@ -379,6 +379,7 @@
 
     const depositTargetVal = depositTarget || 0
     const depositRemaining = Math.max(0, depositTargetVal - (depositHeld || 0))
+    const depositAlreadyReturned = (depositReturned || 0) > 0
     const depositBroken    = (objects?.depositchanel === 'MONETA' && !booking.deposit_payment_link) ||
       (objects?.depositchanel === 'TOCHKA' && objects?.tochkaDepositReady === false)
 
@@ -388,7 +389,8 @@
       }
     }
     if (pay.depositActive) {
-      if (depositRemaining > 0 && objects?.depositchanel !== 'NONE' && !depositBroken) {
+      // Если уже был (частичный) возврат залога — повторно вносить не предлагаем
+      if (depositRemaining > 0 && objects?.depositchanel !== 'NONE' && !depositBroken && !depositAlreadyReturned) {
         todos.push({ label: 'Внести залог', icon: 'shield' })
       }
     }
@@ -616,11 +618,18 @@
     const pay = show.payanddeposit || {}
     if (!objects) return
 
+    depositTarget = depositTarget || 0
+
+    // Залог не требуется вовсе — весь блок скрываем
+    if (depositTarget === 0) {
+      document.getElementById('card-deposit').style.display = 'none'
+      return
+    }
+
     document.getElementById('card-deposit').style.display = ''
 
     const held         = depositHeld || 0
     const returned     = depositReturned || 0
-    depositTarget        = depositTarget || 0
     const remaining     = Math.max(0, depositTarget - held)
     const overpaid       = Math.max(0, held - depositTarget)
     const depositPaid    = remaining === 0
@@ -663,6 +672,10 @@
       }
     } else if (depositPaid) {
       action.innerHTML = DEPOSITED_BADGE
+    } else if (returned > 0) {
+      // Уже был (частичный) возврат залога — повторно вносить не предлагаем,
+      // вся история видна в уведомлении выше (deposit-returned-notice)
+      action.innerHTML = ''
     } else if (!pay.active && pay.availableAt) {
       action.innerHTML = ''
       document.getElementById('deposit-notice-text').textContent = 'Кнопка внесения залога появится ' + pay.availableAt
@@ -813,7 +826,7 @@
         document.getElementById('time-section').style.display = 'none'
       }
     } else {
-      renderTodos(booking, objects, show, completed, paidAmount, depositHeld, depositTarget)
+      renderTodos(booking, objects, show, completed, paidAmount, depositHeld, depositTarget, depositReturned)
       initTimeSaving()
     }
 
@@ -1014,7 +1027,7 @@
       if (res.ok) {
         if (ciChanged) { _state.booking.begin_time = ci.value || null; ci.classList.add('success') }
         if (coChanged) { _state.booking.end_time   = co.value || null; co.classList.add('success') }
-        renderTodos(_state.booking, _state.objects, _state.show, _state.completed, _state.paidAmount, _state.depositHeld, _state.depositTarget)
+        renderTodos(_state.booking, _state.objects, _state.show, _state.completed, _state.paidAmount, _state.depositHeld, _state.depositTarget, _state.depositReturned)
         setTimeout(() => { ci.classList.remove('success'); co.classList.remove('success') }, 1500)
         // Кнопка остаётся неактивной — текущие значения совпадают с сохранёнными
       } else {

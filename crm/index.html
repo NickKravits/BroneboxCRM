@@ -70,6 +70,9 @@
     // Кеш объектов: Map(realtyid → object). Живёт всю сессию.
     let _objectsCache = null
 
+    // Может ли текущий пользователь возвращать платежи через Точку (ADMINISTRATOR либо canreturnpayments)
+    let _canReturnPayments = false
+
     async function loadObjectsCache() {
       if (_objectsCache) return _objectsCache
       const token = localStorage.getItem('broneboxtoken')
@@ -98,7 +101,10 @@
 
     function getDepositBadge(booking, object, depositAmount, depositReturned, isTodayCheckout) {
       const objectDeposit = parseFloat(object?.deposit) || 0
-      const depositTarget = (booking?.manual_deposit !== null && booking?.manual_deposit !== undefined)
+      // Ручное значение залога брони учитываем только для Точки/Т-Банка — для Монеты и менеджера
+      // всегда берём дефолт из настроек объекта
+      const depositManualAllowed = object?.depositchanel === 'TOCHKA' || object?.depositchanel === 'TBANK'
+      const depositTarget = (depositManualAllowed && booking?.manual_deposit !== null && booking?.manual_deposit !== undefined)
         ? booking.manual_deposit : objectDeposit
       const held     = depositAmount || 0
       const returned = depositReturned || 0
@@ -250,6 +256,7 @@
           loadObjectsCache()
         ])
 
+        _canReturnPayments = !!meRes.canReturnPayments
         const userTimezone = meRes.cabinet?.Timezone || 'Europe/Moscow'
         const fmt = { timeZone: userTimezone, year: 'numeric', month: '2-digit', day: '2-digit' }
         const fmtCA = (d) => new Intl.DateTimeFormat('en-CA', fmt).format(d)
@@ -668,7 +675,7 @@ function formatDate(dateStr) {
         <span class="field-hint">0 — без залога, либо больше 100 ₽ (ограничение платформы)</span>
       </div>
       <p style="margin:8px 0 0;color:var(--text-secondary);font-size:12px;line-height:1.5;">
-        Изменения будут применены только при внесении залога через Точку.
+        Изменения будут применены только при внесении залога через Точку или Т-Банк.
       </p>
     </div>
     <div class="modal-footer">
@@ -868,15 +875,19 @@ function formatDate(dateStr) {
   let _qmObjectDepositMax   = 0
   let _qmDepositPaidSum     = 0
   let _qmManualDeposit      = null
+  let _qmDepositManualAllowed = false // ручной залог брони учитывается только для Точки/Т-Банка
 
   function updateQmAmountDisplay() {
     const remaining = Math.max(0, _qmBookingAmount - _qmBookingPrepayment - _qmPaidSum)
     document.getElementById('qm-amount').textContent = fmtMoney(remaining) + ' ₽'
   }
 
+  function qmEffectiveDepositTarget() {
+    return (_qmDepositManualAllowed && _qmManualDeposit !== null) ? _qmManualDeposit : _qmObjectDepositMax
+  }
+
   function updateQmDepositTargetDisplay() {
-    const effective = _qmManualDeposit !== null ? _qmManualDeposit : _qmObjectDepositMax
-    document.getElementById('qm-deposit-target').textContent = fmtMoney(effective) + ' ₽'
+    document.getElementById('qm-deposit-target').textContent = fmtMoney(qmEffectiveDepositTarget()) + ' ₽'
   }
 
   function updateQmDepositDisplay() {
@@ -1096,6 +1107,7 @@ function formatDate(dateStr) {
       _qmDepositPaidSum     = 0
       updateQmDepositDisplay()
 
+      _qmDepositManualAllowed = depCh === 'TOCHKA' || depCh === 'TBANK'
       _qmManualDeposit = (booking.manual_deposit !== null && booking.manual_deposit !== undefined)
         ? Number(booking.manual_deposit) : null
       updateQmDepositTargetDisplay()
@@ -1235,10 +1247,18 @@ function formatDate(dateStr) {
         if (p.method === 'MANAGER') {
           actionHtml += `<button class="qm-pay-action danger" onclick="removeManualPayment(${p.id}, '${kind}')" title="Удалить"><i class="ti ti-trash" style="font-size:14px;"></i></button>`
         }
-        if (kind === 'DEPOSIT') {
-          actionHtml += `<button class="qm-pay-action" onclick="openReturnPaymentModal(${p.id}, ${p.amount}, '${kind}')" title="Вернуть залог"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
-        } else if (p.method === 'TOCHKA' || p.method === 'TBANK') {
-          actionHtml += `<button class="qm-pay-action" disabled title="Возврат"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
+
+        const returnLabel = kind === 'DEPOSIT' ? 'Вернуть залог' : 'Вернуть оплату'
+        if (p.method === 'MANAGER') {
+          actionHtml += `<button class="qm-pay-action" onclick="openReturnPaymentModal(${p.id}, ${p.amount}, '${kind}', '${p.method}')" title="${returnLabel}"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
+        } else if (p.method === 'TOCHKA') {
+          if (_canReturnPayments) {
+            actionHtml += `<button class="qm-pay-action" onclick="openReturnPaymentModal(${p.id}, ${p.amount}, '${kind}', '${p.method}')" title="${returnLabel} (Точка)"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
+          } else {
+            actionHtml += `<button class="qm-pay-action" disabled title="Недостаточно прав для возврата платежей"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
+          }
+        } else if (p.method === 'TBANK') {
+          actionHtml += `<button class="qm-pay-action" disabled title="Возврат для этого способа оплаты пока недоступен"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
         }
       }
 
@@ -1265,8 +1285,7 @@ function formatDate(dateStr) {
 
   function addManualDeposit() {
     _addPayKind = 'DEPOSIT'
-    const depositTarget = _qmManualDeposit !== null ? _qmManualDeposit : _qmObjectDepositMax
-    _addPayMaxAmount = Math.max(0, depositTarget - _qmBookingDepositBase - _qmDepositPaidSum)
+    _addPayMaxAmount = Math.max(0, qmEffectiveDepositTarget() - _qmBookingDepositBase - _qmDepositPaidSum)
     openAddPaymentModal('Добавить залог')
   }
 
@@ -1378,17 +1397,20 @@ function formatDate(dateStr) {
   }
 
   // ── Модалка возврата залога/оплаты ───────────────────────────
-  let _returnPaymentId   = null
-  let _returnPaymentMax  = 0
-  let _returnPaymentKind = 'DEPOSIT'
+  let _returnPaymentId     = null
+  let _returnPaymentMax    = 0
+  let _returnPaymentKind   = 'DEPOSIT'
+  let _returnPaymentMethod = 'MANAGER'
 
-  function openReturnPaymentModal(paymentId, maxAmount, kind) {
-    _returnPaymentId   = paymentId
-    _returnPaymentMax  = Number(maxAmount) || 0
-    _returnPaymentKind = kind || 'DEPOSIT'
+  function openReturnPaymentModal(paymentId, maxAmount, kind, method) {
+    _returnPaymentId     = paymentId
+    _returnPaymentMax    = Number(maxAmount) || 0
+    _returnPaymentKind   = kind || 'DEPOSIT'
+    _returnPaymentMethod = method || 'MANAGER'
 
     document.querySelector('#modal-return-payment .modal-title').textContent =
-      _returnPaymentKind === 'DEPOSIT' ? 'Возврат залога' : 'Возврат оплаты'
+      (_returnPaymentKind === 'DEPOSIT' ? 'Возврат залога' : 'Возврат оплаты') +
+      (_returnPaymentMethod === 'TOCHKA' ? ' (Точка)' : '')
 
     const inp = document.getElementById('return-payment-input')
     inp.value = _returnPaymentMax % 1 === 0 ? String(_returnPaymentMax) : String(_returnPaymentMax.toFixed(2))
@@ -1424,7 +1446,8 @@ function formatDate(dateStr) {
     btn.disabled = true
     try {
       const token = localStorage.getItem('broneboxtoken')
-      const res = await fetch(`${API}/payments/manualreturn`, {
+      const endpoint = _returnPaymentMethod === 'TOCHKA' ? '/payments/returnTochkaPayment' : '/payments/manualreturn'
+      const res = await fetch(`${API}${endpoint}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ paymentId: _returnPaymentId, amount })

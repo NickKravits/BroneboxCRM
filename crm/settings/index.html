@@ -485,8 +485,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="app-shell.css">
+  <link rel="stylesheet" href="styles.css?v=20260731">
+  <link rel="stylesheet" href="app-shell.css?v=20260731">
 </head>
 <body>
 
@@ -830,6 +830,10 @@
       <label class="perm-row">
         <div class="perm-info"><span class="perm-name">Изменение броней</span><span class="perm-desc">Может редактировать брони</span></div>
         <label class="toggle-switch"><input type="checkbox" id="perm-managebooks"><span class="toggle-track"></span></label>
+      </label>
+      <label class="perm-row">
+        <div class="perm-info"><span class="perm-name">Возврат платежей</span><span class="perm-desc">Может возвращать оплаты и залоги, принятые через Точку</span></div>
+        <label class="toggle-switch"><input type="checkbox" id="perm-canreturnpayments"><span class="toggle-track"></span></label>
       </label>
     </div>
     <div class="modal-footer">
@@ -2965,6 +2969,7 @@ for (const photo of photosData.photos) {
             document.getElementById('perm-manageautosent').checked = (permissions.manageautosent === "YES");
             document.getElementById('perm-seemaidsrate').checked = (permissions.seemaidsrate === "YES");
             document.getElementById('perm-managebooks').checked = (permissions.managebooks === "YES");
+            document.getElementById('perm-canreturnpayments').checked = (permissions.canreturnpayments === "YES");
         }
 
         document.getElementById('modal-username').textContent = data.name || 'Без имени';
@@ -3435,6 +3440,6 @@ async function saveCabinetTimezone() {
   </div>
 </div>
 
-<script src="app-shell.js"></script>
+<script src="app-shell.js?v=20260731"></script>
 </body>
 </html>
