@@ -289,6 +289,10 @@
     return d;
   }
 
+  function fmtDayLabel(dateStr) {
+    return new Date(dateStr).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+  }
+
   function renderTrendChart(daily) {
     const wrap = document.getElementById('trend-chart-wrap');
     const total = daily.reduce((s, d) => s + d.total, 0);
@@ -310,15 +314,15 @@
     const linePath = smoothPath(points);
     const areaPath = `${linePath} L ${points[points.length - 1][0]} ${H} L ${points[0][0]} ${H} Z`;
 
-    // Пик — самый крупный день
+    // Пик — самый крупный день (метка по умолчанию, пока гость не навёл мышь)
     let peakIdx = 0;
     daily.forEach((d, i) => { if (d.total > daily[peakIdx].total) peakIdx = i; });
     const peak = points[peakIdx];
 
     wrap.innerHTML = `
       <div class="trend-chart-wrap">
-        <div class="trend-chart-inner">
-          <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+        <div class="trend-chart-inner" id="trend-chart-inner">
+          <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" id="trend-svg">
             <defs>
               <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stop-color="#7aa2ff" stop-opacity="0.5"/>
@@ -327,15 +331,68 @@
             </defs>
             <path d="${areaPath}" fill="url(#trendFill)" stroke="none"/>
             <path d="${linePath}" fill="none" stroke="#7aa2ff" stroke-width="2"/>
-            ${daily[peakIdx].total > 0 ? `<line x1="${peak[0]}" y1="0" x2="${peak[0]}" y2="${H}" stroke="#ff6b6b" stroke-width="1" stroke-dasharray="3 3"/>` : ''}
+            <g id="trend-peak-group" style="${daily[peakIdx].total > 0 ? '' : 'display:none'}">
+              <line x1="${peak[0]}" y1="0" x2="${peak[0]}" y2="${H}" stroke="#ff6b6b" stroke-width="1" stroke-dasharray="3 3"/>
+            </g>
+            <g id="trend-hover-group" style="display:none">
+              <line x1="0" y1="0" x2="0" y2="${H}" stroke="rgba(255,255,255,0.35)" stroke-width="1"/>
+              <circle r="4" fill="#7aa2ff" stroke="var(--bg-light)" stroke-width="2"/>
+            </g>
+            <rect id="trend-hover-rect" x="0" y="0" width="${W}" height="${H}" fill="transparent" style="cursor:crosshair"/>
           </svg>
-          ${daily[peakIdx].total > 0 ? `<div class="trend-marker-label" style="left:${(peak[0] / W) * 100}%; top:${(peak[1] / H) * 100}%;">${fmtShort(daily[peakIdx].total)}</div>` : ''}
+          <div class="trend-marker-label" id="trend-peak-label" style="left:${(peak[0] / W) * 100}%; top:${(peak[1] / H) * 100}%; ${daily[peakIdx].total > 0 ? '' : 'display:none'}">${fmtShort(daily[peakIdx].total)}</div>
+          <div class="trend-marker-label" id="trend-hover-label" style="display:none"></div>
         </div>
         <div class="trend-axis">
           <span>1</span><span>5</span><span>10</span><span>15</span><span>20</span><span>25</span><span>${daily.length}</span>
         </div>
       </div>
     `;
+
+    const svg        = document.getElementById('trend-svg');
+    const hoverRect   = document.getElementById('trend-hover-rect');
+    const hoverGroup  = document.getElementById('trend-hover-group');
+    const hoverLine   = hoverGroup.querySelector('line');
+    const hoverDot    = hoverGroup.querySelector('circle');
+    const hoverLabel  = document.getElementById('trend-hover-label');
+    const peakGroup   = document.getElementById('trend-peak-group');
+    const peakLabel   = document.getElementById('trend-peak-label');
+
+    function showDay(idx) {
+      const [x, y] = points[idx];
+      hoverLine.setAttribute('x1', x);
+      hoverLine.setAttribute('x2', x);
+      hoverDot.setAttribute('cx', x);
+      hoverDot.setAttribute('cy', y);
+      hoverGroup.style.display = '';
+      hoverLabel.style.left = (x / W) * 100 + '%';
+      hoverLabel.style.top  = (y / H) * 100 + '%';
+      hoverLabel.textContent = `${fmtDayLabel(daily[idx].date)} — ${fmtShort(daily[idx].total)}`;
+      hoverLabel.style.display = '';
+
+      peakGroup.style.display = 'none';
+      peakLabel.style.display = 'none';
+    }
+
+    function hideHover() {
+      hoverGroup.style.display = 'none';
+      hoverLabel.style.display = 'none';
+      if (daily[peakIdx].total > 0) {
+        peakGroup.style.display = '';
+        peakLabel.style.display = '';
+      }
+    }
+
+    hoverRect.addEventListener('mousemove', (e) => {
+      const pt = svg.createSVGPoint();
+      pt.x = e.clientX;
+      pt.y = e.clientY;
+      const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
+      let idx = Math.round((svgP.x - PAD) / stepX);
+      idx = Math.max(0, Math.min(daily.length - 1, idx));
+      showDay(idx);
+    });
+    hoverRect.addEventListener('mouseleave', hideHover);
   }
 
   function renderDonutChart(bySource) {
@@ -429,8 +486,8 @@
           <button class="pay-goto" onclick="event.stopPropagation(); goToBooking(${p.bookingId})"><i class="ti ti-arrow-right"></i> Перейти</button>
         </div>
         <div class="pay-amount-wrap">
-          <span class="pay-amount">Сумма: ${fmtMoney(p.amount)} ₽</span>
           <div class="pay-actions">${actionHtml}</div>
+          <span class="pay-amount">Сумма: ${fmtMoney(p.amount)} ₽</span>
         </div>
       </div>
     `;
