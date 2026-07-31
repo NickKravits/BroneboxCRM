@@ -575,6 +575,8 @@ html[data-theme="light"] .unread-pill { color: #1768C2; }
   border-radius: 20px; padding: 2px 8px; min-width: 22px; text-align: center;
 }
 
+.mobile-section-anchor { display: none; }
+
 .guest-card {
   background: var(--surface); border: 0.5px solid var(--border);
   border-radius: 14px; padding: 13px 14px;
@@ -755,14 +757,19 @@ html[data-theme="light"] .app-tabbar { --glass-bg: rgba(243,241,236,0.82); }
   .columns-row::-webkit-scrollbar { display: none; }
   .columns-row > div { flex: 0 0 100%; scroll-snap-align: center; }
 
-  .col-header {
+  .col-header { display: none; }
+
+  .mobile-section-anchor {
+    display: flex; align-items: center; gap: 8px;
     position: sticky;
     top: calc(56px + env(safe-area-inset-top, 0px));
     z-index: 5;
-    padding: 10px 0;
-    margin-bottom: 4px;
+    margin: 0 -14px 10px;
+    padding: 10px 14px;
     background: var(--bg);
     border-bottom: 0.5px solid var(--border);
+    font-size: 12px; font-weight: 600; color: var(--text-secondary);
+    letter-spacing: .02em;
   }
 
   .object-row { flex-wrap: wrap; }

@@ -359,6 +359,8 @@
         document.getElementById('col-count-today-out').textContent    = counterTodayOut
         document.getElementById('col-count-tomorrow-out').textContent = counterTomorrowOut
 
+        window.syncMobileSectionAnchor && window.syncMobileSectionAnchor()
+
       } catch (err) {
         console.error('Ошибка при получении бронирований:', err)
       }
@@ -514,10 +516,16 @@ function formatDate(dateStr) {
       </div>
     </div>
 
-    <div class="columns-row">
+    <div class="mobile-section-anchor" id="mobile-section-anchor">
+      <span class="col-dot" id="mobile-anchor-dot"></span>
+      <span id="mobile-anchor-label">Завтра заезд</span>
+      <span class="col-count" id="mobile-anchor-count">...</span>
+    </div>
+
+    <div class="columns-row" id="columns-row">
 
         <div>
-            <div class="col-header">
+            <div class="col-header" data-label="Завтра заезд">
                 <span class="col-dot" style="background:var(--accent-amber)"></span>
                 Завтра заезд
                 <span class="col-count" id="col-count-tomorrow-in">...</span>
@@ -527,7 +535,7 @@ function formatDate(dateStr) {
         </div>
 
         <div>
-            <div class="col-header">
+            <div class="col-header" data-label="Сегодня заезд">
                 <span class="col-dot" style="background:var(--accent-blue)"></span>
                 Сегодня заезд
                 <span class="col-count" id="col-count-today-in">...</span>
@@ -536,7 +544,7 @@ function formatDate(dateStr) {
       </div>
 
       <div>
-        <div class="col-header">
+        <div class="col-header" data-label="Живут">
           <span class="col-dot" style="background:var(--accent-green)"></span>
           Живут
           <span class="col-count" id="col-count-living">...</span>
@@ -546,7 +554,7 @@ function formatDate(dateStr) {
       </div>
 
       <div>
-        <div class="col-header">
+        <div class="col-header" data-label="Сегодня выезд">
           <span class="col-dot" style="background:var(--accent-orange)"></span>
           Сегодня выезд
           <span class="col-count" id="col-count-today-out">...</span>
@@ -556,7 +564,7 @@ function formatDate(dateStr) {
       </div>
 
       <div>
-        <div class="col-header">
+        <div class="col-header" data-label="Завтра выезд">
           <span class="col-dot" style="background:var(--accent-gray)"></span>
           Завтра выезд
           <span class="col-count" id="col-count-tomorrow-out">...</span>

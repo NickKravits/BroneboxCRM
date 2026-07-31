@@ -131,6 +131,47 @@
     document.body.appendChild(nav);
   }
 
+  function initMobileSectionAnchor() {
+    var columnsRow = document.getElementById('columns-row');
+    var anchor = document.getElementById('mobile-section-anchor');
+    if (!columnsRow || !anchor) return;
+
+    var dotEl = document.getElementById('mobile-anchor-dot');
+    var labelEl = document.getElementById('mobile-anchor-label');
+    var countEl = document.getElementById('mobile-anchor-count');
+    var columns = columnsRow.children;
+
+    function activeColumn() {
+      var mid = columnsRow.scrollLeft + columnsRow.clientWidth / 2;
+      var best = null;
+      var bestDist = Infinity;
+      for (var i = 0; i < columns.length; i++) {
+        var col = columns[i];
+        var center = col.offsetLeft + col.offsetWidth / 2;
+        var dist = Math.abs(center - mid);
+        if (dist < bestDist) { bestDist = dist; best = col; }
+      }
+      return best;
+    }
+
+    function sync() {
+      var col = activeColumn();
+      if (!col) return;
+      var header = col.querySelector('.col-header');
+      if (!header) return;
+      var dot = header.querySelector('.col-dot');
+      var count = header.querySelector('.col-count');
+      if (dotEl && dot) dotEl.style.background = dot.style.background;
+      if (labelEl) labelEl.textContent = header.getAttribute('data-label') || '';
+      if (countEl && count) countEl.textContent = count.textContent;
+    }
+
+    columnsRow.addEventListener('scroll', sync, { passive: true });
+    window.addEventListener('resize', sync);
+    window.syncMobileSectionAnchor = sync;
+    sync();
+  }
+
   function logout() {
     try { localStorage.removeItem('broneboxtoken'); } catch (e) {}
     window.location.href = '/login';
@@ -312,6 +353,7 @@
     buildTopbar();
     buildTabbar();
     buildAvatarMenu();
+    initMobileSectionAnchor();
     connectSSE();
   });
 })();
