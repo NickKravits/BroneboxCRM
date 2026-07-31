@@ -96,10 +96,25 @@
       return `<span class="warn-tag">Неоплачено</span>`
     }
 
-    function getDepositBadge(object, depositAmount) {
+    function getDepositBadge(object, depositAmount, depositReturned, isTodayCheckout) {
       const objectDeposit = parseFloat(object?.deposit) || 0
-      if (depositAmount < objectDeposit) return `<span class="warn-tag">Залог не внесён</span>`
-      if (depositAmount > objectDeposit) return `<span class="pay-over-tag">Переплата залога</span>`
+      const held     = depositAmount || 0
+      const returned = depositReturned || 0
+
+      if (objectDeposit === 0) return '' // залог для этого объекта не требуется
+
+      if (returned > 0) {
+        if (held > 0) return `<span class="pay-over-tag">Залог возвращён частично</span>`
+        return '' // возвращён полностью — ничего не пишем
+      }
+
+      // Только в колонке "Сегодня выезд": держим весь залог и ничего ещё не вернули
+      if (isTodayCheckout && held > 0) {
+        return `<span class="warn-tag">Залог не возвращён</span>`
+      }
+
+      if (held < objectDeposit) return `<span class="warn-tag">Залог не внесён</span>`
+      if (held > objectDeposit) return `<span class="pay-over-tag">Переплата залога</span>`
       return ''
     }
 
@@ -112,11 +127,11 @@
       return ''
     }
 
-    function cardCheckin(booking, object, paidAmount, depositAmount) {
+    function cardCheckin(booking, object, paidAmount, depositAmount, depositReturned) {
       const contractStatus = getContractStatus(booking)
       const contractBadge  = contractStatus === null ? '' : `<span class="warn-tag">${contractStatus}</span>`
       const paymentBadge  = getPaymentBadge(booking, paidAmount)
-      const depositBadge  = getDepositBadge(object, depositAmount)
+      const depositBadge  = getDepositBadge(object, depositAmount, depositReturned, false)
       const timeBadge     = getTimeBadge(booking)
       const statusRow = (contractBadge || paymentBadge || depositBadge || timeBadge) ? `<div class="card-footer-row">${contractBadge}${paymentBadge}${depositBadge}${timeBadge}</div>` : ''
       return `
@@ -159,11 +174,11 @@
       }
     }
 
-    function cardCheckout(booking, object, paidAmount, depositAmount) {
+    function cardCheckout(booking, object, paidAmount, depositAmount, depositReturned, isTodayCheckout) {
       const contractStatus = getContractStatus(booking)
       const contractBadge  = contractStatus === null ? '' : `<span class="warn-tag">${contractStatus}</span>`
       const paymentBadge = getPaymentBadge(booking, paidAmount)
-      const depositBadge = getDepositBadge(object, depositAmount)
+      const depositBadge = getDepositBadge(object, depositAmount, depositReturned, isTodayCheckout)
       const timeBadge     = getTimeBadge(booking)
       const statusRow = (contractBadge || paymentBadge || depositBadge || timeBadge) ? `<div class="card-footer-row">${contractBadge}${paymentBadge}${depositBadge}${timeBadge}</div>` : ''
       return `
@@ -186,11 +201,11 @@
       `
     }
 
-    function cardLiving(booking, object, paidAmount, depositAmount) {
+    function cardLiving(booking, object, paidAmount, depositAmount, depositReturned) {
       const contractStatus = getContractStatus(booking)
       const contractBadge  = contractStatus === null ? '' : `<span class="warn-tag">${contractStatus}</span>`
       const paymentBadge = getPaymentBadge(booking, paidAmount)
-      const depositBadge = getDepositBadge(object, depositAmount)
+      const depositBadge = getDepositBadge(object, depositAmount, depositReturned, false)
       const timeBadge     = getTimeBadge(booking)
       const statusRow = (contractBadge || paymentBadge || depositBadge || timeBadge) ? `<div class="card-footer-row">${contractBadge}${paymentBadge}${depositBadge}${timeBadge}</div>` : ''
       return `
@@ -287,23 +302,27 @@
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ bookingIds, type: payType })
-        }).then(r => r.json()).then(d => d.amounts || {}).catch(() => ({}))
+        }).then(r => r.json()).catch(() => ({}))
 
         const bookingIds = cardJobs.map(({ booking }) => booking.id)
-        const [paidAmountsMap, depositAmountsMap] = await Promise.all([
+        const [payData, depositData] = await Promise.all([
           fetchAmounts(bookingIds, 'PAY'),
           fetchAmounts(bookingIds, 'DEPOSIT')
         ])
+        const paidAmountsMap     = payData.amounts || {}
+        const depositAmountsMap  = depositData.amounts || {}
+        const depositReturnedMap = depositData.returnedAmounts || {}
 
         // Строим желаемое содержимое каждой колонки, не трогая DOM
         const byBucket = { tomorrowIn: [], todayIn: [], living: [], todayOut: [], tomorrowOut: [] }
         cardJobs.forEach(({ booking, object, type, bucket }) => {
-          const paidAmount    = paidAmountsMap[booking.id] || 0
-          const depositAmount = depositAmountsMap[booking.id] || 0
+          const paidAmount      = paidAmountsMap[booking.id] || 0
+          const depositAmount   = depositAmountsMap[booking.id] || 0
+          const depositReturned = depositReturnedMap[booking.id] || 0
           let html
-          if (type === 'checkin')       html = cardCheckin(booking, object, paidAmount, depositAmount)
-          else if (type === 'checkout') html = cardCheckout(booking, object, paidAmount, depositAmount)
-          else                          html = cardLiving(booking, object, paidAmount, depositAmount)
+          if (type === 'checkin')       html = cardCheckin(booking, object, paidAmount, depositAmount, depositReturned)
+          else if (type === 'checkout') html = cardCheckout(booking, object, paidAmount, depositAmount, depositReturned, bucket === 'todayOut')
+          else                          html = cardLiving(booking, object, paidAmount, depositAmount, depositReturned)
           byBucket[bucket].push({ booking, object, html })
         })
 
