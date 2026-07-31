@@ -257,6 +257,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
       <span id="deposit-overpay-text"></span>
     </div>
+    <div class="deposit-returned-notice" id="deposit-returned-notice" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+      <span id="deposit-returned-text"></span>
+    </div>
     <div class="available-notice" id="deposit-notice" style="display:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
       <span id="deposit-notice-text"></span>
@@ -366,7 +370,7 @@
   }
 
   // ── Рендер задач ──────────────────────────────────────────────────────
-  function renderTodos(booking, objects, show, completed, paidAmount, depositPaidAmount) {
+  function renderTodos(booking, objects, show, completed, paidAmount, depositHeld) {
     const todos = []
     const pay      = show.payanddeposit || {}
     const contract = show.contract      || {}
@@ -374,8 +378,7 @@
     const paymentBroken = objects?.paymentchanel === 'TOCHKA' && objects?.tochkaReady === false
 
     const depositTarget    = parseFloat(objects?.deposit) || 0
-    const totalDeposit     = (booking.deposit || 0) + (depositPaidAmount || 0)
-    const depositRemaining = Math.max(0, depositTarget - totalDeposit)
+    const depositRemaining = Math.max(0, depositTarget - (depositHeld || 0))
     const depositBroken    = objects?.depositchanel === 'MONETA' && !booking.deposit_payment_link
 
     if (pay.active) {
@@ -588,33 +591,56 @@
   }
 
   // ── Блок залога ───────────────────────────────────────────────────────
-  function renderDeposit(booking, objects, show, depositPaidAmount) {
+  function renderDeposit(booking, objects, show, depositHeld, depositReturned, checkoutPassed) {
     const pay = show.payanddeposit || {}
     if (!objects) return
 
     document.getElementById('card-deposit').style.display = ''
 
-    const paid          = depositPaidAmount || 0
+    const held         = depositHeld || 0
+    const returned     = depositReturned || 0
     const depositTarget = parseFloat(objects.deposit) || 0
-    const totalDeposit  = (booking.deposit || 0) + paid
-    const remaining     = Math.max(0, depositTarget - totalDeposit)
-    const overpaid      = Math.max(0, totalDeposit - depositTarget)
-    const depositPaid   = remaining === 0
+    const remaining     = Math.max(0, depositTarget - held)
+    const overpaid       = Math.max(0, held - depositTarget)
+    const depositPaid    = remaining === 0
 
-    document.getElementById('deposit-amount').textContent = formatPrice(depositTarget)
+    // Пока не полностью внесён и бронь ещё активна — показываем требуемую сумму;
+    // как только внесён/переплачен, либо бронь завершилась и что-то удерживается — фактически внесённую
+    const showActualAmount = depositPaid || (checkoutPassed && held > 0)
+    document.getElementById('deposit-amount').textContent = formatPrice(showActualAmount ? held : depositTarget)
 
     const overpayNotice = document.getElementById('deposit-overpay-notice')
     if (depositPaid && overpaid > 0) {
-      document.getElementById('deposit-overpay-text').textContent = 'Есть переплата: ' + formatPrice(overpaid)
+      document.getElementById('deposit-overpay-text').textContent = 'Переплата: ' + formatPrice(overpaid)
       overpayNotice.style.display = ''
     } else {
       overpayNotice.style.display = 'none'
     }
 
+    // Если возвратов не было вообще — не показываем пустой 0
+    const returnedNotice = document.getElementById('deposit-returned-notice')
+    if (returned > 0) {
+      document.getElementById('deposit-returned-text').textContent =
+        'Осталось у арендодателя: ' + formatPrice(held) + ' · Возвращено: ' + formatPrice(returned)
+      returnedNotice.style.display = ''
+    } else {
+      returnedNotice.style.display = 'none'
+    }
+
     const action = document.getElementById('deposit-obj-action')
     document.getElementById('deposit-notice').style.display = 'none'
 
-    if (depositPaid) {
+    if (checkoutPassed) {
+      // Бронь завершена — вносить залог гостю больше незачем
+      action.innerHTML = ''
+      if (held > 0) {
+        document.getElementById('deposit-notice-text').textContent = 'Залог будет возвращён после подтверждения менеджера.'
+        document.getElementById('deposit-notice').style.display = ''
+      } else {
+        document.getElementById('deposit-notice-text').textContent = 'Бронирование завершено — внесение залога недоступно.'
+        document.getElementById('deposit-notice').style.display = ''
+      }
+    } else if (depositPaid) {
       action.innerHTML = DEPOSITED_BADGE
     } else if (!pay.active && pay.availableAt) {
       action.innerHTML = ''
@@ -629,11 +655,10 @@
         document.getElementById('deposit-notice').style.display = ''
       }
     } else if (objects.depositchanel !== 'NONE') {
-      // Залог не внесён — кнопка остаётся видимой даже после выезда НУЖНО СДЕЛАТЬ ТАК, ЧТОБЫ ОНА СКРЫВАЛАСЬ ПОСЛЕ ВЫЕЗДА, ЕСЛИ НЕ ВНЕСЁН ЗАЛОГ И ПИСАТЬ ОБ ЭТОМ
       action.innerHTML = `<button class="btn-deposit">Внести залог</button>`
     }
 
-    if (objects.depositchanel === 'NONE') {
+    if (!checkoutPassed && objects.depositchanel === 'NONE') {
       document.getElementById('deposit-notice-text').textContent = 'Внесение залога произодится через менеджера!'
       document.getElementById('deposit-notice').style.display = ''
     }
@@ -700,7 +725,7 @@
   }
 
   // ── Применение данных ─────────────────────────────────────────────────
-  function applyData(booking, objects, photos, show, bookingState, checkoutPassed, paidAmount, depositPaidAmount) {
+  function applyData(booking, objects, photos, show, bookingState, checkoutPassed, paidAmount, depositHeld, depositReturned) {
     const completed  = bookingState === 'booked' && checkoutPassed
     const isCanceled = bookingState === 'canceled' || bookingState === 'deleted'
     const isRequest  = bookingState === 'request'
@@ -726,7 +751,7 @@
     }
 
     // ── booked ─────────────────────────────────────────────────────────
-    _state = { booking, objects, show, completed, paidAmount, depositPaidAmount }
+    _state = { booking, objects, show, completed, checkoutPassed, paidAmount, depositHeld, depositReturned }
 
     const nights   = countNights(booking.begin_date, booking.end_date)
     const checkin  = formatDate(booking.begin_date)
@@ -759,7 +784,7 @@
         document.getElementById('time-section').style.display = 'none'
       }
     } else {
-      renderTodos(booking, objects, show, completed, paidAmount, depositPaidAmount)
+      renderTodos(booking, objects, show, completed, paidAmount, depositHeld)
       initTimeSaving()
     }
 
@@ -804,7 +829,7 @@
     const pay = show.payanddeposit || {}
     if (pay.visible) {
       renderPayment(booking, objects, show, paidAmount)
-      renderDeposit(booking, objects, show, depositPaidAmount)
+      renderDeposit(booking, objects, show, depositHeld, depositReturned, checkoutPassed)
     }
 
     // ── Оценка ───────────────────────────────────────────────────────────
@@ -835,8 +860,8 @@
       if (res.status === 404) { showNotFound(); return }
       if (!res.ok)            { showNotFound(); return }
 
-      const { booking, objects, photos, show, bookingState, checkoutPassed, paidAmount, depositPaidAmount } = await res.json()
-      applyData(booking, objects, photos, show, bookingState, checkoutPassed, paidAmount, depositPaidAmount)
+      const { booking, objects, photos, show, bookingState, checkoutPassed, paidAmount, depositHeld, depositReturned } = await res.json()
+      applyData(booking, objects, photos, show, bookingState, checkoutPassed, paidAmount, depositHeld, depositReturned)
 
     } catch (e) {
       console.error('Ошибка загрузки:', e)
@@ -899,7 +924,7 @@
         const data  = await res.json()
         const toPay = Math.max(0, (data.booking?.balance_to_be_paid_1 || 0) - (data.paidAmount || 0))
         if (toPay === 0) {
-          applyData(data.booking, data.objects, data.photos, data.show, data.bookingState, data.checkoutPassed, data.paidAmount, data.depositPaidAmount)
+          applyData(data.booking, data.objects, data.photos, data.show, data.bookingState, data.checkoutPassed, data.paidAmount, data.depositHeld, data.depositReturned)
           showWaitPaySuccess()
           return
         }
@@ -958,7 +983,7 @@
       if (res.ok) {
         if (ciChanged) { _state.booking.begin_time = ci.value || null; ci.classList.add('success') }
         if (coChanged) { _state.booking.end_time   = co.value || null; co.classList.add('success') }
-        renderTodos(_state.booking, _state.objects, _state.show, _state.completed, _state.paidAmount, _state.depositPaidAmount)
+        renderTodos(_state.booking, _state.objects, _state.show, _state.completed, _state.paidAmount, _state.depositHeld)
         setTimeout(() => { ci.classList.remove('success'); co.classList.remove('success') }, 1500)
         // Кнопка остаётся неактивной — текущие значения совпадают с сохранёнными
       } else {
