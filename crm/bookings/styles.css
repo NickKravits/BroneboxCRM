@@ -11,7 +11,7 @@
   justify-content: center;
   gap: 14px;
   font-size: 36px;
-  color: rgba(255,255,255,0.3);
+  color: var(--text-muted, rgba(255,255,255,0.3));
   transition: opacity 0.25s ease;
 }
 #page-loader.hidden {
@@ -21,7 +21,7 @@
 .page-loader-text {
   font-size: 13px;
   letter-spacing: 0.01em;
-  color: rgba(255,255,255,0.35);
+  color: var(--text-secondary, rgba(255,255,255,0.35));
 }
 
     :root {

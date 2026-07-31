@@ -69,6 +69,16 @@
     sidebarBottom.insertBefore(makeToggleButton('theme-toggle--sidebar', true), sidebarBottom.firstChild);
   }
 
+  function makeLogoutButton() {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'theme-toggle theme-toggle--topbar topbar-logout';
+    btn.setAttribute('aria-label', 'Выйти из аккаунта');
+    btn.innerHTML = '<i class="ti ti-logout-2" aria-hidden="true"></i>';
+    btn.addEventListener('click', logout);
+    return btn;
+  }
+
   function pageTitle() {
     var t = (document.title || '').replace(/^BroneBox CRM\s*[-—]\s*/, '').trim();
     return t || 'BroneBox';
@@ -82,6 +92,10 @@
     title.className = 'app-topbar-title';
     title.textContent = pageTitle();
     bar.appendChild(title);
+
+    if (pageTitle() === 'Настройки') {
+      bar.appendChild(makeLogoutButton());
+    }
 
     bar.appendChild(makeToggleButton('theme-toggle--topbar', false));
     document.body.insertBefore(bar, document.body.firstChild);
@@ -120,7 +134,7 @@
 
   function buildAvatarMenu() {
     var avatarWrap = document.querySelector('.sidebar .avatar-wrap');
-    if (!avatarWrap || avatarWrap.querySelector('.avatar-menu')) return;
+    if (!avatarWrap) return;
 
     avatarWrap.classList.add('avatar-wrap--interactive');
 
@@ -130,11 +144,23 @@
       '<button type="button" class="avatar-menu-item avatar-menu-logout">' +
         '<i class="ti ti-logout-2" aria-hidden="true"></i><span>Выйти из аккаунта</span>' +
       '</button>';
-    avatarWrap.appendChild(menu);
+    document.body.appendChild(menu);
+
+    function positionMenu() {
+      var rect = avatarWrap.getBoundingClientRect();
+      menu.style.top = (rect.bottom + 6) + 'px';
+      menu.style.left = rect.left + 'px';
+    }
+
+    function closeMenu() {
+      menu.classList.remove('open');
+    }
 
     avatarWrap.addEventListener('click', function (e) {
       e.stopPropagation();
-      avatarWrap.classList.toggle('avatar-menu-open');
+      var willOpen = !menu.classList.contains('open');
+      if (willOpen) positionMenu();
+      menu.classList.toggle('open', willOpen);
     });
 
     menu.querySelector('.avatar-menu-logout').addEventListener('click', function (e) {
@@ -142,9 +168,9 @@
       logout();
     });
 
-    document.addEventListener('click', function () {
-      avatarWrap.classList.remove('avatar-menu-open');
-    });
+    document.addEventListener('click', closeMenu);
+    window.addEventListener('resize', closeMenu);
+    window.addEventListener('scroll', closeMenu, true);
   }
 
   var TOAST_ICONS = {
