@@ -93,11 +93,15 @@
     title.textContent = pageTitle();
     bar.appendChild(title);
 
-    if (pageTitle() === 'Настройки') {
-      bar.appendChild(makeLogoutButton());
-    }
+    var actions = document.createElement('div');
+    actions.className = 'app-topbar-actions';
 
-    bar.appendChild(makeToggleButton('theme-toggle--topbar', false));
+    if (pageTitle() === 'Настройки') {
+      actions.appendChild(makeLogoutButton());
+    }
+    actions.appendChild(makeToggleButton('theme-toggle--topbar', false));
+
+    bar.appendChild(actions);
     document.body.insertBefore(bar, document.body.firstChild);
   }
 

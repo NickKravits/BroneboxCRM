@@ -650,6 +650,7 @@ html[data-theme="light"] .topbar-logout:active { background: rgba(168,52,92,0.1)
 }
 html[data-theme="light"] .app-topbar { --glass-bg: rgba(243,241,236,0.78); }
 .app-topbar-title { font-size: 15px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.01em; }
+.app-topbar-actions { display: flex; align-items: center; gap: 2px; }
 
 .app-tabbar {
   display: none;
