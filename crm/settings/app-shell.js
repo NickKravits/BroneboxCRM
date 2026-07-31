@@ -136,6 +136,8 @@
     var anchor = document.getElementById('mobile-section-anchor');
     if (!columnsRow || !anchor) return;
 
+    document.body.classList.add('has-section-anchor');
+
     var dotEl = document.getElementById('mobile-anchor-dot');
     var labelEl = document.getElementById('mobile-anchor-label');
     var countEl = document.getElementById('mobile-anchor-count');

@@ -379,6 +379,7 @@ function formatDate(dateStr) {
       const token = localStorage.getItem('broneboxtoken');
       const availableDiv = document.getElementById('section-title');
       const availableList = document.getElementById("objects-list")
+      if (!availableDiv || !availableList) return;
       availableList.innerHTML = '';
 
       try {
@@ -395,10 +396,13 @@ function formatDate(dateStr) {
         const { AvailableObjects } = await res.json();
 
         if (AvailableObjects.length === 0) {
-          availableList.remove();
-          availableDiv.remove();
+          availableList.style.display = 'none';
+          availableDiv.style.display = 'none';
           return;
         }
+
+        availableList.style.display = '';
+        availableDiv.style.display = '';
         for (const object of AvailableObjects) {
           const card = document.createElement('div');
           card.className = 'object-row';
