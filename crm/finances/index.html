@@ -43,7 +43,6 @@
 
 <div class="layout">
 
-  <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
     <div class="avatar-wrap">
       <div class="avatar">
@@ -90,66 +89,68 @@
     </div>
   </aside>
 
-  <!-- Main -->
   <main class="main">
 
-    <!-- Header -->
     <div class="page-header">
       <h1 class="page-title">Финансы</h1>
     </div>
 
-    <!-- Charts -->
-    <div class="finance-charts">
-      <div class="chart-card">
-        <div class="chart-card-title">Статистика за 30 дней</div>
-        <div id="trend-chart-wrap"><div class="chart-empty">Загрузка...</div></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-card-title">Статистика по источникам за 30 дней</div>
-        <div id="donut-wrap"><div class="chart-empty">Загрузка...</div></div>
-      </div>
+    <div id="finances-no-access" class="no-access-state" style="display:none">
+      <i class="ti ti-lock"></i>
+      <h2>Нет доступа к вкладке</h2>
+      <p>У вас нет прав на просмотр оплат или залогов во вкладке «Финансы». Обратитесь к администратору.</p>
     </div>
 
-    <!-- Filters -->
-    <div class="filters-bar">
-      <div class="filter-group">
-        <span class="filter-label">Источник</span>
-        <select class="filter-select" id="filter-source" onchange="loadPayments()">
-          <option value="">Все источники</option>
-          <option value="TOCHKA">Точка</option>
-          <option value="TBANK">Т-Банк</option>
-          <option value="MANAGER">Ручной ввод</option>
-        </select>
+    <div id="finances-content">
+      <div class="finance-charts">
+        <div class="chart-card">
+          <div class="chart-card-title">Статистика за 30 дней</div>
+          <div id="trend-chart-wrap"><div class="chart-empty">Загрузка...</div></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-title">Статистика по источникам за 30 дней</div>
+          <div id="donut-wrap"><div class="chart-empty">Загрузка...</div></div>
+        </div>
       </div>
-      <div class="filter-group">
-        <span class="filter-label">Статус</span>
-        <select class="filter-select" id="filter-status" onchange="loadPayments()">
-          <option value="">Все статусы</option>
-          <option value="PAID">Оплачено</option>
-          <option value="PENDING">Ожидание</option>
-          <option value="FAILED">Ошибка</option>
-          <option value="RETURNED">Возвращено</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <span class="filter-label">Тип</span>
-        <select class="filter-select" id="filter-type" onchange="loadPayments()">
-          <option value="">Все типы</option>
-          <option value="PAY">Оплата</option>
-          <option value="DEPOSIT">Залог</option>
-        </select>
-      </div>
-    </div>
 
-    <!-- Payments list -->
-    <div id="payments-container">
-      <!-- рендерится из JS -->
+      <div class="filters-bar">
+        <div class="filter-group">
+          <span class="filter-label">Источник</span>
+          <select class="filter-select" id="filter-source" onchange="loadPayments()">
+            <option value="">Все источники</option>
+            <option value="TOCHKA">Точка</option>
+            <option value="TBANK">Т-Банк</option>
+            <option value="MANAGER">Ручной ввод</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Статус</span>
+          <select class="filter-select" id="filter-status" onchange="loadPayments()">
+            <option value="">Все статусы</option>
+            <option value="PAID">Оплачено</option>
+            <option value="PENDING">Ожидание</option>
+            <option value="FAILED">Ошибка</option>
+            <option value="RETURNED">Возвращено</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Тип</span>
+          <select class="filter-select" id="filter-type" onchange="loadPayments()">
+            <option value="" id="filter-type-all">Все типы</option>
+            <option value="PAY" id="filter-type-pay">Оплата</option>
+            <option value="DEPOSIT" id="filter-type-deposit">Залог</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="payments-container">
+
+      </div>
     </div>
 
   </main>
 </div>
 
-<!-- Модалка «Информация по оплате» -->
 <div class="modal-overlay" id="payment-modal" onclick="handlePaymentModalOverlay(event)">
   <div class="modal">
     <div class="modal-header">
@@ -191,7 +192,6 @@
   </div>
 </div>
 
-<!-- Модалка возврата -->
 <div class="modal-overlay" id="modal-return-payment" onclick="handleReturnPaymentOverlay(event)">
   <div class="modal" style="width:380px;">
     <div class="modal-header">
@@ -223,6 +223,13 @@
   const TYPE_LABELS   = { PAY: 'Оплата', DEPOSIT: 'Залог' };
 
   let _payments = [];
+
+  let _manualPaymentEdit = false;
+  let _manualDepositEdit = false;
+  let _bankPaymentEdit   = false;
+  let _bankDepositEdit   = false;
+  let _financesInformationPayment = false;
+  let _financesInformationDeposit = false;
 
   function toggleSidebar() {
     document.getElementById('sidebar').classList.toggle('open');
@@ -268,14 +275,37 @@
       document.querySelector('.avatar-name').textContent = data.name || 'Без имени';
       document.querySelector('.avatar-role').textContent = roleMap[data.role] || 'Неизвестная роль';
       document.getElementById('main_avatar').textContent = initials;
+
+      _manualPaymentEdit = !!data.manualPaymentEdit;
+      _manualDepositEdit = !!data.manualDepositEdit;
+      _bankPaymentEdit   = !!data.bankPaymentEdit;
+      _bankDepositEdit   = !!data.bankDepositEdit;
+      _financesInformationPayment = !!data.financesInformationPayment;
+      _financesInformationDeposit = !!data.financesInformationDeposit;
+      applyFinancesAccess();
     } catch (err) {
       console.error('Ошибка при получении данных пользователя:', err);
     }
   }
 
-  // ── Графики ──────────────────────────────────────────────────────────
+  function applyFinancesAccess() {
+    const hasAccess = _financesInformationPayment || _financesInformationDeposit;
+    document.getElementById('finances-no-access').style.display = hasAccess ? 'none' : '';
+    document.getElementById('finances-content').style.display = hasAccess ? '' : 'none';
+    if (!hasAccess) return;
 
-  // Сглаженный путь через точки (квадратичные кривые через середины отрезков)
+    const typeSelect = document.getElementById('filter-type');
+    if (!_financesInformationPayment) {
+      document.getElementById('filter-type-pay').remove();
+      typeSelect.value = 'DEPOSIT';
+      typeSelect.disabled = true;
+    } else if (!_financesInformationDeposit) {
+      document.getElementById('filter-type-deposit').remove();
+      typeSelect.value = 'PAY';
+      typeSelect.disabled = true;
+    }
+  }
+
   function smoothPath(points) {
     if (points.length < 2) return '';
     let d = `M ${points[0][0]} ${points[0][1]}`;
@@ -315,7 +345,6 @@
     const linePath = smoothPath(points);
     const areaPath = `${linePath} L ${points[points.length - 1][0]} ${H} L ${points[0][0]} ${H} Z`;
 
-    // Пик — самый крупный день (метка по умолчанию, пока гость не навёл мышь)
     let peakIdx = 0;
     daily.forEach((d, i) => { if (d.total > daily[peakIdx].total) peakIdx = i; });
     const peak = points[peakIdx];
@@ -452,22 +481,34 @@
     }
   }
 
-  // ── Список платежей ─────────────────────────────────────────────────
-
   function renderPaymentRow(p) {
     const nothingLeft = Number(p.amount || 0) <= 0;
     const wasPaid = p.status === 'PAID' || p.status === 'RETURNED';
     const alreadyRefundedOnce = Number(p.returnedAmount || 0) > 0;
+    const canManualEdit = p.type === 'DEPOSIT' ? _manualDepositEdit : _manualPaymentEdit;
+    const canBankEdit    = p.type === 'DEPOSIT' ? _bankDepositEdit   : _bankPaymentEdit;
 
     let actionHtml = '';
     if (p.method === 'MANAGER') {
-      actionHtml += `<button class="btn-return" style="background:rgba(212,83,126,0.12);border-color:rgba(212,83,126,0.28);color:var(--accent-pink)" onclick="event.stopPropagation(); removePayment(${p.id})" title="Удалить"><i class="ti ti-trash"></i> Удалить</button>`;
+      if (canManualEdit) {
+        actionHtml += `<button class="btn-return" style="background:rgba(212,83,126,0.12);border-color:rgba(212,83,126,0.28);color:var(--accent-pink)" onclick="event.stopPropagation(); removePayment(${p.id})" title="Удалить"><i class="ti ti-trash"></i> Удалить</button>`;
+      } else {
+        actionHtml += `<button class="btn-return" disabled title="Недостаточно прав для удаления"><i class="ti ti-trash"></i> Удалить</button>`;
+      }
     }
     if (!nothingLeft && wasPaid) {
       if (p.method === 'MANAGER') {
-        actionHtml += `<button class="btn-return" onclick="event.stopPropagation(); openReturnPaymentModal(${p.id}, ${p.amount}, '${p.method}')"><i class="ti ti-arrow-back-up"></i> Вернуть</button>`;
+        if (canManualEdit) {
+          actionHtml += `<button class="btn-return" onclick="event.stopPropagation(); openReturnPaymentModal(${p.id}, ${p.amount}, '${p.method}')"><i class="ti ti-arrow-back-up"></i> Вернуть</button>`;
+        } else {
+          actionHtml += `<button class="btn-return" disabled title="Недостаточно прав для возврата"><i class="ti ti-arrow-back-up"></i> Вернуть</button>`;
+        }
       } else if (p.method === 'TOCHKA' && !alreadyRefundedOnce) {
-        actionHtml += `<button class="btn-return" onclick="event.stopPropagation(); openReturnPaymentModal(${p.id}, ${p.amount}, '${p.method}')"><i class="ti ti-arrow-back-up"></i> Вернуть</button>`;
+        if (canBankEdit) {
+          actionHtml += `<button class="btn-return" onclick="event.stopPropagation(); openReturnPaymentModal(${p.id}, ${p.amount}, '${p.method}')"><i class="ti ti-arrow-back-up"></i> Вернуть</button>`;
+        } else {
+          actionHtml += `<button class="btn-return" disabled title="Недостаточно прав для возврата"><i class="ti ti-arrow-back-up"></i> Вернуть</button>`;
+        }
       } else if (p.method === 'TBANK') {
         actionHtml += `<button class="btn-return" disabled title="Возврат для этого способа оплаты пока недоступен"><i class="ti ti-arrow-back-up"></i> Вернуть</button>`;
       }
@@ -561,8 +602,6 @@
     window.open(`/crm/bookings?openBooking=${bookingId}`, '_blank');
   }
 
-  // ── Модалка «Информация по оплате» ──────────────────────────────────
-
   function openPaymentModal(id) {
     const p = _payments.find(x => x.id === id);
     if (!p) return;
@@ -589,19 +628,22 @@
     const alreadyRefundedOnce = Number(p.returnedAmount || 0) > 0;
     const returnBtn = document.getElementById('pm-return-btn');
 
+    const canManualEdit = p.type === 'DEPOSIT' ? _manualDepositEdit : _manualPaymentEdit;
+    const canBankEdit    = p.type === 'DEPOSIT' ? _bankDepositEdit   : _bankPaymentEdit;
+
     let canReturn = false;
     if (!nothingLeft && wasPaid) {
-      if (p.method === 'MANAGER') canReturn = true;
-      else if (p.method === 'TOCHKA' && !alreadyRefundedOnce) canReturn = true;
+      if (p.method === 'MANAGER') canReturn = canManualEdit;
+      else if (p.method === 'TOCHKA' && !alreadyRefundedOnce) canReturn = canBankEdit;
     }
     returnBtn.style.display = (wasPaid && !nothingLeft) ? '' : 'none';
     returnBtn.disabled = !canReturn;
     returnBtn.title = canReturn ? '' :
       (p.method === 'TBANK' ? 'Возврат для этого способа оплаты пока недоступен' :
-       alreadyRefundedOnce ? 'Через Точку можно вернуть только один раз' : '');
+       alreadyRefundedOnce ? 'Через Точку можно вернуть только один раз' :
+       (p.method === 'MANAGER' || p.method === 'TOCHKA') ? 'Недостаточно прав для возврата' : '');
     returnBtn.onclick = () => openReturnPaymentModal(p.id, p.amount, p.method);
 
-    // Статус в Точке и тип оплаты — только для метода "Точка"
     const tochkaBlock = document.getElementById('pm-tochka-block');
     if (p.method === 'TOCHKA') {
       document.getElementById('pm-tochka-status').textContent = p.tochkaStatus || '—';
@@ -621,8 +663,6 @@
   function handlePaymentModalOverlay(e) {
     if (e.target.id === 'payment-modal') closePaymentModal();
   }
-
-  // ── Удаление ручного платежа ────────────────────────────────────────
 
   async function removePayment(id) {
     if (!confirm('Удалить этот платёж?')) return;
@@ -645,8 +685,6 @@
       showToast('Ошибка удаления', 'danger');
     }
   }
-
-  // ── Модалка возврата ────────────────────────────────────────────────
 
   let _returnPaymentId     = null;
   let _returnPaymentMax    = 0;
@@ -714,13 +752,16 @@
     }
   }
 
-  // ── Запуск ───────────────────────────────────────────────────────────
-
-  window.addEventListener('bronebox:reload', () => { loadPayments(); loadStats(); });
+  window.addEventListener('bronebox:reload', () => {
+    if (_financesInformationPayment || _financesInformationDeposit) { loadPayments(); loadStats(); }
+  });
 
   document.addEventListener('DOMContentLoaded', async () => {
     try {
-      await Promise.all([getUserData(), loadPayments(), loadStats()]);
+      await getUserData();
+      if (_financesInformationPayment || _financesInformationDeposit) {
+        await Promise.all([loadPayments(), loadStats()]);
+      }
     } finally {
       const loader = document.getElementById('page-loader');
       loader.classList.add('hidden');

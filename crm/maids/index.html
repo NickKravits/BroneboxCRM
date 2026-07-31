@@ -61,8 +61,6 @@
       var date = document.getElementById('schedule-date').value;
       if (!date) return;
 
-      // Фоновым обновлением (SSE-триггер) считаем повторный запрос той же даты —
-      // тогда не сбрасываем список и не затираем несохранённые правки менеджера
       var isBackgroundRefresh = _scheduleLoaded && date === _scheduleDate;
       _scheduleDate = date;
 
@@ -112,7 +110,6 @@
         return;
       }
 
-      // Дифф: убираем карточки объектов, которых больше нет в списке (и стартовый плейсхолдер)
       var wantedIds = {};
       _scheduleEntries.forEach(function(e) { wantedIds[e.objectid] = true; });
       Array.from(list.children).forEach(function(child) {
@@ -124,8 +121,6 @@
       _scheduleEntries.forEach(function(entry) {
         var existing = list.querySelector('[data-objectid="' + entry.objectid + '"]');
 
-        // Не трогаем карточку, если менеджер прямо сейчас в ней печатает/выбирает —
-        // иначе теряются несохранённые нажатия клавиш, которые ещё не долетели до onchange
         if (existing && document.activeElement !== document.body && existing.contains(document.activeElement)) {
           return;
         }
@@ -153,7 +148,6 @@
           maidOptions += '<option value="' + m.id + '"' + (entry.maidId == m.id ? ' selected' : '') + '>' + m.name + '</option>';
         });
 
-        // Badge for status
         var statusBadge = '';
         if (entry.status === 'ongoing') {
           statusBadge = '<span class="sched-badge sched-badge--ongoing">Гости проживают до ' + fmtDate(entry.ongoingCheckout) + '</span>';
@@ -161,7 +155,6 @@
           statusBadge = '<span class="sched-badge sched-badge--empty">Не жили</span>';
         }
 
-        // Guest review stars (from checkout booking)
         var reviewBlock = '';
         if (entry.status === 'checkout' && entry.guestReview) {
           var stars = '';
@@ -171,11 +164,9 @@
           reviewBlock = '<div class="sched-review">' + stars + '</div>';
         }
 
-        // Checkout block (departing guests)
         var checkoutTimeWarn = (entry.status === 'checkout' && !entry.hasBookingCheckoutTime && !entry.checkoutTime);
         var checkoutTimeClass = checkoutTimeWarn ? 'time-warn' : '';
 
-        // Checkin block (arriving guests)
         var checkinTimeWarn = (entry.status === 'checkout' && entry.hasNextBooking && !entry.hasBookingCheckinTime && !entry.checkinTime);
         var checkinTimeClass = checkinTimeWarn ? 'time-warn' : '';
 
@@ -209,7 +200,6 @@
               '</div>' +
             '</div>';
         } else if (entry.status === 'empty' && entry.hasNextBooking) {
-          // No checkout today, but next guests are arriving — show checkin time only
           var emptyCheckinWarn = !entry.hasBookingCheckinTime && !entry.checkinTime;
           var emptyCheckinClass = emptyCheckinWarn ? 'time-warn' : '';
           datesBlock =
@@ -233,7 +223,6 @@
             '</div>';
         }
 
-        // Maid + comment rows only make sense when object is included
         var detailsBlock = entry.status !== 'ongoing' || entry.included
           ? '<div class="sched-maid-row">' +
               '<label class="sched-field-label">Горничная</label>' +
@@ -275,7 +264,6 @@
       if (!entry) return;
       entry.included = checked;
       _dirtyObjectIds.add(entry.objectid);
-      // Re-render the single card so details show/hide correctly for 'ongoing'
       if (entry.status === 'ongoing') {
         renderSchedule();
       } else {
@@ -307,7 +295,6 @@
       if (!_scheduleDate) return;
       var token = localStorage.getItem('broneboxtoken');
       try {
-        // Normalize entries for save endpoint (rename checkoutBookingId → bookingId)
         var savePayload = _scheduleEntries.map(function(e) {
           return {
             objectid:     e.objectid,
@@ -357,13 +344,11 @@
         var rawHeader    = data.cleaningHeader    || '';
         var rawFooter    = data.cleaningFooter    || '';
 
-        // Replace {Дата_уборки} in header/footer with the selected cleaning date
         var cleaningDateFmt = fmtDate(_scheduleDate);
         var header = rawHeader.replace(/\{Дата_уборки\}/g, cleaningDateFmt);
         var footer = rawFooter.replace(/\{Дата_уборки\}/g, cleaningDateFmt);
 
         var parts = included.map(function(e) {
-          // For empty status (no one checked out), use emptyMarker instead of a time
           var checkoutTimeText;
           if (e.status === 'empty') {
             checkoutTimeText = emptyMarker;
@@ -400,7 +385,6 @@
       }
     }
 
-    // ── Template modal ──────────────────────────────────────────
     async function openTemplateModal() {
       var token = localStorage.getItem('broneboxtoken');
       try {
@@ -485,7 +469,6 @@
 
 <div class="layout">
 
-  <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
     <div class="avatar-wrap">
       <div class="avatar">
@@ -532,10 +515,8 @@
     </div>
   </aside>
 
-  <!-- Main -->
   <main class="main">
 
-    <!-- Header -->
     <div class="page-header">
       <div class="page-header-left">
         <h1 class="page-title">График уборок</h1>
@@ -565,7 +546,6 @@
       </div>
     </div>
 
-    <!-- Schedule list -->
     <div id="schedule-list" class="schedule-list">
       <div class="sched-empty">
         <i class="ti ti-loader-2 ti-spin"></i>
@@ -576,7 +556,6 @@
   </main>
 </div>
 
-<!-- Mobile sticky action bar -->
 <div class="mob-action-bar">
   <button class="mob-action-btn" onclick="copySchedule()">
     <i class="ti ti-copy"></i>
@@ -588,7 +567,6 @@
   </button>
 </div>
 
-<!-- Template modal -->
 <div class="modal-overlay" id="template-modal" onclick="if(event.target===this)closeTemplateModal()">
   <div class="modal-box modal-box-lg">
     <div class="modal-head">

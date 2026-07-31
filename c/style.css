@@ -41,14 +41,12 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── Page layout ── */
 .page {
   max-width: 640px;
   margin: 0 auto;
   padding: 2rem 1.25rem 4rem;
 }
 
-/* ── Greeting ── */
 .greeting {
   margin-bottom: 1.75rem;
 }
@@ -80,7 +78,6 @@ body {
   letter-spacing: 0.02em;
 }
 
-/* ── Todo tags ── */
 .todo-bar {
   display: flex;
   flex-wrap: wrap;
@@ -108,7 +105,6 @@ body {
   flex-shrink: 0;
 }
 
-/* ── Card ── */
 .card {
   background: var(--bg-card);
   border: 0.5px solid var(--border);
@@ -135,7 +131,6 @@ body {
   flex-shrink: 0;
 }
 
-/* ── Dates ── */
 .dates-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -164,7 +159,6 @@ body {
   margin-top: 2px;
 }
 
-/* ── Time inputs ── */
 .time-section {
   border-top: 0.5px solid var(--border);
   padding-top: 14px;
@@ -265,7 +259,6 @@ body {
   cursor: default;
 }
 
-/* ── Photo carousel ── */
 .carousel-track {
   display: flex;
   gap: 10px;
@@ -305,7 +298,6 @@ body {
   margin-top: 9px;
 }
 
-/* ── Instruction text ── */
 .instruction-text {
   font-size: 14px;
   line-height: 1.75;
@@ -316,7 +308,6 @@ body {
   font-weight: 500;
 }
 
-/* ── Payment ── */
 .payment-block {
   display: flex;
   align-items: flex-end;
@@ -400,7 +391,6 @@ body {
   opacity: 0.82;
 }
 
-/* ── Deposit ── */
 .deposit-row {
   display: flex;
   align-items: center;
@@ -489,7 +479,6 @@ body {
   font-weight: 500;
 }
 
-/* ── Contract ── */
 .contract-row {
   display: flex;
   align-items: center;
@@ -530,7 +519,6 @@ body {
   height: 14px;
 }
 
-/* ── Responsive ── */
 @media (max-width: 500px) {
   .page {
     padding: 1.5rem 1rem 3rem;
@@ -575,7 +563,6 @@ body {
   white-space: pre-wrap;
 }
 
-/* ── Экраны состояния (не найдено) ── */
 .state-screen {
   display: flex;
   flex-direction: column;
@@ -619,7 +606,6 @@ body {
   line-height: 1.65;
 }
 
-/* ── Карточка «завершено» ── */
 .card-completed {
   background: var(--green-bg);
   border-color: var(--green-border);
@@ -658,7 +644,6 @@ body {
   color: var(--green-text);
 }
 
-/* ── Адрес ── */
 .location-row {
   display: flex;
   align-items: flex-start;
@@ -696,7 +681,6 @@ body {
   height: 12px;
 }
 
-/* ── Источник бронирования ── */
 .source-row {
   display: flex;
   align-items: center;
@@ -716,7 +700,6 @@ body {
   color: var(--text-secondary);
 }
 
-/* ── Метка канала оплаты ── */
 .channel-tag {
   margin-top: 10px;
   padding: 7px 10px;
@@ -727,7 +710,6 @@ body {
   color: var(--text-secondary);
 }
 
-/* ── Значок «оплачено» ── */
 .paid-badge {
   display: inline-flex;
   align-items: center;
@@ -746,7 +728,6 @@ body {
   height: 14px;
 }
 
-/* ── Оценка уборки ── */
 .review-prompt {
   font-size: 14px;
   color: var(--text-secondary);
@@ -820,7 +801,6 @@ body {
   color: var(--text-secondary);
 }
 
-/* ── Уведомление о доступности ── */
 .available-notice {
   display: flex;
   align-items: center;
@@ -841,14 +821,12 @@ body {
   flex-shrink: 0;
 }
 
-/* ── Иконка «в ожидании» ── */
 .state-icon-amber {
   background: var(--amber-bg);
   border: 0.5px solid var(--amber-border);
   color: var(--amber-text);
 }
 
-/* ── Модалка оплаты ── */
 .pay-modal-overlay {
   position: fixed;
   inset: 0;
@@ -949,7 +927,6 @@ body {
   color: var(--red-text);
 }
 
-/* ── Модалка ожидания оплаты ── */
 .wait-pay-overlay {
   position: fixed;
   inset: 0;
@@ -1021,7 +998,6 @@ body {
   margin-top: 18px;
 }
 
-/* ── Responsive дополнения ── */
 @media (max-width: 500px) {
   .location-row {
     flex-direction: column;

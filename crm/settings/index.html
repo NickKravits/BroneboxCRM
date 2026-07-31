@@ -15,7 +15,6 @@
     <script>
         let currentEditingStaffId = null;
         let currentEditingObjectId = null;
-  // Мгновенная проверка токена до загрузки интерфейса
   (function() {
         const token = localStorage.getItem('broneboxtoken');
         if (!token) {
@@ -97,7 +96,6 @@
 
         const staffList = await res.json();
     
-        // Очищаем контейнер от заглушек типа "Загрузка..."
         container.innerHTML = '';
 
         if (staffList.length === 0) {
@@ -105,12 +103,9 @@
             return;
         }
 
-        // Цикл по полученным из API данным
         staffList.forEach(person => {
-            // Генерация инициалов для аватарки (например, Иван Иванов -> ИИ)
             const initials = person.name ? person.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '??';
 
-            // Локализация роли
             const roleBadge = person.role === 'ADMINISTRATOR' ? 'Администратор' : 'Менеджер';
 
             const row = document.createElement('div');
@@ -177,8 +172,6 @@
                 return;
             }
 
-            
-
             maids.forEach(maid => {
                 const initials = maid.name ? maid.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '??';
 
@@ -197,7 +190,6 @@
                 container.appendChild(row)
             });
 
-            
         } catch (err) {
             console.error(err);
             container.innerHTML = `<div style="padding:20px; text-align:center; color:red;">Ошибка загрузки данных</div>`;
@@ -236,8 +228,6 @@
                 return;
             }
 
-            
-
             objects.forEach(object => {
                 const initials = object.name ? object.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '??';
 
@@ -257,7 +247,6 @@
                 container.appendChild(row)
             });
 
-            
         } catch (err) {
             console.error(err);
             container.innerHTML = `<div style="padding:20px; text-align:center; color:red;">Ошибка загрузки данных</div>`;
@@ -269,14 +258,9 @@
 
         allPerms.forEach(checkbox => {
             checkbox.addEventListener('change', function() {
-                // Отрезаем приставку "perm-", чтобы получить чистое имя поля
                 const permissionName = this.id.replace('perm-', ''); 
-                // Переводим true/false в формат "YES"/"NO"
                 const status = this.checked ? 'YES' : 'NO';
 
-                console.log(`Право для изменения: ${permissionName}, новый статус: ${status}`);
-        
-                // Передаем данные на бэкенд
                 savePermissionToBackend(permissionName, status);
             });
         });
@@ -561,7 +545,6 @@
       <button class="tab-btn" id="tab-btn-service" onclick="switchTab('service', this)">Сервисные</button>
     </div>
 
-    <!-- Сотрудники -->
     <div class="tab-content" id="tab-admins">
       <div class="section-head">
         <span class="section-label">Сотрудники</span>
@@ -571,7 +554,6 @@
       </div>
     </div>
 
-    <!-- Горничные -->
     <div class="tab-content" id="tab-maids">
       <div class="section-head" id="head-section">
       </div>
@@ -579,7 +561,6 @@
       </div>
     </div>
 
-    <!-- Объекты -->
     <div class="tab-content" id="tab-objects">
       <div class="section-head" id="head-section-objects">
       </div>
@@ -587,7 +568,6 @@
       </div>
     </div>
 
-    <!-- Интеграция -->
     <div class="tab-content" id="tab-integrations">
       <div class="section-head">
         <span class="section-label">Интеграция</span>
@@ -628,16 +608,13 @@
       </div>
     </div>
 
-    <!-- Шаблоны -->
     <div class="tab-content" id="tab-templates">
 
-      <!-- Cleaning schedule template -->
       <div class="section-head">
         <span class="section-label">Шаблон графика уборок</span>
       </div>
       <div class="template-card" style="margin-bottom:20px;">
 
-        <!-- Заголовок -->
         <div class="field-group" style="margin-bottom:6px;">
           <label class="field-label">Заголовок графика <span class="field-hint-icon" title="Добавляется перед всеми объектами при копировании">?</span></label>
           <textarea class="field-input" id="svc-cleaning-header" rows="3" placeholder="Например: График уборок на {Дата_уборки}&#10;~ примерное время, — не жили"></textarea>
@@ -646,7 +623,6 @@
           </div>
         </div>
 
-        <!-- Шаблон строки объекта -->
         <div class="field-group" style="margin-bottom:6px;">
           <label class="field-label">Шаблон строки объекта</label>
           <textarea class="field-input" id="svc-cleaning-template" rows="8" style="font-family:monospace;font-size:12px;"></textarea>
@@ -662,7 +638,6 @@
         </div>
         <p class="field-hint" style="margin-bottom:12px;">↵ {Новая_строка} — пустая строка между объектами в скопированном тексте</p>
 
-        <!-- Маркеры -->
         <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;">
           <div class="field-group" style="flex:1;min-width:140px;">
             <label class="field-label">Маркер примерного времени</label>
@@ -676,7 +651,6 @@
           </div>
         </div>
 
-        <!-- Подвал -->
         <div class="field-group" style="margin-bottom:12px;">
           <label class="field-label">Подвал графика <span class="field-hint-icon" title="Добавляется после всех объектов при копировании">?</span></label>
           <textarea class="field-input" id="svc-cleaning-footer" rows="3" placeholder="Например: Дата уборки: {Дата_уборки}&#10;~ — время приблизительное"></textarea>
@@ -701,7 +675,6 @@
       </div>
     </div>
 
-    <!-- Автоотправка -->
     <div class="tab-content" id="tab-autosend">
       <div class="coming-soon">
         <i class="ti ti-rocket"></i>
@@ -710,7 +683,6 @@
       </div>
     </div>
 
-    <!-- Сервисные настройки -->
     <div class="tab-content" id="tab-service">
       <div class="section-head">
         <span class="section-label">Сервисные настройки</span>
@@ -800,7 +772,6 @@
   </main>
 </div>
 
-<!-- Модалка прав -->
 <div class="modal-overlay" id="modal-permissions" onclick="handleOverlayClick(event)">
   <div class="modal-box">
     <div class="modal-head">
@@ -836,9 +807,29 @@
         <div class="perm-info"><span class="perm-name">Изменение броней</span><span class="perm-desc">Может редактировать брони</span></div>
         <label class="toggle-switch"><input type="checkbox" id="perm-managebooks"><span class="toggle-track"></span></label>
       </label>
+      <label class="perm-row" style="margin-top:12px">
+        <div class="perm-info"><span class="perm-name">Изменение ручных оплат</span><span class="perm-desc">Может создавать, удалять и возвращать оплаты, добавленные вручную</span></div>
+        <label class="toggle-switch"><input type="checkbox" id="perm-manualpaymentedit"><span class="toggle-track"></span></label>
+      </label>
       <label class="perm-row">
-        <div class="perm-info"><span class="perm-name">Возврат платежей</span><span class="perm-desc">Может возвращать оплаты и залоги, принятые через Точку</span></div>
-        <label class="toggle-switch"><input type="checkbox" id="perm-canreturnpayments"><span class="toggle-track"></span></label>
+        <div class="perm-info"><span class="perm-name">Изменение ручных залогов</span><span class="perm-desc">Может создавать, удалять и возвращать залоги, добавленные вручную</span></div>
+        <label class="toggle-switch"><input type="checkbox" id="perm-manualdepositedit"><span class="toggle-track"></span></label>
+      </label>
+      <label class="perm-row">
+        <div class="perm-info"><span class="perm-name">Возврат банковских оплат</span><span class="perm-desc">Может возвращать оплаты, принятые через Точку или Т-Банк</span></div>
+        <label class="toggle-switch"><input type="checkbox" id="perm-bankpaymentedit"><span class="toggle-track"></span></label>
+      </label>
+      <label class="perm-row">
+        <div class="perm-info"><span class="perm-name">Возврат банковских залогов</span><span class="perm-desc">Может возвращать залоги, принятые через Точку или Т-Банк</span></div>
+        <label class="toggle-switch"><input type="checkbox" id="perm-bankdepositedit"><span class="toggle-track"></span></label>
+      </label>
+      <label class="perm-row">
+        <div class="perm-info"><span class="perm-name">Просмотр оплат в финансах</span><span class="perm-desc">Может видеть все поступившие оплаты во вкладке «Финансы»</span></div>
+        <label class="toggle-switch"><input type="checkbox" id="perm-financesinformationpayment"><span class="toggle-track"></span></label>
+      </label>
+      <label class="perm-row">
+        <div class="perm-info"><span class="perm-name">Просмотр залогов в финансах</span><span class="perm-desc">Может видеть все поступившие залоги во вкладке «Финансы»</span></div>
+        <label class="toggle-switch"><input type="checkbox" id="perm-financesinformationdeposit"><span class="toggle-track"></span></label>
       </label>
     </div>
     <div class="modal-footer">
@@ -1854,7 +1845,7 @@ function clearEditPhotos() {
       </div>
  
       <div class="retailer-list" id="tochka-retailer-list">
-        <!-- строки рендерятся через JS -->
+        
       </div>
     </div>
  
@@ -1880,7 +1871,7 @@ function clearEditPhotos() {
       </div>
 
       <div class="retailer-list" id="tochka-customer-list">
-        <!-- строки рендерятся через JS -->
+        
       </div>
     </div>
 
@@ -1905,7 +1896,7 @@ function clearEditPhotos() {
         Выберите способы оплаты, которые будут предложены гостям. Необходимо выбрать минимум один.
       </div>
       <div id="tochka-payment-modes-list" style="margin-top:12px;">
-        <!-- чекбоксы рендерятся через JS -->
+        
       </div>
     </div>
 
@@ -1919,8 +1910,6 @@ function clearEditPhotos() {
 </div>
 
 <script>
-  // Блокирующий оверлей на время сетевых запросов интеграции — счётчик глубины
-  // на случай, если один обёрнутый вызов вызывает другой обёрнутый вызов
   let _busyDepth = 0;
   function setBusy(on) {
     const el = document.getElementById('busy-overlay');
@@ -2269,14 +2258,11 @@ function escapeHtml(str) {
       })
 
       if (!res.ok) {
-        // 2. ИСПРАВЛЕНО: Безопасно вытаскиваем текст ошибки
         try {
           const errorData = await res.json();
-          // У Fastify текст ошибки всегда лежит в поле .message
           const errorMessage = errorData.error || 'Что-то пошло не так';
           showToast(errorMessage, 'danger');
         } catch {
-          // Сюда код попадет, если сервер вернул НЕ JSON (например, 404 текст или HTML)
           showToast(`Ошибка сервера: ${res.status} (${res.statusText})`, 'danger');
         }
         return; // Выходим из функции
@@ -2317,7 +2303,6 @@ function escapeHtml(str) {
     }
 
     try {
-    // Получаем список шаблонов
       const res = await fetch(`${API}/integration/okidoki/tryconnect?apiKey=${apiKey}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -2360,7 +2345,6 @@ function escapeHtml(str) {
 
     <div class="modal-body modal-scroll" style="max-height: 60vh; overflow-y: auto;">
 
-      <!-- Успех -->
       <div class="created-success">
         <div class="created-icon" style="color: var(--accent-green);">
           <i class="ti ti-circle-check"></i>
@@ -2369,7 +2353,6 @@ function escapeHtml(str) {
         <div class="created-subtitle">Ниже — ваши шаблоны договоров из OkiDoki</div>
       </div>
 
-      <!-- Инструкция -->
       <div class="modal-section-divider">Что делать дальше</div>
       <div class="integration-steps">
         <div class="integration-step">
@@ -2386,7 +2369,6 @@ function escapeHtml(str) {
         </div>
       </div>
 
-      <!-- Шаблоны -->
       <div class="modal-section-divider">Шаблоны договоров</div>
 
       <div id="od-templates-list">
@@ -2408,7 +2390,6 @@ function escapeHtml(str) {
 async function showODTemplates() {
   const token = localStorage.getItem('broneboxtoken')
   try {
-    // Получаем список шаблонов
     const resOD = await fetch(`${API}/integration/okidoki/get`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
@@ -2436,7 +2417,6 @@ async function loadODTemplates(apiKey) {
   const token = localStorage.getItem('broneboxtoken')
 
   try {
-    // Получаем список шаблонов
     const res = await fetch(`${API}/integration/okidoki/templates?apiKey=${apiKey}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
@@ -2450,7 +2430,6 @@ async function loadODTemplates(apiKey) {
     container.innerHTML = '';
 
     for (const template of templates) {
-      // Получаем поля каждого шаблона
       let entities = []
 
       const entRes = await fetch(`${API}/integration/okidoki/entities?apiKey=${apiKey}&templateId=${template.template_id}`, {
@@ -2458,7 +2437,6 @@ async function loadODTemplates(apiKey) {
       })
 
         if (!entRes.ok) {
-        // таймаут или ошибка — оставляем пустой массив
       } else {
         const entData = await entRes.json()
         entities = entData.entities || []
@@ -2634,7 +2612,6 @@ async function loadODTemplates(apiKey) {
     btn.innerHTML = '<i class="ti ti-loader-2 ti-spin"></i> Сохранение...';
 
     try {
-        // 1. Удаляем помеченные фото
         for (const photoId of photosToDelete) {
             await fetch(`${API}/objects/photos/${photoId}`, {
                 method: 'DELETE',
@@ -2642,7 +2619,6 @@ async function loadODTemplates(apiKey) {
             });
         }
 
-        // 2. Загружаем новые фото в порядке DOM, запоминаем ID
         const newPhotoThumbMap = new Map();
         const newThumbs = [...document.querySelectorAll('#obj-photos-row-edit .photo-thumb[data-new-index]')];
         for (const thumb of newThumbs) {
@@ -2664,7 +2640,6 @@ async function loadODTemplates(apiKey) {
 
         const realtyIdInt = Number(realtyId);
 
-        // 3. Сохраняем данные объекта
         const res = await fetch(API + '/objects/edit', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -2684,7 +2659,6 @@ async function loadODTemplates(apiKey) {
             return;
         }
 
-        // 4. Сохраняем порядок фото
         const allThumbs = [...document.querySelectorAll('#obj-photos-row-edit .photo-thumb')];
         const photoIds = [];
         for (const thumb of allThumbs) {
@@ -2727,7 +2701,6 @@ async function loadODTemplates(apiKey) {
         return;
       }
 
-      // Заполняем поля данными объекта
       document.getElementById('obj-lot-edit').value = data.object.realtyid;
       document.getElementById('obj-name-edit').value = data.object.name;
       document.getElementById('obj-instructions-edit').value = data.object.instruction;
@@ -2866,7 +2839,6 @@ for (const photo of photosData.photos) {
         return;
       }
 
-      // Загружаем фото в порядке DOM (с учётом drag-and-drop)
       const thumbsInOrder = [...document.querySelectorAll('#obj-photos-row .photo-thumb')];
       for (const thumb of thumbsInOrder) {
         const idx = parseInt(thumb.dataset.newIndex);
@@ -2974,7 +2946,12 @@ for (const photo of photosData.photos) {
             document.getElementById('perm-manageautosent').checked = (permissions.manageautosent === "YES");
             document.getElementById('perm-seemaidsrate').checked = (permissions.seemaidsrate === "YES");
             document.getElementById('perm-managebooks').checked = (permissions.managebooks === "YES");
-            document.getElementById('perm-canreturnpayments').checked = (permissions.canreturnpayments === "YES");
+            document.getElementById('perm-manualpaymentedit').checked = (permissions.manualpaymentedit === "YES");
+            document.getElementById('perm-manualdepositedit').checked = (permissions.manualdepositedit === "YES");
+            document.getElementById('perm-bankpaymentedit').checked = (permissions.bankpaymentedit === "YES");
+            document.getElementById('perm-bankdepositedit').checked = (permissions.bankdepositedit === "YES");
+            document.getElementById('perm-financesinformationpayment').checked = (permissions.financesinformationpayment === "YES");
+            document.getElementById('perm-financesinformationdeposit').checked = (permissions.financesinformationdeposit === "YES");
         }
 
         document.getElementById('modal-username').textContent = data.name || 'Без имени';
@@ -3031,7 +3008,6 @@ for (const photo of photosData.photos) {
             showToast("Пожалуйста, заполните все поля", 'warning');
             return;
         }
-
 
         try {
             const res = await fetch(API + '/staff/create', {
@@ -3393,7 +3369,6 @@ async function saveCabinetTimezone() {
 </script>
 <div class="toast-container" id="toast-container"></div>
 
-<!-- Модал редактирования шаблона сообщения -->
 <div class="modal-overlay" id="modal-msg-tpl" onclick="if(event.target.id==='modal-msg-tpl')closeMsgTemplateModal()">
   <div class="modal-box" style="max-width:560px;width:100%">
     <div class="modal-head">

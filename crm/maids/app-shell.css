@@ -1,18 +1,3 @@
-/* ============================================================
-   BroneBox CRM — App Shell
-   Light/dark theme + mobile "app" layout (topbar + bottom tabs)
-   + a handful of component styles that main.html / settings.html
-   reference but that aren't in styles.css (kanban cards, person
-   rows, modal boxes, logs list, etc.) — written theme-aware from
-   the start.
-
-   Load order: styles.css, (maids.css), app-shell.css  ← this file last
-   ============================================================ */
-
-/* ------------------------------------------------------------
-   1. LIGHT THEME — token overrides
-   Toggled via <html data-theme="light">
-   ------------------------------------------------------------ */
 html[data-theme="light"] {
   --bg: #F3F1EC;
   --bg-light: #FFFFFF;
@@ -32,17 +17,11 @@ html[data-theme="light"] {
   --accent-blue: #1768C2;
 }
 
-/* ------------------------------------------------------------
-   2. Ambient corner glows — dark blobs read as smudges on paper
-   ------------------------------------------------------------ */
 html[data-theme="light"] .ambient-tr,
 html[data-theme="light"] .ambient-bl {
   background: radial-gradient(circle at center, #ffffff 0%, transparent 65%);
 }
 
-/* ------------------------------------------------------------
-   3. Scrollbars
-   ------------------------------------------------------------ */
 html[data-theme="light"] .main {
   scrollbar-color: rgba(26,22,18,0.14) transparent;
 }
@@ -56,9 +35,6 @@ html[data-theme="light"] .modal-body::-webkit-scrollbar-thumb {
   background: rgba(26,22,18,0.14);
 }
 
-/* ------------------------------------------------------------
-   4. Sidebar / nav
-   ------------------------------------------------------------ */
 html[data-theme="light"] .sidebar {
   background: rgba(26,22,18,0.025);
 }
@@ -69,9 +45,6 @@ html[data-theme="light"] .nav-item.active {
   background: rgba(26,22,18,0.07);
 }
 
-/* ------------------------------------------------------------
-   5. Filters bar / inputs / selects (styles.css)
-   ------------------------------------------------------------ */
 html[data-theme="light"] .filter-input,
 html[data-theme="light"] .filter-select {
   background: rgba(26,22,18,0.035);
@@ -97,9 +70,6 @@ html[data-theme="light"] .btn-apply:hover {
   border-color: rgba(26,22,18,0.18);
 }
 
-/* ------------------------------------------------------------
-   6. Booking rows / edit buttons
-   ------------------------------------------------------------ */
 html[data-theme="light"] .booking-row:hover {
   border-color: rgba(26,22,18,0.16);
 }
@@ -113,9 +83,6 @@ html[data-theme="light"] .bk-paid {
   color: #0E7A56;
 }
 
-/* ------------------------------------------------------------
-   7. Booking-edit modal (.modal-overlay.active .modal)
-   ------------------------------------------------------------ */
 html[data-theme="light"] .modal {
   background: #ffffff;
   border-color: rgba(26,22,18,0.10);
@@ -189,19 +156,11 @@ html[data-theme="light"] .modal-btn.delete {
   color: #A8345C;
 }
 
-/* ============================================================
-   8. Missing palette pieces used inline by main.html
-   (kanban dot colors) — not present in styles.css :root
-   ============================================================ */
 :root {
   --accent-blue: #4F9CF9;
   --accent-orange: #FF7A45;
 }
 
-/* ============================================================
-   9. SETTINGS — Modal system v2 (.modal-overlay.open .modal-box)
-   Distinct from the booking-edit .modal-overlay.active .modal
-   ============================================================ */
 .modal-overlay {
   position: fixed; inset: 0; z-index: 200;
   background: rgba(0,0,0,0.55);
@@ -211,7 +170,7 @@ html[data-theme="light"] .modal-btn.delete {
   opacity: 0; pointer-events: none;
   transition: opacity .2s ease;
 }
-/* Two open-state conventions exist in the codebase (.open / .active) — support both */
+
 .modal-overlay.open, .modal-overlay.active { opacity: 1; pointer-events: all; }
 
 .modal-box {
@@ -260,9 +219,6 @@ html[data-theme="light"] .modal-box {
 }
 .modal-body > .modal-section-divider:first-child { border-top: none; padding-top: 0; margin-top: 0; }
 
-/* ============================================================
-   10. Field groups / inputs / selects
-   ============================================================ */
 .field-group { display: flex; flex-direction: column; gap: 5px; }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .field-group .field-label,
@@ -294,9 +250,6 @@ textarea.field-input { resize: vertical; min-height: 78px; line-height: 1.5; fon
 }
 .var-chip:hover { background: rgba(29,158,117,0.12); border-color: rgba(29,158,117,0.3); color: var(--accent-green); }
 
-/* ============================================================
-   11. Toggle switch v2 (settings permissions / object status)
-   ============================================================ */
 .toggle-switch { position: relative; display: inline-flex; cursor: pointer; flex-shrink: 0; }
 .toggle-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
 .toggle-track {
@@ -320,9 +273,6 @@ html[data-theme="light"] .toggle-track::after { background: #ffffff; box-shadow:
 html[data-theme="light"] .toggle-switch input:checked + .toggle-track { background: rgba(21,129,94,0.30); border-color: rgba(21,129,94,0.4); }
 html[data-theme="light"] .toggle-switch input:checked + .toggle-track::after { background: #0E7A56; box-shadow: 0 1px 3px rgba(26,22,18,.2); }
 
-/* ============================================================
-   12. Buttons (.btn / .btn-save / .btn-danger), section heads
-   ============================================================ */
 .section-head { display: flex; align-items: center; justify-content: space-between; margin: 22px 0 12px; }
 .section-head:first-child { margin-top: 0; }
 .section-label { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
@@ -345,9 +295,6 @@ html[data-theme="light"] .toggle-switch input:checked + .toggle-track::after { b
 html[data-theme="light"] .btn-save { color: #0E7A56; }
 html[data-theme="light"] .btn-danger { color: #A8345C; }
 
-/* ============================================================
-   13. People / object lists, integrations, templates, misc
-   ============================================================ */
 .people-list { display: flex; flex-direction: column; gap: 8px; }
 .objects-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 10px; }
 
@@ -459,9 +406,6 @@ html[data-theme="light"] .created-icon { color: #0E7A56; }
 .perm-name { font-size: 13px; color: var(--text-primary); font-weight: 500; }
 .perm-desc { font-size: 11px; color: var(--text-muted); }
 
-/* ============================================================
-   14. Tochka retailer select list
-   ============================================================ */
 .retailer-list { display: flex; flex-direction: column; gap: 8px; }
 .retailer-row {
   display: flex; gap: 12px; align-items: flex-start;
@@ -496,10 +440,6 @@ html[data-theme="light"] .badge-status.inactive { color: #A8345C; }
   background: var(--surface-hover); border: 0.5px solid var(--border); color: var(--text-secondary);
 }
 
-/* ============================================================
-   15. Toast stack (settings.html — #toast-container)
-   Distinct from the single bottom-center .toast used elsewhere
-   ============================================================ */
 .toast-container {
   position: fixed; bottom: 20px; right: 20px; z-index: 300;
   display: flex; flex-direction: column; gap: 8px;
@@ -536,16 +476,9 @@ html[data-theme="light"] .toast-container .toast { box-shadow: 0 12px 30px -12px
 @keyframes toast-in { from { opacity: 0; transform: translateY(8px) scale(.97); } to { opacity: 1; transform: none; } }
 @keyframes toast-out { to { opacity: 0; transform: translateY(8px) scale(.97); } }
 
-/* ============================================================
-   16. Empty state — title/desc used by logs.html renderEmpty()
-   (.empty-state itself already lives in styles.css)
-   ============================================================ */
 .empty-state-title { font-size: 14px; font-weight: 600; color: var(--text-secondary); }
 .empty-state-desc { font-size: 12px; color: var(--text-muted); max-width: 360px; line-height: 1.6; text-align: center; }
 
-/* ============================================================
-   17. Logs list (logs.html)
-   ============================================================ */
 .logs-list { display: flex; flex-direction: column; gap: 8px; }
 .log-row {
   display: flex; align-items: center; gap: 14px;
@@ -590,7 +523,6 @@ html[data-theme="light"] .log-badge--success { color: #0E7A56; }
 html[data-theme="light"] .log-badge--error { color: #A8345C; }
 html[data-theme="light"] .log-badge--info { color: #1768C2; }
 
-/* page-header / subtitle / unread pill (logs.html) */
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
 .page-header-left { display: flex; flex-direction: column; gap: 4px; }
 .page-subtitle { font-size: 12px; color: var(--text-muted); }
@@ -601,9 +533,6 @@ html[data-theme="light"] .log-badge--info { color: #1768C2; }
 }
 html[data-theme="light"] .unread-pill { color: #1768C2; }
 
-/* ============================================================
-   18. Dashboard (main.html) — stat pill, kanban, object list
-   ============================================================ */
 .top-row { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
 .stat-pill {
   display: flex; align-items: baseline; gap: 8px;
@@ -676,14 +605,10 @@ html[data-theme="light"] .channel-tag { color: #1768C2; }
   background: rgba(239,159,39,0.1); color: var(--accent-amber); border: 0.5px solid rgba(239,159,39,.25);
 }
 
-/* Tablet: let the kanban wrap to 2-3 columns instead of squeezing 5 */
 @media (max-width: 1180px) and (min-width: 769px) {
   .columns-row { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 }
 
-/* ============================================================
-   19. Theme toggle button
-   ============================================================ */
 .theme-toggle {
   display: flex; align-items: center; cursor: pointer;
   border: none; background: transparent; color: var(--text-muted);
@@ -701,16 +626,11 @@ html[data-theme="light"] .channel-tag { color: #1768C2; }
 .theme-toggle-label { font-size: 13px; opacity: 0; width: 0; overflow: hidden; visibility: hidden; transition: opacity .15s, visibility .15s; white-space: nowrap; }
 .sidebar.open .theme-toggle-label { opacity: 1; width: auto; visibility: visible; margin-left: 11px; }
 
-/* Two circular buttons no longer fit side-by-side when collapsed */
 .sidebar-bottom { flex-direction: column; gap: 4px; }
 
 .theme-toggle--topbar { width: 38px; height: 38px; border-radius: 50%; justify-content: center; flex-shrink: 0; }
 .theme-toggle--topbar:active { background: var(--surface-hover); }
 
-/* ============================================================
-   20. App shell — fixed top bar (mobile) + bottom tab bar
-   Injected by app-shell.js; hidden until the mobile breakpoint
-   ============================================================ */
 .app-topbar {
   display: none;
   position: fixed; top: 0; left: 0; right: 0; z-index: 60;
@@ -751,9 +671,6 @@ html[data-theme="light"] .app-tabbar { --glass-bg: rgba(243,241,236,0.82); }
 .app-tab.active i { color: var(--accent-green); }
 .app-tab:active { background: var(--surface-hover); }
 
-/* ============================================================
-   21. Tabs (settings.html — .tabs-row / .tab-btn / .tab-content)
-   ============================================================ */
 .tabs-row {
   display: flex; gap: 6px; flex-wrap: wrap; width: fit-content;
   background: var(--surface); border: 0.5px solid var(--border);
@@ -771,9 +688,6 @@ html[data-theme="light"] .app-tabbar { --glass-bg: rgba(243,241,236,0.82); }
 .tab-content.active { display: block; animation: tab-fade .15s ease; }
 @keyframes tab-fade { from { opacity: 0; } to { opacity: 1; } }
 
-/* ============================================================
-   22. MOBILE — app shell core (≤768px)
-   ============================================================ */
 @media (max-width: 768px) {
   html, body { height: auto; overflow-x: hidden; overflow-y: auto; }
   .layout { display: block; height: auto; min-height: 100%; }
@@ -786,25 +700,19 @@ html[data-theme="light"] .app-tabbar { --glass-bg: rgba(243,241,236,0.82); }
 
   .ambient-tr, .ambient-bl { width: 220px; height: 220px; opacity: .6; }
 
-  /* The topbar now carries the page title — hide in-page duplicates */
+  
   .main > .page-title { display: none; }
   h1.page-title { display: none; }
 
-  /* Modals everywhere become bottom sheets */
+  
   .modal-overlay { align-items: flex-end; padding: 0; }
 }
 
-/* ============================================================
-   23. MOBILE — main.html dashboard
-   ============================================================ */
 @media (max-width: 768px) {
   .top-row { margin-bottom: 16px; }
   .stat-pill { width: 100%; justify-content: space-between; }
 
-  /* Centered snap carousel: side padding (8vw) doubles as the
-     "peek" of neighboring columns; flex:0 0 100% resolves against
-     the row's content-box (100% - 16vw = 84vw), so each column is
-     84vw wide and naturally centers — including the first/last. */
+  
   .columns-row {
     display: flex; flex-wrap: nowrap; overflow-x: auto;
     scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
@@ -817,25 +725,22 @@ html[data-theme="light"] .app-tabbar { --glass-bg: rgba(243,241,236,0.82); }
   .object-row { flex-wrap: wrap; }
 }
 
-/* ============================================================
-   24. MOBILE — bookings.html
-   ============================================================ */
 @media (max-width: 768px) {
-  /* Filters become a 2-col grid with a full-width search button */
+  
   .filters-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: stretch; padding: 14px; }
   .filter-input, .filter-select { min-width: 0; width: 100%; }
   .filters-bar > .btn-apply { grid-column: 1 / -1; width: 100%; justify-content: center; }
 
-  /* Lone header action button (Необработанные брони) goes full width */
+  
   .page-header > .btn-apply { width: 100%; justify-content: center; }
 
-  /* Booking rows -> stacked cards */
+  
   .booking-row { flex-direction: column; align-items: stretch; gap: 10px; padding: 14px 16px; }
   .bk-guest, .bk-object, .bk-dates, .bk-payment, .bk-actions { flex: none; width: 100%; }
   .bk-divider { display: none; }
   .bk-actions .btn-edit { width: 100%; justify-content: center; }
 
-  /* Booking-edit modal -> full-screen bottom sheet */
+  
   .modal { transform: translateY(100%); border-radius: 20px 20px 0 0; }
   .modal-overlay.active .modal {
     width: 100%; max-width: 100%;
@@ -850,9 +755,6 @@ html[data-theme="light"] .app-tabbar { --glass-bg: rgba(243,241,236,0.82); }
   .modal-btn.delete { margin-left: 0; }
 }
 
-/* ============================================================
-   25. MOBILE — settings.html
-   ============================================================ */
 @media (max-width: 768px) {
   .tabs-row {
     flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch;
@@ -868,7 +770,7 @@ html[data-theme="light"] .app-tabbar { --glass-bg: rgba(243,241,236,0.82); }
   .person-row, .object-card, .integration-card, .retailer-row { flex-wrap: wrap; }
   .person-actions { margin-left: auto; }
 
-  /* Settings modals -> full-screen bottom sheet */
+  
   .modal-box {
     width: 100%; max-width: 100%;
     max-height: 92vh;
@@ -882,18 +784,12 @@ html[data-theme="light"] .app-tabbar { --glass-bg: rgba(243,241,236,0.82); }
   .modal-footer .btn { flex: 1 1 auto; justify-content: center; }
 }
 
-/* ============================================================
-   26. MOBILE — logs.html
-   ============================================================ */
 @media (max-width: 768px) {
   .log-row { gap: 10px; padding: 12px 14px; }
   .log-status-icon { width: 30px; height: 30px; font-size: 14px; }
   .log-badge { font-size: 9px; padding: 3px 8px; }
 }
 
-/* ============================================================
-   27. Small phones (≤420px)
-   ============================================================ */
 @media (max-width: 420px) {
   .columns-row > div { flex: 0 0 92%; }
   .field-row { gap: 8px; }
@@ -903,9 +799,6 @@ html[data-theme="light"] .app-tabbar { --glass-bg: rgba(243,241,236,0.82); }
   .app-tab i { font-size: 20px; }
 }
 
-/* ============================================================
-   28. Reduced motion + keyboard focus
-   ============================================================ */
 @media (prefers-reduced-motion: reduce) {
   .modal, .modal-box, .app-tab, .theme-toggle, .guest-card,
   .booking-row, .person-row, .object-card, .log-row,
@@ -920,9 +813,6 @@ html[data-theme="light"] .app-tabbar { --glass-bg: rgba(243,241,236,0.82); }
   outline-offset: 2px;
 }
 
-/* ============================================================
-   Quick-view modal — light theme
-   ============================================================ */
 html[data-theme="light"] .qm-box {
   background: #ffffff;
   border-color: rgba(26,22,18,0.10);

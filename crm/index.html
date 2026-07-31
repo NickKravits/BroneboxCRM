@@ -13,11 +13,9 @@
     </script>
 
     <script>
-  // Мгновенная проверка токена до загрузки интерфейса
   (function() {
         const token = localStorage.getItem('broneboxtoken');
         if (!token) {
-            // Если токена нет, отправляем на страницу входа
             localStorage.removeItem('broneboxtoken');
             window.location.href = '/login'; 
         }
@@ -67,11 +65,12 @@
       }
     }
 
-    // Кеш объектов: Map(realtyid → object). Живёт всю сессию.
     let _objectsCache = null
 
-    // Может ли текущий пользователь возвращать платежи через Точку (ADMINISTRATOR либо canreturnpayments)
-    let _canReturnPayments = false
+    let _manualPaymentEdit = false
+    let _manualDepositEdit = false
+    let _bankPaymentEdit   = false
+    let _bankDepositEdit   = false
 
     async function loadObjectsCache() {
       if (_objectsCache) return _objectsCache
@@ -101,8 +100,6 @@
 
     function getDepositBadge(booking, object, depositAmount, depositReturned, isTodayCheckout) {
       const objectDeposit = parseFloat(object?.deposit) || 0
-      // Ручное значение залога брони учитываем только для Точки/Т-Банка — для Монеты и менеджера
-      // всегда берём дефолт из настроек объекта
       const depositManualAllowed = object?.depositchanel === 'TOCHKA' || object?.depositchanel === 'TBANK'
       const depositTarget = (depositManualAllowed && booking?.manual_deposit !== null && booking?.manual_deposit !== undefined)
         ? booking.manual_deposit : objectDeposit
@@ -116,7 +113,6 @@
         return '' // возвращён полностью — ничего не пишем
       }
 
-      // Только в колонке "Сегодня выезд": держим весь залог и ничего ещё не вернули
       if (isTodayCheckout && held > 0) {
         return `<span class="warn-tag">Залог не возвращён</span>`
       }
@@ -243,7 +239,6 @@
       }
 
       try {
-        // Загружаем брони и объекты параллельно
         const [meRes, bRes, objectsMap] = await Promise.all([
           fetch(API + '/users/getme', {
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
@@ -256,7 +251,11 @@
           loadObjectsCache()
         ])
 
-        _canReturnPayments = !!meRes.canReturnPayments
+        _manualPaymentEdit = !!meRes.manualPaymentEdit
+        _manualDepositEdit = !!meRes.manualDepositEdit
+        _bankPaymentEdit   = !!meRes.bankPaymentEdit
+        _bankDepositEdit   = !!meRes.bankDepositEdit
+        updateQmAddButtonsPermission()
         const userTimezone = meRes.cabinet?.Timezone || 'Europe/Moscow'
         const fmt = { timeZone: userTimezone, year: 'numeric', month: '2-digit', day: '2-digit' }
         const fmtCA = (d) => new Intl.DateTimeFormat('en-CA', fmt).format(d)
@@ -267,7 +266,6 @@
 
         const { bookings } = bRes
 
-        // Сортировка по имени объекта
         bookings.sort((a, b) => {
           const nameA = objectsMap.get(a.realty_id)?.name || ''
           const nameB = objectsMap.get(b.realty_id)?.name || ''
@@ -277,7 +275,6 @@
         let counter = 0, counterTomorowIn = 0, counterTodayIn = 0
         let counterLiving = 0, counterTodayOut = 0, counterTomorrowOut = 0
 
-        // Первый проход: считаем счётчики и собираем карточки, которые реально покажем
         const cardJobs = []
 
         for (const booking of bookings) {
@@ -305,8 +302,6 @@
           if ((beginStr <= todayStr && endStr > todayStr) || beginStr >= tomorrowStr) counter++
         }
 
-        // Подтягиваем суммы оплат и залогов одним batch-запросом каждая —
-        // вместо N запросов на N карточек (упиралось в лимит пула соединений к БД)
         const fetchAmounts = (bookingIds, payType) => fetch(API + '/payments/getpaymentamounts', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -322,7 +317,6 @@
         const depositAmountsMap  = depositData.amounts || {}
         const depositReturnedMap = depositData.returnedAmounts || {}
 
-        // Строим желаемое содержимое каждой колонки, не трогая DOM
         const byBucket = { tomorrowIn: [], todayIn: [], living: [], todayOut: [], tomorrowOut: [] }
         cardJobs.forEach(({ booking, object, type, bucket }) => {
           const paidAmount      = paidAmountsMap[booking.id] || 0
@@ -335,8 +329,6 @@
           byBucket[bucket].push({ booking, object, html })
         })
 
-        // Дифф: обновляем существующие карточки на месте, добавляем новые, убираем лишние —
-        // без полной перерисовки колонки, чтобы не сбрасывать то, на что смотрит менеджер
         Object.keys(containers).forEach(bucket => {
           const container = containers[bucket]
           const wanted    = byBucket[bucket]
@@ -397,8 +389,6 @@ function formatDate(dateStr) {
         }
 
         const { AvailableObjects } = await res.json();
-        
-        
 
         if (AvailableObjects.length === 0) {
           availableList.remove();
@@ -466,7 +456,6 @@ function formatDate(dateStr) {
 
 <div class="layout">
 
-  <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
   <div class="avatar-wrap">
     <div class="avatar">
@@ -513,10 +502,8 @@ function formatDate(dateStr) {
   </div>
 </aside>
 
-  <!-- Main -->
   <main class="main">
 
-    <!-- Top row -->
     <div class="top-row">
       <div class="stat-pill">
         <span class="num" id="num-container">...</span>
@@ -524,10 +511,8 @@ function formatDate(dateStr) {
       </div>
     </div>
 
-    <!-- Kanban -->
     <div class="columns-row">
 
-      <!-- Завтра заезд -->
         <div>
             <div class="col-header">
                 <span class="col-dot" style="background:var(--accent-amber)"></span>
@@ -538,7 +523,6 @@ function formatDate(dateStr) {
             </div>
         </div>
 
-      <!-- Сегодня заезд -->
         <div>
             <div class="col-header">
                 <span class="col-dot" style="background:var(--accent-blue)"></span>
@@ -548,8 +532,6 @@ function formatDate(dateStr) {
             <div id="today-in-container"></div>
       </div>
 
-
-      <!-- Живут -->
       <div>
         <div class="col-header">
           <span class="col-dot" style="background:var(--accent-green)"></span>
@@ -560,7 +542,6 @@ function formatDate(dateStr) {
         </div>
       </div>
 
-      <!-- Сегодня выезд -->
       <div>
         <div class="col-header">
           <span class="col-dot" style="background:var(--accent-orange)"></span>
@@ -571,7 +552,6 @@ function formatDate(dateStr) {
         </div>
       </div>
 
-      <!-- Завтра выезд -->
       <div>
         <div class="col-header">
           <span class="col-dot" style="background:var(--accent-gray)"></span>
@@ -584,7 +564,6 @@ function formatDate(dateStr) {
 
     </div>
 
-    <!-- Unsurrendered objects -->
     <div class="section-title" id="section-title">Несданные объекты сегодня</div>
     <div class="objects-list" id="objects-list">
     </div>
@@ -598,9 +577,6 @@ function formatDate(dateStr) {
   }
 </script>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     Модалка добавления платежа
-     ═══════════════════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="modal-add-payment" onclick="handleAddPaymentOverlay(event)">
   <div class="modal-box" style="width:360px;">
     <div class="modal-head">
@@ -621,9 +597,6 @@ function formatDate(dateStr) {
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     Модалка подтверждения удаления платежа
-     ═══════════════════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="modal-remove-payment" onclick="handleRemovePaymentOverlay(event)">
   <div class="modal-box" style="width:340px;">
     <div class="modal-head">
@@ -640,9 +613,6 @@ function formatDate(dateStr) {
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     Модалка возврата залога/оплаты
-     ═══════════════════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="modal-return-payment" onclick="handleReturnPaymentOverlay(event)">
   <div class="modal-box" style="width:360px;">
     <div class="modal-head">
@@ -663,9 +633,6 @@ function formatDate(dateStr) {
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     Модалка изменения суммы залога
-     ═══════════════════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="modal-deposit-target" onclick="handleDepositTargetOverlay(event)">
   <div class="modal-box" style="width:360px;">
     <div class="modal-head">
@@ -689,13 +656,9 @@ function formatDate(dateStr) {
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════
-     Quick-view modal
-     ═══════════════════════════════════════════════════════════════ -->
 <div class="qm-overlay" id="quick-modal" onclick="closeQuickModal(event)">
   <div class="qm-box">
 
-    <!-- Header: ФИО + объект + статус -->
     <div class="qm-header">
       <div class="qm-header-main">
         <div class="qm-name" id="qm-fio">...</div>
@@ -708,10 +671,8 @@ function formatDate(dateStr) {
       <button class="modal-close" onclick="closeQuickModal()"><i class="ti ti-x"></i></button>
     </div>
 
-    <!-- Body -->
     <div class="qm-body">
 
-      <!-- Контакты -->
       <div class="qm-block">
         <div class="qm-contact-row">
           <div class="qm-phone-group">
@@ -737,7 +698,7 @@ function formatDate(dateStr) {
             <button class="btn-copy-qm" onclick="copyGuestLink()" title="Копировать ссылку"><i class="ti ti-copy"></i></button>
           </div>
         </div>
-        <!-- Канал связи -->
+        
         <div class="qm-channel-pills">
           <button class="qm-channel-pill" data-ch="Phone" onclick="setQmChannel('Phone')">
             <i class="ti ti-phone"></i> Звонок
@@ -751,7 +712,6 @@ function formatDate(dateStr) {
         </div>
       </div>
 
-      <!-- Детали -->
       <div class="qm-block">
         <div class="qm-info-row" id="qm-location-row" style="display:none">
           <span class="qm-lbl"><i class="ti ti-map-pin"></i></span>
@@ -775,7 +735,6 @@ function formatDate(dateStr) {
         </div>
       </div>
 
-      <!-- Оплата -->
       <div class="qm-block">
         <div class="qm-finance-row">
           <div class="qm-finance-item">
@@ -794,7 +753,7 @@ function formatDate(dateStr) {
         <div class="qm-payments-section">
           <div class="qm-payments-head">
             <span class="qm-payments-label">Оплаты</span>
-            <button class="qm-add-pay-btn" onclick="addManualPayment()">
+            <button class="qm-add-pay-btn" id="qm-add-pay-btn" onclick="addManualPayment()">
               <i class="ti ti-plus"></i> Добавить
             </button>
           </div>
@@ -802,7 +761,6 @@ function formatDate(dateStr) {
         </div>
       </div>
 
-      <!-- Залог -->
       <div class="qm-block">
         <div class="qm-finance-row">
           <div class="qm-finance-item">
@@ -821,7 +779,7 @@ function formatDate(dateStr) {
         <div class="qm-payments-section">
           <div class="qm-payments-head">
             <span class="qm-payments-label">Залоги</span>
-            <button class="qm-add-pay-btn" onclick="addManualDeposit()">
+            <button class="qm-add-pay-btn" id="qm-add-deposit-btn" onclick="addManualDeposit()">
               <i class="ti ti-plus"></i> Добавить
             </button>
           </div>
@@ -829,7 +787,6 @@ function formatDate(dateStr) {
         </div>
       </div>
 
-      <!-- Горничная -->
       <div class="qm-block">
         <div class="qm-info-row">
           <span class="qm-lbl">Горничная</span>
@@ -841,7 +798,6 @@ function formatDate(dateStr) {
         </div>
       </div>
 
-      <!-- Ссылки (только desktop) -->
       <div class="qm-block qm-desktop-only" id="qm-links-block">
         <div class="qm-links">
           <a class="qm-link-btn" id="qm-booking-link" href="#" target="_blank" style="display:none">
@@ -853,9 +809,8 @@ function formatDate(dateStr) {
         </div>
       </div>
 
-    </div><!-- /qm-body -->
+    </div>
 
-    <!-- Mobile bottom bar -->
     <div class="qm-mob-bar">
       <button class="qm-mob-contact" id="qm-mob-contact" onclick="openContact()">
         <i class="ti ti-phone" id="qm-mob-contact-icon"></i>
@@ -977,7 +932,6 @@ function formatDate(dateStr) {
         body: JSON.stringify({ id: _qmBookingId, channel: ch === 'Phone' ? ' ' : ch })
       })
 
-      // Немедленно обновляем channel-badge на карточке
       const card = document.querySelector(`.guest-card[data-booking-id="${_qmBookingId}"]`)
       if (card) {
         let footer = card.querySelector('.card-footer-row')
@@ -1007,7 +961,6 @@ function formatDate(dateStr) {
     const token = localStorage.getItem('broneboxtoken')
     _qmBookingId  = bookingId
 
-    // Показываем сразу
     document.getElementById('quick-modal').classList.add('active')
     document.getElementById('qm-fio').textContent = '...'
     document.getElementById('qm-object').textContent = ''
@@ -1025,12 +978,10 @@ function formatDate(dateStr) {
       const objectsMap = await loadObjectsCache()
       const object = objectsMap.get(booking.realty_id) || null
 
-      // ── Шапка ────────────────────────────────────────────
       document.getElementById('qm-fio').textContent    = booking.fio || '—'
       document.getElementById('qm-object').textContent = object?.name || booking.realty_id
       document.getElementById('qm-status').textContent = QM_STATUS[booking.status] || booking.status
 
-      // ── Контакты ──────────────────────────────────────────
       _qmPhone = booking.phone || ''
       document.getElementById('qm-phone').textContent = _qmPhone || '—'
 
@@ -1042,11 +993,9 @@ function formatDate(dateStr) {
         addphoneRow.style.display = 'none'
       }
 
-      // Канал связи — инициализация без сохранения
       const rawCh = (booking.channel || '').trim()
       setQmChannel(['Telegram', 'Max'].includes(rawCh) ? rawCh : 'Phone', false)
 
-      // ── Детали ────────────────────────────────────────────
       const locationRow = document.getElementById('qm-location-row')
       if (object?.location) {
         document.getElementById('qm-location').textContent = object.location
@@ -1071,7 +1020,6 @@ function formatDate(dateStr) {
         notesRow.style.display = 'none'
       }
 
-      // ── Финансы ───────────────────────────────────────────
       const _totalAmt  = booking.amount     || 0
       const _prepayAmt = booking.prepayment || 0
       _qmBookingAmount     = _totalAmt
@@ -1103,8 +1051,6 @@ function formatDate(dateStr) {
         depChanEl.style.display = 'none'
       }
 
-      // Если залог принимается через Точку — Bookings.deposit больше не учитываем,
-      // всё держим только через Payments (см. depositViaTochka в guest/index.js)
       _qmBookingDepositBase = depCh === 'TOCHKA' ? 0 : Number(booking.deposit || 0)
       _qmObjectDepositMax   = parseFloat(object?.deposit) || 0
       _qmDepositPaidSum     = 0
@@ -1118,15 +1064,11 @@ function formatDate(dateStr) {
       document.getElementById('qm-deposits-list').innerHTML = ''
       loadQmDeposits(bookingId)
 
-      // ── Горничная ─────────────────────────────────────────
-      // Назначается в графике уборок (CleaningSchedule по объекту и дате выезда), здесь только показываем
       document.getElementById('qm-maid-name').textContent = scheduledMaid?.name || 'Не назначена'
 
-      // ── Ссылки ────────────────────────────────────────────
       const bookLink   = booking.link ? `${DOMEN}/c/?id=${booking.link}` : null
       const contrLink  = booking.contract_link || null
 
-      // Данные для шаблонов
       _qmBookingData = {
         fio:           booking.fio || '',
         phone:         _qmPhone,
@@ -1207,7 +1149,6 @@ function formatDate(dateStr) {
     const list = document.getElementById(containerId)
     list.innerHTML = ''
 
-    // amount у платежа уже самоуменьшается при (частичном) возврате — считаем PAID и RETURNED вместе
     const paidSum = (payments || []).reduce((sum, p) => {
       return (p.status === 'PAID' || p.status === 'RETURNED') ? sum + Number(p.amount || 0) : sum
     }, 0)
@@ -1221,6 +1162,9 @@ function formatDate(dateStr) {
 
     const visible = (payments || []).filter(p => p.status !== 'PENDING')
 
+    const canManualEdit = kind === 'DEPOSIT' ? _manualDepositEdit : _manualPaymentEdit
+    const canBankEdit    = kind === 'DEPOSIT' ? _bankDepositEdit   : _bankPaymentEdit
+
     visible.forEach(p => {
       const row = document.createElement('div')
       row.className = 'qm-payment-row'
@@ -1233,11 +1177,8 @@ function formatDate(dateStr) {
       if (p.method === 'TOCHKA' || p.method === 'TBANK') metaParts.push(QM_PAY_STATUS_LABEL[p.status] || p.status)
       if (Number(p.returnedAmount) > 0) metaParts.push('возвращено ' + fmtMoney(p.returnedAmount) + ' ₽')
 
-      // Нечего возвращать/удалять — весь платёж уже вернули
       const nothingLeft = Number(p.amount || 0) <= 0
 
-      // Возврат имеет смысл только для реально оплаченных платежей — FAILED (истёк/не прошёл)
-      // денег никогда не держал, возвращать нечего
       const wasPaid = p.status === 'PAID' || p.status === 'RETURNED'
 
       let actionHtml = ''
@@ -1245,20 +1186,26 @@ function formatDate(dateStr) {
         actionHtml = `<span class="qm-pay-returned">Возвращено</span>`
       } else {
         if (p.method === 'MANAGER') {
-          actionHtml += `<button class="qm-pay-action danger" onclick="removeManualPayment(${p.id}, '${kind}')" title="Удалить"><i class="ti ti-trash" style="font-size:14px;"></i></button>`
+          if (canManualEdit) {
+            actionHtml += `<button class="qm-pay-action danger" onclick="removeManualPayment(${p.id}, '${kind}')" title="Удалить"><i class="ti ti-trash" style="font-size:14px;"></i></button>`
+          } else {
+            actionHtml += `<button class="qm-pay-action danger" disabled title="Недостаточно прав для удаления"><i class="ti ti-trash" style="font-size:14px;"></i></button>`
+          }
         }
 
         if (wasPaid) {
           const returnLabel = kind === 'DEPOSIT' ? 'Вернуть залог' : 'Вернуть оплату'
           if (p.method === 'MANAGER') {
-            actionHtml += `<button class="qm-pay-action" onclick="openReturnPaymentModal(${p.id}, ${p.amount}, '${kind}', '${p.method}')" title="${returnLabel}"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
+            if (canManualEdit) {
+              actionHtml += `<button class="qm-pay-action" onclick="openReturnPaymentModal(${p.id}, ${p.amount}, '${kind}', '${p.method}')" title="${returnLabel}"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
+            } else {
+              actionHtml += `<button class="qm-pay-action" disabled title="Недостаточно прав для возврата"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
+            }
           } else if (p.method === 'TOCHKA') {
-            // Точка позволяет вернуть платёж только один раз — если возврат уже был
-            // (returnedAmount > 0), повторный запрос к банку упадёт с ошибкой
             const alreadyRefundedOnce = Number(p.returnedAmount || 0) > 0
             if (alreadyRefundedOnce) {
               actionHtml += `<button class="qm-pay-action" disabled title="Через Точку можно вернуть только один раз — этот платёж уже частично возвращён"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
-            } else if (_canReturnPayments) {
+            } else if (canBankEdit) {
               actionHtml += `<button class="qm-pay-action" onclick="openReturnPaymentModal(${p.id}, ${p.amount}, '${kind}', '${p.method}')" title="${returnLabel} (Точка)"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
             } else {
               actionHtml += `<button class="qm-pay-action" disabled title="Недостаточно прав для возврата платежей"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
@@ -1280,7 +1227,19 @@ function formatDate(dateStr) {
     })
   }
 
-  // ── Модалка добавления платежа/залога ────────────────────────
+  function updateQmAddButtonsPermission() {
+    const payBtn = document.getElementById('qm-add-pay-btn')
+    const depBtn = document.getElementById('qm-add-deposit-btn')
+    if (payBtn) {
+      payBtn.disabled = !_manualPaymentEdit
+      payBtn.title = _manualPaymentEdit ? '' : 'Недостаточно прав для создания оплаты'
+    }
+    if (depBtn) {
+      depBtn.disabled = !_manualDepositEdit
+      depBtn.title = _manualDepositEdit ? '' : 'Недостаточно прав для создания залога'
+    }
+  }
+
   let _addPayMaxAmount = 0
   let _addPayKind       = 'PAY'
 
@@ -1356,7 +1315,6 @@ function formatDate(dateStr) {
     }
   }
 
-  // ── Модалка удаления платежа/залога ──────────────────────────
   let _removePaymentId   = null
   let _removePaymentKind = 'PAY'
 
@@ -1403,7 +1361,6 @@ function formatDate(dateStr) {
     }
   }
 
-  // ── Модалка возврата залога/оплаты ───────────────────────────
   let _returnPaymentId     = null
   let _returnPaymentMax    = 0
   let _returnPaymentKind   = 'DEPOSIT'
@@ -1477,7 +1434,6 @@ function formatDate(dateStr) {
     }
   }
 
-  // ── Модалка изменения суммы залога ───────────────────────────
   function openDepositTargetModal() {
     const inp = document.getElementById('deposit-target-input')
     const current = _qmManualDeposit !== null ? _qmManualDeposit : _qmObjectDepositMax

@@ -40,7 +40,6 @@
 
 <div class="layout">
 
-  <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
     <div class="avatar-wrap">
       <div class="avatar">
@@ -87,10 +86,8 @@
     </div>
   </aside>
 
-  <!-- Main -->
   <main class="main" id="main">
 
-    <!-- Page header -->
     <div class="page-header">
       <div class="page-header-left">
         <h1 class="page-title">Логи</h1>
@@ -101,15 +98,13 @@
       </div>
     </div>
 
-    <!-- Logs -->
     <div id="logs-container">
-      <!-- skeleton / empty / list — рендерится из JS -->
+      
     </div>
 
   </main>
 </div>
 
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
@@ -141,7 +136,6 @@
             });
 
             if (!res.ok) {
-                // Если сервер вернул ошибку — возвращаем ID обратно в очередь
                 ids.forEach(id => readQueue.add(id));
                 console.error('Ошибка отметки логов:', res.status);
             }
@@ -197,7 +191,6 @@
     window.addEventListener('beforeunload', () => {
         if (readQueue.size === 0) return;
             const token = localStorage.getItem('broneboxtoken');
-            // keepalive: true — запрос завершится даже после закрытия/обновления страницы
             fetch(`${API}/logs/read`, {
                 method: 'PATCH',
                 headers: {
@@ -210,7 +203,6 @@
     });
 </script>
 <script>
-  
 
   const STATUS_CONFIG = {
     INFO:    { icon: 'ti-info-circle',  cls: 'info',    label: 'Инфо' },
@@ -313,7 +305,6 @@
     }
   }
 
-  // Склонение числительных
   function plural(n, one, few, many) {
     const mod10  = n % 10;
     const mod100 = n % 100;

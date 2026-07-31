@@ -41,7 +41,6 @@
 </head>
 <body>
 
-<!-- ── Тост статуса договора ─────────────────────────────────────────────── -->
 <div class="c-toast" id="contract-toast" style="display:none">
   <div class="c-toast-icon" id="c-toast-icon"></div>
   <div class="c-toast-body">
@@ -55,7 +54,6 @@
 
 <div class="page">
 
-  <!-- ── Не найдено ─────────────────────────────────────────────────────── -->
   <div class="state-screen" id="state-error" style="display:none">
     <div class="state-icon state-icon-error">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
@@ -67,7 +65,6 @@
     <div class="state-desc">Ссылка устарела или запись была удалена.<br>Обратитесь к своему менеджеру.</div>
   </div>
 
-  <!-- ── Отменено ───────────────────────────────────────────────────────── -->
   <div class="state-screen" id="state-canceled" style="display:none">
     <div class="state-icon state-icon-error">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
@@ -79,7 +76,6 @@
     <div class="state-desc">Если это ошибка, обратитесь к своему менеджеру.</div>
   </div>
 
-  <!-- ── Заявка ─────────────────────────────────────────────────────────── -->
   <div class="state-screen" id="state-request" style="display:none">
     <div class="state-icon state-icon-amber">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
@@ -91,7 +87,6 @@
     <div class="state-desc">Страница станет доступна после того,<br>как менеджер подтвердит бронирование.</div>
   </div>
 
-  <!-- ── Шапка ──────────────────────────────────────────────────────────── -->
   <div class="greeting" id="greeting">
     <h1 id="greeting-text">Добро пожаловать, <span id="guest-name">...</span>!</h1>
     <div class="booking-id">
@@ -99,7 +94,6 @@
     </div>
   </div>
 
-  <!-- ── Завершено ──────────────────────────────────────────────────────── -->
   <div class="card card-completed" id="card-completed" style="display:none">
     <div class="completed-icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
@@ -112,10 +106,8 @@
     </div>
   </div>
 
-  <!-- ── Задачи ─────────────────────────────────────────────────────────── -->
   <div class="todo-bar" id="todo-bar"></div>
 
-  <!-- ── Фотографии ─────────────────────────────────────────────────────── -->
   <div class="card" id="card-photos" style="display:none">
     <div class="card-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
@@ -125,7 +117,6 @@
     <p class="carousel-hint">← прокрутите, чтобы посмотреть все фото →</p>
   </div>
 
-  <!-- ── Даты и время ───────────────────────────────────────────────────── -->
   <div class="card" id="card-dates">
     <div class="card-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
@@ -159,7 +150,6 @@
     </div>
   </div>
 
-  <!-- ── Адрес и источник ───────────────────────────────────────────────── -->
   <div class="card" id="card-location" style="display:none">
     <div class="card-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
@@ -178,7 +168,6 @@
     </div>
   </div>
 
-  <!-- ── Договор ────────────────────────────────────────────────────────── -->
   <div class="card" id="card-contract" style="display:none">
     <div class="card-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -199,7 +188,6 @@
     </div>
   </div>
 
-  <!-- ── Инструкция ─────────────────────────────────────────────────────── -->
   <div class="card" id="card-instruction" style="display:none">
     <div class="card-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 0 0 1 1h3m10-11l2 2m-2-2v10a1 1 0 0 1-1 1h-3m-6 0a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1m-6 0h6"/></svg>
@@ -212,7 +200,6 @@
     </div>
   </div>
 
-  <!-- ── Оплата ─────────────────────────────────────────────────────────── -->
   <div class="card" id="card-payment" style="display:none">
     <div class="card-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
@@ -241,7 +228,6 @@
     <div class="channel-tag" id="payment-channel-tag" style="display:none"></div>
   </div>
 
-  <!-- ── Залог ──────────────────────────────────────────────────────────── -->
   <div class="card" id="card-deposit" style="display:none">
     <div class="card-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -272,7 +258,6 @@
     <div class="channel-tag" id="deposit-channel-tag" style="display:none"></div>
   </div>
 
-  <!-- ── Оценка уборки ──────────────────────────────────────────────────── -->
   <div class="card" id="card-review" style="display:none">
     <div class="card-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -281,9 +266,8 @@
     <div id="review-content"></div>
   </div>
 
-</div><!-- /.page -->
+</div>
 
-<!-- ── Модалка оплаты ─────────────────────────────────────────────────── -->
 <div class="pay-modal-overlay" id="pay-modal-overlay" style="display:none" onclick="handlePayModalOverlay(event)">
   <div class="pay-modal">
     <div class="pay-modal-title" id="pay-modal-title">Оплата бронирования</div>
@@ -300,7 +284,6 @@
   </div>
 </div>
 
-<!-- ── Модалка ожидания оплаты (Точка) ───────────────────────────────── -->
 <div class="wait-pay-overlay" id="wait-pay-overlay" style="display:none">
   <div class="wait-pay-box">
     <div class="wait-pay-spinner" id="wait-pay-spinner">
@@ -316,12 +299,9 @@
 </div>
 
 <script>
-  
 
-  // Глобальное состояние для динамического обновления бейджей
   let _state = {}
 
-  // ── Утилиты ───────────────────────────────────────────────────────────
   function getBookingLink() {
     return new URLSearchParams(window.location.search).get('id')
   }
@@ -353,7 +333,6 @@
     return str.charAt(0).toUpperCase() + str.slice(1)
   }
 
-  // ── Экран «не найдено» ────────────────────────────────────────────────
   function showNotFound() {
     document.getElementById('greeting').style.display    = 'none'
     document.getElementById('todo-bar').style.display    = 'none'
@@ -361,7 +340,6 @@
     document.getElementById('state-error').style.display = ''
   }
 
-  // ── Иконки для задач ──────────────────────────────────────────────────
   const ICONS = {
     card:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>`,
     clock:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>`,
@@ -369,7 +347,6 @@
     sign:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
   }
 
-  // ── Рендер задач ──────────────────────────────────────────────────────
   function renderTodos(booking, objects, show, completed, paidAmount, depositHeld, depositTarget, depositReturned) {
     const todos = []
     const pay      = show.payanddeposit || {}
@@ -389,7 +366,6 @@
       }
     }
     if (pay.depositActive) {
-      // Если уже был (частичный) возврат залога — повторно вносить не предлагаем
       if (depositRemaining > 0 && objects?.depositchanel !== 'NONE' && !depositBroken && !depositAlreadyReturned) {
         todos.push({ label: 'Внести залог', icon: 'shield' })
       }
@@ -412,7 +388,6 @@
     })
   }
 
-  // ── Рендер фото ───────────────────────────────────────────────────────
   function renderPhotos(photos) {
     const carousel = document.getElementById('photos-carousel')
     const card     = document.getElementById('card-photos')
@@ -431,7 +406,6 @@
     })
   }
 
-  // ── Блок адреса и источника ───────────────────────────────────────────
   function renderLocation(objects, booking) {
     if (!objects?.location) return
     document.getElementById('card-location').style.display = ''
@@ -447,7 +421,6 @@
     }
   }
 
-  // ── Метка канала оплаты ───────────────────────────────────────────────
   const CHANNEL_NAMES = { TOCHKA: 'Точка Банк', TBANK: 'Т-Банк', MONETA: 'Moneta', NONE: 'менеджера' }
 
   function renderChannelTag(elId, channel, prefix) {
@@ -457,7 +430,6 @@
     el.style.display = ''
   }
 
-  // ── Значок «оплачено / внесён» ────────────────────────────────────────
   const PAID_BADGE = `<div class="paid-badge">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
     Оплачено
@@ -468,12 +440,10 @@
     Внесён
   </div>`
 
-  // ── Блок оплаты ───────────────────────────────────────────────────────
   function renderPayment(booking, objects, show, paidAmount) {
     const pay = show.payanddeposit || {}
     if (!objects) return
 
-    // Оплата явно не принимается онлайн (NONE) — весь блок гостю не показываем
     if (objects.paymentchanel === 'NONE') {
       document.getElementById('card-payment').style.display = 'none'
       return
@@ -539,8 +509,6 @@
     renderChannelTag('payment-channel-tag', objects.paymentchanel, 'Оплата через')
   }
 
-  // ── Модалка оплаты (Точка) ──────────────────────────────────────────
-  // Одна модалка обслуживает и оплату, и залог — различаются только текст и эндпоинт
   let _payModalKind = 'PAY' // 'PAY' | 'DEPOSIT'
 
   function openPaymentModal() {
@@ -616,14 +584,12 @@
     btn.textContent = 'Перейти к оплате'
   }
 
-  // ── Блок залога ───────────────────────────────────────────────────────
   function renderDeposit(booking, objects, show, depositHeld, depositReturned, checkoutPassed, depositTarget) {
     const pay = show.payanddeposit || {}
     if (!objects) return
 
     depositTarget = depositTarget || 0
 
-    // Залог не требуется вовсе, либо явно не принимается онлайн (NONE) — весь блок скрываем
     if (depositTarget === 0 || objects.depositchanel === 'NONE') {
       document.getElementById('card-deposit').style.display = 'none'
       return
@@ -637,8 +603,6 @@
     const overpaid       = Math.max(0, held - depositTarget)
     const depositPaid    = remaining === 0
 
-    // Пока не полностью внесён и бронь ещё активна — показываем требуемую сумму;
-    // как только внесён/переплачен, либо бронь завершилась и что-то удерживается — фактически внесённую
     const showActualAmount = depositPaid || (checkoutPassed && held > 0)
     document.getElementById('deposit-amount').textContent = formatPrice(showActualAmount ? held : depositTarget)
 
@@ -650,7 +614,6 @@
       overpayNotice.style.display = 'none'
     }
 
-    // Если возвратов не было вообще — не показываем пустой 0
     const returnedNotice = document.getElementById('deposit-returned-notice')
     if (returned > 0) {
       document.getElementById('deposit-returned-text').textContent =
@@ -664,7 +627,6 @@
     document.getElementById('deposit-notice').style.display = 'none'
 
     if (checkoutPassed) {
-      // Бронь завершена — вносить залог гостю больше незачем
       action.innerHTML = ''
       if (held > 0) {
         document.getElementById('deposit-notice-text').textContent = 'Залог будет возвращён после подтверждения менеджера.'
@@ -676,8 +638,6 @@
     } else if (depositPaid) {
       action.innerHTML = DEPOSITED_BADGE
     } else if (returned > 0) {
-      // Уже был (частичный) возврат залога — повторно вносить не предлагаем,
-      // вся история видна в уведомлении выше (deposit-returned-notice)
       action.innerHTML = ''
     } else if (!pay.active && pay.availableAt) {
       action.innerHTML = ''
@@ -706,7 +666,6 @@
     renderChannelTag('deposit-channel-tag', objects.depositchanel, 'Принимается через')
   }
 
-  // ── Блок оценки ───────────────────────────────────────────────────────
   let _selectedRating = 0
 
   function renderReview(existingReview) {
@@ -764,7 +723,6 @@
     }
   }
 
-  // ── Применение данных ─────────────────────────────────────────────────
   function applyData(booking, objects, photos, show, bookingState, checkoutPassed, paidAmount, depositHeld, depositReturned, depositTarget) {
     const completed  = bookingState === 'booked' && checkoutPassed
     const isCanceled = bookingState === 'canceled' || bookingState === 'deleted'
@@ -775,7 +733,6 @@
     const firstName = (booking.fio || '').split(' ')[0] || 'Гость'
     document.getElementById('guest-name').textContent  = firstName
 
-    // ── Заблокированные статусы ──────────────────────────────────────────
     if (isCanceled) {
       document.getElementById('todo-bar').style.display   = 'none'
       document.getElementById('card-dates').style.display = 'none'
@@ -790,7 +747,6 @@
       return
     }
 
-    // ── booked ─────────────────────────────────────────────────────────
     _state = { booking, objects, show, completed, checkoutPassed, paidAmount, depositHeld, depositReturned, depositTarget }
 
     const nights   = countNights(booking.begin_date, booking.end_date)
@@ -813,7 +769,6 @@
       document.getElementById('card-completed').style.display = ''
       document.getElementById('todo-bar').style.display    = 'none'
 
-      // После выезда: поля времени только для чтения (если были указаны) или скрыты
       const hasAnyTime = booking.begin_time || booking.end_time
       if (hasAnyTime) {
         document.getElementById('ci').readOnly                      = true
@@ -828,16 +783,11 @@
       initTimeSaving()
     }
 
-    // Даты всегда показываем для активной/завершённой брони
-    // (time-section уже скрыт выше если completed)
     document.getElementById('card-dates').style.display = ''
 
     renderPhotos(photos)
     renderLocation(objects, booking)
 
-    // ── Договор ──────────────────────────────────────────────────────────
-    // Ссылка договора: Bookings.contract_link — установить вручную в базе данных
-    // Инструкционный текст для гостя: элемент .contract-info p (в HTML этого файла)
     const contract = show.contract || {}
     if (contract.visible) {
       document.getElementById('card-contract').style.display = ''
@@ -851,7 +801,6 @@
       }
     }
 
-    // ── Инструкция ───────────────────────────────────────────────────────
     const instr = show.instruction || {}
     if (instr.visible) {
       document.getElementById('card-instruction').style.display = ''
@@ -865,14 +814,12 @@
       }
     }
 
-    // ── Оплата + Залог ───────────────────────────────────────────────────
     const pay = show.payanddeposit || {}
     if (pay.visible) {
       renderPayment(booking, objects, show, paidAmount)
       renderDeposit(booking, objects, show, depositHeld, depositReturned, checkoutPassed, depositTarget)
     }
 
-    // ── Оценка ───────────────────────────────────────────────────────────
     const rate = show.rateclean || {}
     if (rate.visible) {
       document.getElementById('card-review').style.display = ''
@@ -888,7 +835,6 @@
     }
   }
 
-  // ── Загрузка данных ───────────────────────────────────────────────────
   async function loadData(link) {
     try {
       const res = await fetch(API + '/guest/get', {
@@ -909,7 +855,6 @@
     }
   }
 
-  // ── Ожидание подтверждения оплаты (Точка) ─────────────────────────────
   let _waitPayTimer    = null
   let _waitPayAttempts = 0
   const WAIT_PAY_INTERVAL_MS  = 3000
@@ -928,7 +873,6 @@
   function closeWaitPayOverlay() {
     document.getElementById('wait-pay-overlay').style.display = 'none'
     if (_waitPayTimer) { clearTimeout(_waitPayTimer); _waitPayTimer = null }
-    // Убираем ?red=tochka из адреса, чтобы обновление страницы не открывало модалку заново
     const url = new URL(window.location.href)
     url.searchParams.delete('red')
     window.history.replaceState({}, '', url)
@@ -983,7 +927,6 @@
     _waitPayTimer = setTimeout(() => pollTochkaPayment(link, kind), WAIT_PAY_INTERVAL_MS)
   }
 
-  // ── Отслеживание изменений времени ──────────────────────────────────
   function initTimeSaving() {
     const ci  = document.getElementById('ci')
     const co  = document.getElementById('co')
@@ -999,7 +942,6 @@
     co.addEventListener('change', checkChanges)
   }
 
-  // ── Сохранение времени (только изменённые поля) ──────────────────────
   async function saveTime() {
     const ci   = document.getElementById('ci')
     const co   = document.getElementById('co')
@@ -1027,7 +969,6 @@
         if (coChanged) { _state.booking.end_time   = co.value || null; co.classList.add('success') }
         renderTodos(_state.booking, _state.objects, _state.show, _state.completed, _state.paidAmount, _state.depositHeld, _state.depositTarget, _state.depositReturned)
         setTimeout(() => { ci.classList.remove('success'); co.classList.remove('success') }, 1500)
-        // Кнопка остаётся неактивной — текущие значения совпадают с сохранёнными
       } else {
         btn.disabled = false
       }
@@ -1036,7 +977,6 @@
     }
   }
 
-  // ── Тост статуса договора ────────────────────────────────────────────
   const OKIDOKI_MSG = {
     'true':     { title: 'Договор подписан!',                desc: 'Спасибо, договор успешно подписан.',                      type: 'success' },
     'pertrue':  { title: 'Договор подписан',                 desc: 'Договор подписан и отправлен на проверку.',               type: 'warn'    },
@@ -1081,7 +1021,6 @@
     }
   }
 
-  // ── Запуск ───────────────────────────────────────────────────────────
   const link = getBookingLink()
   if (link) { loadData(link) } else { showNotFound() }
 

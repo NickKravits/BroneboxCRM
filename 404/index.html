@@ -24,7 +24,6 @@
       position: relative;
     }
 
-    /* ── Canvases ── */
     #stars, #citylight {
       position: fixed;
       inset: 0;
@@ -33,7 +32,6 @@
     }
     #citylight { z-index: 1; }
 
-    /* ── Horizon glow ── */
     .horizon {
       position: fixed;
       bottom: 0; left: 0; right: 0;
@@ -63,7 +61,6 @@
       );
     }
 
-    /* ── Ambient glows ── */
     .amb {
       position: fixed;
       pointer-events: none;
@@ -87,7 +84,6 @@
       50%       { transform: scale(1.08); opacity: 1; }
     }
 
-    /* ── Moon ── */
     .moon {
       position: fixed;
       top: 56px; right: 72px;
@@ -101,7 +97,6 @@
       50%       { transform: translateY(-7px); }
     }
 
-    /* ── Page ── */
     .page {
       position: relative;
       z-index: 10;
@@ -114,7 +109,6 @@
     }
     @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 
-    /* ── Badge ── */
     .badge {
       display: inline-flex;
       align-items: center;
@@ -138,7 +132,6 @@
     }
     @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.15} }
 
-    /* ── Flight zone (404 + plane) ── */
     .fz {
       position: relative;
       width: min(500px, 88vw);
@@ -147,7 +140,6 @@
       animation: fade-up 0.6s 0.05s ease both;
     }
 
-    /* ── 404 text ── */
     .n404 {
       position: absolute;
       inset: 0;
@@ -164,7 +156,6 @@
     .nd { color: transparent; -webkit-text-stroke: 1.5px rgba(255,255,255,0.1); }
     .na { -webkit-text-stroke: 1.5px rgba(239,159,39,0.33); }
 
-    /* ── Plane SVG layer ── */
     .fsv {
       position: absolute;
       top: -44px; bottom: -44px;
@@ -173,7 +164,6 @@
       pointer-events: none;
     }
 
-    /* ── Heading ── */
     .title {
       font-size: clamp(18px, 3.5vw, 22px);
       font-weight: 600;
@@ -183,7 +173,6 @@
       animation: fade-up 0.5s 0.28s ease both;
     }
 
-    /* ── Subtitle ── */
     .sub {
       font-size: 14px;
       font-weight: 300;
@@ -194,7 +183,6 @@
       animation: fade-up 0.5s 0.4s ease both;
     }
 
-    /* ── Contact block ── */
     .contact-block {
       display: flex;
       flex-direction: column;
@@ -234,23 +222,20 @@
     }
     .btn-contact:active { transform: scale(0.97); }
 
-    /* ── Animations ── */
     @keyframes fade-up {
       from { opacity: 0; transform: translateY(14px); }
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* ── Tablet ── */
     @media (max-width: 640px) {
       .moon svg { width: 28px; height: 28px; }
       .moon { opacity: 0.42; }
     }
 
-    /* ── Mobile ── */
     @media (max-width: 480px) {
       .page {
         padding: 0 20px 36px;
-        /* push content up slightly so city lights stay at bottom */
+        
         padding-bottom: max(36px, env(safe-area-inset-bottom, 0px));
       }
 
@@ -265,7 +250,6 @@
         margin-bottom: 16px;
       }
 
-      /* Reduce SVG overflow so plane arc stays within screen bounds */
       .fsv {
         top: -26px; bottom: -26px;
         left: -18px; right: -18px;
@@ -287,7 +271,7 @@
 
       .btn-contact {
         padding: 14px 20px;
-        min-height: 48px; /* comfortable touch target */
+        min-height: 48px; 
         width: 100%;
         max-width: 300px;
         justify-content: center;
@@ -298,7 +282,6 @@
       .moon svg { width: 24px; height: 24px; }
     }
 
-    /* ── Small phones (SE, Galaxy A) ── */
     @media (max-width: 360px) {
       .badge { font-size: 9.5px; letter-spacing: 0; gap: 5px; }
       .fz    { height: 112px; }
@@ -308,7 +291,6 @@
       .moon  { display: none; }
     }
 
-    /* ── Landscape mobile ── */
     @media (max-height: 500px) and (orientation: landscape) {
       .page  { padding: 0 28px 20px; }
       .badge { margin-bottom: 10px; }
@@ -330,7 +312,6 @@
 <div class="horizon"></div>
 <div class="horizon-line"></div>
 
-<!-- Moon -->
 <div class="moon">
   <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
     <path d="M26 17c0 6.63-5.37 12-12 12a12 12 0 0 1-1.48-.09C16.32 27.34 20 22.58 20 17s-3.68-10.34-7.48-11.91A12 12 0 0 1 14 5c6.63 0 12 5.37 12 12Z"
@@ -345,7 +326,6 @@
     BroneBox · Управление бронированием
   </div>
 
-  <!-- 404 + animated plane -->
   <div class="fz">
     <div class="n404">
       <span class="nd na">4</span>
@@ -361,7 +341,6 @@
         </filter>
       </defs>
 
-      <!-- Dashed flight arc -->
       <path id="fpath"
         d="M -55 255 Q 314 -30 683 245"
         stroke="rgba(255,255,255,0.05)"
@@ -370,7 +349,6 @@
         fill="none"
       />
 
-      <!-- Plane: follows arc, fades at edges -->
       <g>
         <animateMotion dur="8s" repeatCount="indefinite" rotate="auto">
           <mpath href="#fpath"/>
@@ -383,19 +361,19 @@
           repeatCount="indefinite"
         />
         <g transform="scale(1.9)" filter="url(#pglow)">
-          <!-- Fuselage -->
+          
           <path d="M -11 0 Q -6 -2.2 2 -2.2 L 13 0 L 2 2.2 Q -6 2.2 -11 0 Z" fill="#EF9F27"/>
-          <!-- Main wings -->
+          
           <path d="M 1.5 -0.3 L -4.5 -11 L 0 -11 L 7 -0.3 Z" fill="#EF9F27" opacity="0.88"/>
           <path d="M 1.5  0.3 L -4.5  11 L 0  11 L 7  0.3 Z" fill="#EF9F27" opacity="0.88"/>
-          <!-- Horizontal stabilizers -->
+          
           <path d="M -11 0 L -8.5 -5.5 L -5.5 -4.5 L -7.5 0 Z" fill="#EF9F27" opacity="0.72"/>
           <path d="M -11 0 L -8.5  5.5 L -5.5  4.5 L -7.5 0 Z" fill="#EF9F27" opacity="0.72"/>
-          <!-- Vertical stabilizer -->
+          
           <path d="M -11 0 L -8 -8 L -6 -7 L -7.5 0 Z" fill="#EF9F27" opacity="0.6"/>
-          <!-- Engine -->
+          
           <path d="M 1 2 L 8 2 Q 9 2 9 3.5 Q 9 5 8 5 L 1 5 Z" fill="#EF9F27" opacity="0.5"/>
-          <!-- Nose light -->
+          
           <circle cx="13" cy="0" r="1.8" fill="rgba(255,224,130,0.9)"/>
         </g>
       </g>
@@ -412,9 +390,7 @@
 </main>
 
 <script>
-/* ═══════════════════════════════
-   Stars (upper 65% of screen)
-═══════════════════════════════ */
+
 const sc  = document.getElementById('stars');
 const sctx = sc.getContext('2d');
 const STARS = [];
@@ -433,11 +409,6 @@ for (let i = 0; i < 170; i++) {
   });
 }
 
-/* ═══════════════════════════════
-   City lights (lower 40%)
-   — seen from above through clouds,
-     tiny pinpoints like a city at night
-═══════════════════════════════ */
 const lc   = document.getElementById('citylight');
 const lctx = lc.getContext('2d');
 const LIGHTS = [];
@@ -470,11 +441,8 @@ function initLights() {
 }
 initLights();
 
-/* ═══════════════════════════════
-   Unified animation loop
-═══════════════════════════════ */
 (function tick(t) {
-  /* — Stars — */
+  
   sctx.clearRect(0, 0, sc.width, sc.height);
   for (const s of STARS) {
     const a = 0.06 + 0.52 * (0.5 + 0.5 * Math.sin(s.phase + t * s.spd));
@@ -484,7 +452,6 @@ initLights();
     sctx.fill();
   }
 
-  /* — City lights — */
   lctx.clearRect(0, 0, lc.width, lc.height);
   for (const l of LIGHTS) {
     const a = l.baseA * (0.55 + 0.45 * Math.sin(l.phase + t * l.spd));
@@ -492,7 +459,6 @@ initLights();
     const x = l.x * lc.width;
     const y = l.y * lc.height;
 
-    /* soft glow halo */
     const grad = lctx.createRadialGradient(x, y, 0, x, y, l.r * 5);
     grad.addColorStop(0,   `rgba(${r},${g},${b},${(a * 0.6).toFixed(3)})`);
     grad.addColorStop(1,   `rgba(${r},${g},${b},0)`);
@@ -501,7 +467,6 @@ initLights();
     lctx.fillStyle = grad;
     lctx.fill();
 
-    /* core dot */
     lctx.beginPath();
     lctx.arc(x, y, l.r, 0, Math.PI * 2);
     lctx.fillStyle = `rgba(${r},${g},${b},${Math.min(1, a * 1.6).toFixed(3)})`;

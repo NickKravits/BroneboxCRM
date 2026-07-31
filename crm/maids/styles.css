@@ -50,7 +50,6 @@ html, body { height: 100%; background: var(--bg); font-family: 'Sora', sans-seri
 .ambient-tr { width: 400px; height: 400px; top: -160px; right: -160px; background: radial-gradient(circle at center, #1c1c1a 0%, transparent 65%); }
 .ambient-bl { width: 400px; height: 400px; bottom: -160px; left: -160px; background: radial-gradient(circle at center, #1c1c1a 0%, transparent 65%); }
 
-/* ── Sidebar ── */
 .sidebar {
   position: relative; z-index: 10;
   width: var(--sidebar-width-collapsed); height: 100vh;
@@ -116,7 +115,6 @@ html, body { height: 100%; background: var(--bg); font-family: 'Sora', sans-seri
 .sidebar.open .toggle-label { opacity: 1; width: auto; visibility: visible; margin-left: 11px; }
 .sidebar.open .toggle-btn i { transform: rotate(180deg); }
 
-/* ── Main ── */
 .main {
   flex: 1; overflow-y: auto; padding: 28px 32px;
   position: relative; z-index: 1;
@@ -125,7 +123,6 @@ html, body { height: 100%; background: var(--bg); font-family: 'Sora', sans-seri
 .main::-webkit-scrollbar { width: 4px; }
 .main::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
 
-/* ── Page header ── */
 .page-header {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 20px; gap: 16px; flex-wrap: wrap;
@@ -135,7 +132,6 @@ html, body { height: 100%; background: var(--bg); font-family: 'Sora', sans-seri
 
 .page-title { font-size: 20px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.02em; }
 
-/* ── Date nav ── */
 .date-nav { display: flex; align-items: center; gap: 4px; }
 
 .date-nav-btn {
@@ -157,7 +153,6 @@ html, body { height: 100%; background: var(--bg); font-family: 'Sora', sans-seri
 .date-nav-input:focus { border-color: rgba(255,255,255,0.22); background: var(--surface-hover); }
 .date-nav-input::-webkit-calendar-picker-indicator { filter: invert(0.45); cursor: pointer; }
 
-/* ── Buttons ── */
 .btn {
   display: inline-flex; align-items: center; gap: 6px;
   background: var(--surface); border: 0.5px solid var(--border-mid);
@@ -173,7 +168,6 @@ html, body { height: 100%; background: var(--bg); font-family: 'Sora', sans-seri
 .btn-save:hover { background: rgba(29,158,117,0.2); }
 .btn-icon { width: 32px; height: 32px; min-width: 32px; padding: 0; justify-content: center; }
 
-/* ── Schedule list ── */
 .schedule-list { display: flex; flex-direction: column; gap: 12px; }
 
 .sched-empty {
@@ -183,7 +177,6 @@ html, body { height: 100%; background: var(--bg); font-family: 'Sora', sans-seri
 .sched-empty i { font-size: 32px; opacity: 0.4; }
 .sched-empty span { font-size: 13px; }
 
-/* ── Schedule card ── */
 .sched-card {
   background: var(--surface); border: 0.5px solid var(--border);
   border-radius: 16px; padding: 16px 18px;
@@ -195,7 +188,6 @@ html, body { height: 100%; background: var(--bg); font-family: 'Sora', sans-seri
 .sched-card--excluded .sched-maid-row,
 .sched-card--excluded .sched-comment-row { pointer-events: none; }
 
-/* Card header */
 .sched-card-header {
   display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
 }
@@ -209,7 +201,6 @@ html, body { height: 100%; background: var(--bg); font-family: 'Sora', sans-seri
 .sched-toggle-wrap { display: flex; align-items: center; gap: 8px; flex-shrink: 0; padding-top: 2px; }
 .sched-toggle-label { font-size: 11px; color: var(--text-secondary); white-space: nowrap; }
 
-/* Dates row */
 .sched-dates-row {
   display: flex; align-items: center; gap: 12px;
   background: rgba(255,255,255,0.02); border: 0.5px solid var(--border);
@@ -240,7 +231,6 @@ html, body { height: 100%; background: var(--bg); font-family: 'Sora', sans-seri
 .time-warn .sched-time-input:focus { border-color: var(--accent-amber); }
 .sched-time-warn-icon { color: var(--accent-amber); font-size: 14px; flex-shrink: 0; display: flex; }
 
-/* Maid + comment */
 .sched-maid-row,
 .sched-comment-row { display: flex; flex-direction: column; gap: 5px; }
 
@@ -269,18 +259,15 @@ html, body { height: 100%; background: var(--bg); font-family: 'Sora', sans-seri
 .sched-textarea:focus { border-color: rgba(255,255,255,0.22); background: rgba(255,255,255,0.08); }
 .sched-textarea::placeholder { color: var(--text-muted); }
 
-/* ── Guest review stars ── */
 .sched-review { display: inline-flex; align-items: center; gap: 1px; }
 .sched-star { font-size: 13px; color: var(--text-muted); }
 .sched-star--filled { color: #F5A623; }
 html[data-theme="light"] .sched-star { color: rgba(26,22,18,0.25); }
 html[data-theme="light"] .sched-star--filled { color: #D4860A; }
 
-/* ── Template var chips ── */
 .var-chip--hint { opacity: 0.7; }
 .var-chip--hint:hover { opacity: 1; }
 
-/* ── Status badges ── */
 .sched-badge {
   display: inline-flex; align-items: center;
   font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
@@ -302,17 +289,14 @@ html[data-theme="light"] .sched-badge--empty { color: rgba(26,22,18,0.45); }
 
 .sched-dates-row--compact { padding: 10px 14px; }
 
-/* No next booking note */
 .sched-no-booking {
   font-size: 11px; color: var(--accent-amber);
   display: flex; align-items: center; gap: 4px; margin-top: 2px;
 }
 html[data-theme="light"] .sched-no-booking { color: #B9740F; }
 
-/* ── Mobile sticky bar ── */
 .mob-action-bar { display: none; }
 
-/* ── Light theme ── */
 html[data-theme="light"] .date-nav-input {
   background: rgba(26,22,18,0.035);
   border-color: rgba(26,22,18,0.15);
@@ -350,7 +334,6 @@ html[data-theme="light"] .sched-time-input::placeholder { color: rgba(26,22,18,0
 html[data-theme="light"] .btn-save { color: #0E7A56; }
 html[data-theme="light"] .mob-action-btn--primary { color: #0E7A56; }
 
-/* ── Mobile ── */
 @media (max-width: 768px) {
   html, body { height: auto; overflow-x: hidden; overflow-y: auto; }
   .layout { display: block; height: auto; min-height: 100%; }

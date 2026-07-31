@@ -59,7 +59,7 @@
       position: relative;
     }
 
-    /* Background ambient circles */
+    
     .ambient {
       position: fixed;
       border-radius: 50%;
@@ -77,19 +77,19 @@
       background: radial-gradient(circle at center, #1c1c1a 0%, transparent 65%);
     }
 
-    /* ── Sidebar ── */
+    
     .sidebar {
         position: relative; 
         z-index: 10;
         width: var(--sidebar-width-collapsed);
-        height: 100vh; /* Гарантируем, что сайдбар занимает всю высоту экрана */
+        height: 100vh; 
   
         display: flex; 
         flex-direction: column; 
-        /* justify-content: space-between;  <-- УДАЛИТЕ это свойство, если оно было */
+        
         align-items: center; 
   
-        padding: 24px 0; /* Равномерные отступы сверху и снизу */
+        padding: 24px 0; 
         background: rgba(255,255,255,0.025);
         border-right: 0.5px solid var(--border);
         transition: width var(--transition);
@@ -101,14 +101,13 @@
         align-items: flex-start; 
     }
 
-/* Аватар (Виден всегда, подстраивается под текст или картинку) */
     .avatar-wrap {
         display: flex; 
         align-items: center; 
         gap: 10px;
         width: 100%; 
         padding: 0 13px;
-        margin-bottom: auto; /* МАГИЯ: выталкивает всё, что НИЖЕ аватара, к центру экрана */
+        margin-bottom: auto; 
         flex-shrink: 0;
     }
     .sidebar.open .avatar-wrap {
@@ -129,10 +128,9 @@
   font-weight: 600; 
   color: rgba(255,255,255,0.65);
   letter-spacing: 0.03em;
-  overflow: hidden; /* Чтобы картинка не вылезала за границы круга */
+  overflow: hidden; 
 }
 
-/* Стили для картинки внутри аватара */
 .avatar-img {
   width: 100%;
   height: 100%;
@@ -153,9 +151,8 @@
 .avatar-name { font-size: 13px; font-weight: 500; color: var(--text-primary); display: block; }
 .avatar-role { font-size: 11px; color: var(--text-secondary); display: block; }
 
-/* Пункты меню (Идеальное центрирование + Трансформация в круг) */
     .nav-items { 
-        /* flex: 1; <-- УДАЛИТЕ это свойство, чтобы контейнер не растягивался на весь экран */
+        
         width: 100%; 
         padding: 0 10px; 
         display: flex; 
@@ -163,7 +160,7 @@
         align-items: center; 
         gap: 6px; 
   
-        margin-bottom: auto; /* МАГИЯ: выталкивает нижнюю кнопку (toggle-btn) к самому низу экрана */
+        margin-bottom: auto; 
     }
     .sidebar.open .nav-items {
         align-items: flex-start;
@@ -172,11 +169,11 @@
 .nav-item {
   display: flex; 
   align-items: center; 
-  justify-content: center; /* Центрируем иконку внутри закрытого круга по вертикали/горизонтали */
-  width: 42px;  /* Размер круглых кнопок в закрытом состоянии */
+  justify-content: center; 
+  width: 42px;  
   height: 42px;
   padding: 0;
-  border-radius: 50%; /* Идеальный круг по умолчанию */
+  border-radius: 50%; 
   cursor: pointer;
   transition: background 0.15s, color 0.15s, width var(--transition), border-radius var(--transition), padding var(--transition);
   color: var(--text-secondary);
@@ -191,14 +188,13 @@
   font-size: 18px; 
   flex-shrink: 0; 
   
-  /* ИСПРАВЛЕНИЕ: принудительно делаем иконку флексом, чтобы убрать текстовый baseline */
+  
   display: flex;
   align-items: center;
   justify-content: center;
   
-  /* Если иконка всё равно кажется смещенной на 1-2 пикселя из-за самого шрифта, 
-     можно точечно поправить её положение через инлайн-смещение, например: */
-  /* transform: translateY(-0.5px); */
+  
+  
 }
 
 .nav-label { 
@@ -210,28 +206,26 @@
   transition: opacity 0.15s, visibility 0.15s;
 }
 
-/* Адаптация пунктов меню, когда сайдбар ОТКРЫТ */
 .sidebar.open .nav-item {
-  width: 100%; /* Растягиваем на всю ширину раскрытого меню */
+  width: 100%; 
   height: auto;
   padding: 10px 14px;
-  border-radius: 50px; /* Мягкие скругления плашек в открытом состоянии */
-  justify-content: flex-start; /* Текст и иконка прижимаются влево */
+  border-radius: 50px; 
+  justify-content: flex-start; 
 }
 .sidebar.open .nav-label { 
   opacity: 1; 
   width: auto;
   visibility: visible;
-  margin-left: 11px; /* Расстояние между иконкой и текстом */
+  margin-left: 11px; 
 }
 
-/* Нижняя панель и кнопка свернуть */
     .sidebar-bottom { 
         width: 100%; 
         padding: 0 10px; 
         display: flex;
         justify-content: center;
-        flex-shrink: 0; /* Не дает кнопке сжиматься */
+        flex-shrink: 0; 
     }
     .sidebar.open .sidebar-bottom {
         justify-content: flex-start;
@@ -257,7 +251,7 @@
   flex-shrink: 0; 
   transition: transform var(--transition); 
   
-  /* ИСПРАВЛЕНИЕ аналогично */
+  
   display: flex;
   align-items: center;
   justify-content: center;
@@ -287,7 +281,7 @@
 }
 .sidebar.open .toggle-btn i { transform: rotate(180deg); }
 
-    /* ── Main content ── */
+    
     .main {
       flex: 1; overflow-y: auto; padding: 24px 28px;
       position: relative; z-index: 1;
@@ -298,7 +292,7 @@
     .main::-webkit-scrollbar-track { background: transparent; }
     .main::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
 
-    /* ── Top row ── */
+    
     .top-row {
       display: flex; align-items: center; gap: 12px; margin-bottom: 22px; flex-wrap: wrap;
     }
@@ -327,7 +321,7 @@
     }
     .filter-wrap select option { background: #1a1a18; color: #fff; }
 
-    /* ── Kanban columns ── */
+    
     .columns-row {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
@@ -375,7 +369,7 @@
       background: rgba(255,255,255,0.05); color: var(--text-secondary);
     }
 
-    /* ── Unsurrendered objects ── */
+    
     .section-title {
       font-size: 11px; font-weight: 500;
       text-transform: uppercase; letter-spacing: 0.06em;
@@ -404,60 +398,54 @@
       white-space: nowrap;
     }
 
-    /* ── Обновленные строгие стили для карточек ── */
+    
 
 .card-header-row {
   display: flex;
   justify-content: space-between;
-  align-items: center; /* Центрируем имя и источник по вертикали */
+  align-items: center; 
   gap: 8px;
   margin-bottom: 4px;
 }
 
-/* Источники бронирования — теперь они спокойные и не выделяются */
 .booking-source {
   font-size: 10px;
   font-weight: 500;
   color: var(--text-secondary);
   opacity: 0.7;
-  text-transform: lowercase; /* Убрали кричащий верхний регистр */
+  text-transform: lowercase; 
   letter-spacing: 0.02em;
 }
-/* Если всё же нужно слегка их различать — меняем только аккуратный цвет букв, без фонов */
+
 .src-avito { color: #8ce99a; }
 .src-sutochno { color: #ffd8a8; }
 .src-unknown { color: var(--text-muted); }
 
-/* Подкрашивание ТОЛЬКО текста времени (без заднего фона) */
 .guest-dates {
   font-size: 11px;
   color: var(--text-muted);
   margin-top: 6px;
 }
 .tm-confirmed {
-  color: #2ed19d; /* Аккуратный зеленый */
+  color: #2ed19d; 
   font-weight: 500;
 }
 .tm-unconfirmed {
-  color: var(--accent-amber); /* Аккуратный желтый */
+  color: var(--accent-amber); 
   font-weight: 500;
 }
 
-/* Блок тегов — приводим к единому стандарту */
 .card-tags-group {
   display: flex;
   flex-wrap: wrap;
-  /* ИСПРАВЛЕНИЕ: заставляем все элементы внутри строки иметь одинаковую высоту 
-     и выстраиваться по верхней/нижней границе, а не центрироваться по абстрактной оси */
+  
   align-items: stretch; 
   gap: 6px;
   margin-top: 10px;
 }
 
-/* Базовый шаблон для ВСЕХ плашек в карточке (ночи, варнинги, каналы) 
-   чтобы они были идентичны геометрически */
 .guest-tag, .warn-tag, .channel-tag {
-  display: inline-flex;  /* Возвращаем инлайн-флекс для правильного схлопывания по ширине */
+  display: inline-flex;  
   align-items: center;
   justify-content: center;
   font-size: 10px;
@@ -468,15 +456,14 @@
   box-sizing: border-box;
   white-space: nowrap;
   
-  /* ИСПРАВЛЕНИЕ: явно сбрасываем любые внешние отступы, которые могли сломать строку */
+  
   margin: 0; 
 }
 
-/* Индивидуальные цвета для плашек */
 .guest-tag {
   background: rgba(255, 255, 255, 0.04);
   color: var(--text-secondary);
-  border: 0.5px solid var(--border); /* Возвращаем стандартный бордер, как у всех */
+  border: 0.5px solid var(--border); 
 }
 
 .warn-tag {
@@ -485,7 +472,6 @@
   border: 0.5px solid rgba(214, 83, 126, 0.25);
 }
 
-/* Счетчик остальных предупреждений — под высоту плашек */
 .warn-more-badge {
   display: inline-flex;
   align-items: center;
@@ -501,7 +487,6 @@
   margin: 0;
 }
 
-/* Канал связи */
 .card-footer-row {
   display: flex;
   margin-top: 10px;
@@ -517,7 +502,6 @@
 .ch-telegram { color: #74c0fc; }
 .ch-max { color: #d0bfff; }
 
-/* ── Page header ── */
 .page-header {
   display: flex;
   align-items: center;
@@ -552,7 +536,6 @@
   flex-wrap: wrap;
 }
 
-/* ── Date picker ── */
 .date-picker-wrap {
   display: flex;
   align-items: center;
@@ -580,7 +563,6 @@
   cursor: pointer;
 }
 
-/* ── Action buttons ── */
 .action-btn {
   display: inline-flex;
   align-items: center;
@@ -617,14 +599,12 @@
   color: #1D9E75;
 }
 
-/* ── Objects list ── */
 .objects-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-/* ── Object card ── */
 .obj-card {
   border: 0.5px solid var(--border);
   border-radius: 16px;
@@ -641,7 +621,6 @@
   pointer-events: none;
 }
 
-/* Card head */
 .obj-head {
   display: flex;
   align-items: center;
@@ -661,7 +640,6 @@
   color: var(--text-muted);
 }
 
-/* Card body */
 .obj-body {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 2fr;
@@ -679,7 +657,6 @@
   }
 }
 
-/* ── Fields ── */
 .field {
   display: flex;
   flex-direction: column;
@@ -697,7 +674,6 @@
   line-height: 1;
 }
 
-/* Source badge */
 .src-badge {
   font-size: 10px;
   font-weight: 500;
@@ -718,7 +694,6 @@
   border: 0.5px solid rgba(239, 159, 39, 0.2);
 }
 
-/* Inputs */
 .field input[type=time],
 .field select,
 .field textarea {
@@ -740,7 +715,6 @@
   border-color: var(--border-mid);
 }
 
-/* Orange text for default (unconfirmed) time */
 .field input[type=time].is-default {
   color: var(--accent-amber);
 }
@@ -765,7 +739,6 @@
   line-height: 1.55;
 }
 
-/* ── Toggle switch ── */
 .toggle-switch {
   position: relative;
   width: 32px;
@@ -810,7 +783,6 @@
   background: #fff;
 }
 
-/* ── Toast ── */
 .toast {
   position: fixed;
   bottom: 24px;
@@ -845,7 +817,6 @@
 .toast--success i { color: #1D9E75; }
 .toast--error   i { color: var(--accent-pink); }
 
-/* ── Logs list ── */
     .logs-list {
       display: flex;
       flex-direction: column;
@@ -867,7 +838,7 @@
       background: var(--surface-hover);
     }
 
-    /* Unread dot — всегда занимает место, видна только для непрочитанных */
+    
     .log-unread-dot {
       width: 6px;
       height: 6px;
@@ -881,7 +852,7 @@
       visibility: visible;
     }
 
-    /* Status icon */
+    
     .log-status-icon {
       width: 32px;
       height: 32px;
@@ -911,7 +882,7 @@
       border: 0.5px solid rgba(29, 158, 117, 0.18);
     }
 
-    /* Content */
+    
     .log-content {
       flex: 1;
       min-width: 0;
@@ -931,7 +902,7 @@
       margin-top: 2px;
     }
 
-    /* Status badge */
+    
     .log-badge {
       font-size: 10px;
       font-weight: 500;
@@ -959,7 +930,7 @@
       border: 0.5px solid rgba(29, 158, 117, 0.18);
     }
 
-    /* Empty state */
+    
     .empty-state {
       display: flex;
       flex-direction: column;
@@ -991,7 +962,7 @@
       line-height: 1.6;
     }
 
-    /* Unread count pill */
+    
     .unread-pill {
       font-size: 11px;
       font-weight: 500;

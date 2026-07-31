@@ -1,17 +1,3 @@
-/* ============================================================
-   BroneBox CRM — App Shell JS
-   - Persists & toggles the light/dark theme (data-theme on <html>)
-   - Builds a theme-toggle button in the desktop sidebar
-   - Builds a mobile top bar (title + theme toggle)
-   - Builds a mobile bottom tab bar, cloned from the sidebar nav
-   - Toast notification helper (window.showToast / window.hideToast)
-   - SSE connection for real-time booking notifications
-
-   Pairs with: app-shell.css
-   The actual theme *application* on first paint happens via a tiny
-   inline script in <head> (before any CSS loads) — this file just
-   keeps things in sync and builds the extra UI.
-   ============================================================ */
 (function () {
   'use strict';
 
@@ -77,20 +63,17 @@
     return btn;
   }
 
-  // Desktop: small circular toggle above the sidebar collapse button
   function buildSidebarToggle() {
     var sidebarBottom = document.querySelector('.sidebar-bottom');
     if (!sidebarBottom) return;
     sidebarBottom.insertBefore(makeToggleButton('theme-toggle--sidebar', true), sidebarBottom.firstChild);
   }
 
-  // Derive a short page title from <title>BroneBox CRM — XXX</title>
   function pageTitle() {
     var t = (document.title || '').replace(/^BroneBox CRM\s*[-—]\s*/, '').trim();
     return t || 'BroneBox';
   }
 
-  // Mobile: fixed top bar with page title + theme toggle
   function buildTopbar() {
     var bar = document.createElement('header');
     bar.className = 'app-topbar';
@@ -104,7 +87,6 @@
     document.body.insertBefore(bar, document.body.firstChild);
   }
 
-  // Mobile: fixed bottom tab bar, cloned from the existing sidebar nav
   function buildTabbar() {
     var items = document.querySelectorAll('.sidebar .nav-items .nav-item');
     if (!items.length) return;
@@ -131,7 +113,6 @@
     document.body.appendChild(nav);
   }
 
-  // ── Toast notifications ──────────────────────────────────────────
   var TOAST_ICONS = {
     success: 'ti-circle-check',
     danger:  'ti-circle-x',
@@ -173,7 +154,6 @@
     setTimeout(function () { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 400);
   };
 
-  // ── SSE — real-time booking notifications ────────────────────────
   var _sseActive = false;
 
   function parseSSE(chunk, onEvent) {

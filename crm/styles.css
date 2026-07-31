@@ -24,8 +24,6 @@
   color: rgba(255,255,255,0.35);
 }
 
-/* Блокирующий оверлей на время сетевых запросов (например, интеграции) —
-   в отличие от #page-loader не удаляется из DOM, переключается классом .active */
 .busy-overlay {
   position: fixed;
   inset: 0;
@@ -101,7 +99,7 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
       position: relative;
     }
 
-    /* Background ambient circles */
+    
     .ambient {
       position: fixed;
       border-radius: 50%;
@@ -119,19 +117,19 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
       background: radial-gradient(circle at center, #1c1c1a 0%, transparent 65%);
     }
 
-    /* ── Sidebar ── */
+    
     .sidebar {
         position: relative; 
         z-index: 10;
         width: var(--sidebar-width-collapsed);
-        height: 100vh; /* Гарантируем, что сайдбар занимает всю высоту экрана */
+        height: 100vh; 
   
         display: flex; 
         flex-direction: column; 
-        /* justify-content: space-between;  <-- УДАЛИТЕ это свойство, если оно было */
+        
         align-items: center; 
   
-        padding: 24px 0; /* Равномерные отступы сверху и снизу */
+        padding: 24px 0; 
         background: rgba(255,255,255,0.025);
         border-right: 0.5px solid var(--border);
         transition: width var(--transition);
@@ -143,14 +141,13 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
         align-items: flex-start; 
     }
 
-/* Аватар (Виден всегда, подстраивается под текст или картинку) */
     .avatar-wrap {
         display: flex; 
         align-items: center; 
         gap: 10px;
         width: 100%; 
         padding: 0 13px;
-        margin-bottom: auto; /* МАГИЯ: выталкивает всё, что НИЖЕ аватара, к центру экрана */
+        margin-bottom: auto; 
         flex-shrink: 0;
     }
     .sidebar.open .avatar-wrap {
@@ -171,10 +168,9 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
   font-weight: 600; 
   color: rgba(255,255,255,0.65);
   letter-spacing: 0.03em;
-  overflow: hidden; /* Чтобы картинка не вылезала за границы круга */
+  overflow: hidden; 
 }
 
-/* Стили для картинки внутри аватара */
 .avatar-img {
   width: 100%;
   height: 100%;
@@ -195,9 +191,8 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
 .avatar-name { font-size: 13px; font-weight: 500; color: var(--text-primary); display: block; }
 .avatar-role { font-size: 11px; color: var(--text-secondary); display: block; }
 
-/* Пункты меню (Идеальное центрирование + Трансформация в круг) */
     .nav-items { 
-        /* flex: 1; <-- УДАЛИТЕ это свойство, чтобы контейнер не растягивался на весь экран */
+        
         width: 100%; 
         padding: 0 10px; 
         display: flex; 
@@ -205,7 +200,7 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
         align-items: center; 
         gap: 6px; 
   
-        margin-bottom: auto; /* МАГИЯ: выталкивает нижнюю кнопку (toggle-btn) к самому низу экрана */
+        margin-bottom: auto; 
     }
     .sidebar.open .nav-items {
         align-items: flex-start;
@@ -214,11 +209,11 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
 .nav-item {
   display: flex; 
   align-items: center; 
-  justify-content: center; /* Центрируем иконку внутри закрытого круга по вертикали/горизонтали */
-  width: 42px;  /* Размер круглых кнопок в закрытом состоянии */
+  justify-content: center; 
+  width: 42px;  
   height: 42px;
   padding: 0;
-  border-radius: 50%; /* Идеальный круг по умолчанию */
+  border-radius: 50%; 
   cursor: pointer;
   transition: background 0.15s, color 0.15s, width var(--transition), border-radius var(--transition), padding var(--transition);
   color: var(--text-secondary);
@@ -233,14 +228,13 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
   font-size: 18px; 
   flex-shrink: 0; 
   
-  /* ИСПРАВЛЕНИЕ: принудительно делаем иконку флексом, чтобы убрать текстовый baseline */
+  
   display: flex;
   align-items: center;
   justify-content: center;
   
-  /* Если иконка всё равно кажется смещенной на 1-2 пикселя из-за самого шрифта, 
-     можно точечно поправить её положение через инлайн-смещение, например: */
-  /* transform: translateY(-0.5px); */
+  
+  
 }
 
 .nav-label { 
@@ -252,28 +246,26 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
   transition: opacity 0.15s, visibility 0.15s;
 }
 
-/* Адаптация пунктов меню, когда сайдбар ОТКРЫТ */
 .sidebar.open .nav-item {
-  width: 100%; /* Растягиваем на всю ширину раскрытого меню */
+  width: 100%; 
   height: auto;
   padding: 10px 14px;
-  border-radius: 50px; /* Мягкие скругления плашек в открытом состоянии */
-  justify-content: flex-start; /* Текст и иконка прижимаются влево */
+  border-radius: 50px; 
+  justify-content: flex-start; 
 }
 .sidebar.open .nav-label { 
   opacity: 1; 
   width: auto;
   visibility: visible;
-  margin-left: 11px; /* Расстояние между иконкой и текстом */
+  margin-left: 11px; 
 }
 
-/* Нижняя панель и кнопка свернуть */
     .sidebar-bottom { 
         width: 100%; 
         padding: 0 10px; 
         display: flex;
         justify-content: center;
-        flex-shrink: 0; /* Не дает кнопке сжиматься */
+        flex-shrink: 0; 
     }
     .sidebar.open .sidebar-bottom {
         justify-content: flex-start;
@@ -299,7 +291,7 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
   flex-shrink: 0; 
   transition: transform var(--transition); 
   
-  /* ИСПРАВЛЕНИЕ аналогично */
+  
   display: flex;
   align-items: center;
   justify-content: center;
@@ -329,7 +321,7 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
 }
 .sidebar.open .toggle-btn i { transform: rotate(180deg); }
 
-    /* ── Main content ── */
+    
     .main {
       flex: 1; overflow-y: auto; padding: 24px 28px;
       position: relative; z-index: 1;
@@ -340,7 +332,7 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
     .main::-webkit-scrollbar-track { background: transparent; }
     .main::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
 
-    /* ── Top row ── */
+    
     .top-row {
       display: flex; align-items: center; gap: 12px; margin-bottom: 22px; flex-wrap: wrap;
     }
@@ -369,7 +361,7 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
     }
     .filter-wrap select option { background: #1a1a18; color: #fff; }
 
-    /* ── Kanban columns ── */
+    
     .columns-row {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
@@ -417,7 +409,7 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
       background: rgba(255,255,255,0.05); color: var(--text-secondary);
     }
 
-    /* ── Unsurrendered objects ── */
+    
     .section-title {
       font-size: 11px; font-weight: 500;
       text-transform: uppercase; letter-spacing: 0.06em;
@@ -446,60 +438,54 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
       white-space: nowrap;
     }
 
-    /* ── Обновленные строгие стили для карточек ── */
+    
 
 .card-header-row {
   display: flex;
   justify-content: space-between;
-  align-items: center; /* Центрируем имя и источник по вертикали */
+  align-items: center; 
   gap: 8px;
   margin-bottom: 4px;
 }
 
-/* Источники бронирования — теперь они спокойные и не выделяются */
 .booking-source {
   font-size: 10px;
   font-weight: 500;
   color: var(--text-secondary);
   opacity: 0.7;
-  text-transform: lowercase; /* Убрали кричащий верхний регистр */
+  text-transform: lowercase; 
   letter-spacing: 0.02em;
 }
-/* Если всё же нужно слегка их различать — меняем только аккуратный цвет букв, без фонов */
+
 .src-avito { color: #8ce99a; }
 .src-sutochno { color: #ffd8a8; }
 .src-unknown { color: var(--text-muted); }
 
-/* Подкрашивание ТОЛЬКО текста времени (без заднего фона) */
 .guest-dates {
   font-size: 11px;
   color: var(--text-muted);
   margin-top: 6px;
 }
 .tm-confirmed {
-  color: #2ed19d; /* Аккуратный зеленый */
+  color: #2ed19d; 
   font-weight: 500;
 }
 .tm-unconfirmed {
-  color: var(--accent-amber); /* Аккуратный желтый */
+  color: var(--accent-amber); 
   font-weight: 500;
 }
 
-/* Блок тегов — приводим к единому стандарту */
 .card-tags-group {
   display: flex;
   flex-wrap: wrap;
-  /* ИСПРАВЛЕНИЕ: заставляем все элементы внутри строки иметь одинаковую высоту 
-     и выстраиваться по верхней/нижней границе, а не центрироваться по абстрактной оси */
+  
   align-items: stretch; 
   gap: 6px;
   margin-top: 10px;
 }
 
-/* Базовый шаблон для ВСЕХ плашек в карточке (ночи, варнинги, каналы) 
-   чтобы они были идентичны геометрически */
 .guest-tag, .warn-tag, .channel-tag, .pay-over-tag {
-  display: inline-flex;  /* Возвращаем инлайн-флекс для правильного схлопывания по ширине */
+  display: inline-flex;  
   align-items: center;
   justify-content: center;
   font-size: 10px;
@@ -510,15 +496,14 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
   box-sizing: border-box;
   white-space: nowrap;
   
-  /* ИСПРАВЛЕНИЕ: явно сбрасываем любые внешние отступы, которые могли сломать строку */
+  
   margin: 0; 
 }
 
-/* Индивидуальные цвета для плашек */
 .guest-tag {
   background: rgba(255, 255, 255, 0.04);
   color: var(--text-secondary);
-  border: 0.5px solid var(--border); /* Возвращаем стандартный бордер, как у всех */
+  border: 0.5px solid var(--border); 
 }
 
 .warn-tag {
@@ -533,7 +518,6 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
   border: 0.5px solid rgba(239, 159, 39, 0.25);
 }
 
-/* Счетчик остальных предупреждений — под высоту плашек */
 .warn-more-badge {
   display: inline-flex;
   align-items: center;
@@ -549,7 +533,6 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
   margin: 0;
 }
 
-/* Канал связи */
 .card-footer-row {
   display: flex;
   flex-wrap: wrap;
@@ -566,10 +549,6 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
 }
 .ch-telegram { color: #74c0fc; }
 .ch-max { color: #d0bfff; }
-
-/* ══════════════════════════════════════════════════════════════
-   Quick-view modal
-   ══════════════════════════════════════════════════════════════ */
 
 .qm-overlay {
   position: fixed; inset: 0; z-index: 100;
@@ -594,7 +573,6 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
 }
 .qm-overlay.active .qm-box { transform: translateY(0) scale(1); }
 
-/* Header */
 .qm-header {
   display: flex; align-items: flex-start; justify-content: space-between;
   padding: 16px 18px 13px;
@@ -610,7 +588,6 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
 .qm-meta { font-size: 12px; color: rgba(255,255,255,0.38); }
 .qm-sep  { margin: 0 5px; opacity: 0.5; }
 
-/* Body */
 .qm-body {
   flex: 1; overflow-y: auto;
   scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.07) transparent;
@@ -618,14 +595,12 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
 .qm-body::-webkit-scrollbar { width: 3px; }
 .qm-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.07); border-radius: 2px; }
 
-/* Block */
 .qm-block {
   padding: 11px 18px;
   border-bottom: 0.5px solid rgba(255,255,255,0.06);
 }
 .qm-block:last-child { border-bottom: none; }
 
-/* Contact */
 .qm-contact-row {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   padding: 3px 0;
@@ -663,7 +638,6 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
 }
 .qm-call-btn:hover { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.85); }
 
-/* Telegram template popover */
 .qm-tg-popover {
   position: absolute; top: calc(100% + 6px); right: 0; z-index: 200;
   min-width: 180px; background: #232320;
@@ -680,7 +654,6 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
   border-bottom: 0.5px solid rgba(255,255,255,0.07);
 }
 
-/* Info rows */
 .qm-lbl {
   font-size: 11px; color: rgba(255,255,255,0.3);
   min-width: 60px; flex-shrink: 0;
@@ -693,7 +666,6 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
 .qm-info-row + .qm-info-row { border-top: 0.5px solid rgba(255,255,255,0.04); }
 .qm-notes-val { font-size: 12px; color: rgba(255,255,255,0.5); line-height: 1.5; }
 
-/* Finance */
 .qm-finance-row {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   padding: 5px 0;
@@ -726,7 +698,6 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
 html[data-theme="light"] .qm-edit-btn { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.1); color: rgba(0,0,0,0.45); }
 html[data-theme="light"] .qm-edit-btn:hover { background: rgba(0,0,0,0.07); color: rgba(0,0,0,0.78); }
 
-/* Payment section */
 .qm-payments-section {
   margin-top: 12px;
   padding: 12px 0;
@@ -749,6 +720,7 @@ html[data-theme="light"] .qm-edit-btn:hover { background: rgba(0,0,0,0.07); colo
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 .qm-add-pay-btn:hover { background: rgba(255,255,255,0.11); color: rgba(255,255,255,0.85); border-color: rgba(255,255,255,0.2); }
+.qm-add-pay-btn[disabled] { cursor: default; opacity: 0.3; pointer-events: none; }
 .qm-payment-row {
   display: flex; align-items: center;
   padding: 8px 0; gap: 8px;
@@ -781,7 +753,6 @@ html[data-theme="light"] .qm-pay-action { background: rgba(0,0,0,0.03); border-c
 html[data-theme="light"] .qm-pay-action:hover { background: rgba(0,0,0,0.07); color: rgba(0,0,0,0.65); }
 html[data-theme="light"] .qm-pay-action.danger:hover { background: rgba(200,40,40,0.07); color: rgba(200,40,40,0.85); border-color: rgba(200,40,40,0.2); }
 
-/* Maid select */
 .qm-select {
   flex: 1; font-size: 13px; font-family: 'Sora', sans-serif;
   color: rgba(255,255,255,0.82);
@@ -799,7 +770,6 @@ html[data-theme="light"] .qm-pay-action.danger:hover { background: rgba(200,40,4
   transition: border-color 0s;
 }
 
-/* Links */
 .qm-links { display: flex; gap: 8px; flex-wrap: wrap; }
 .qm-link-btn {
   display: inline-flex; align-items: center; gap: 6px;
@@ -812,7 +782,6 @@ html[data-theme="light"] .qm-pay-action.danger:hover { background: rgba(200,40,4
 }
 .qm-link-btn:hover { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.85); }
 
-/* Mobile bottom bar (hidden on desktop) */
 .qm-mob-bar {
   display: none;
   padding: 10px 16px;
@@ -841,7 +810,6 @@ html[data-theme="light"] .qm-pay-action.danger:hover { background: rgba(200,40,4
 }
 .qm-mob-link:hover { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.8); }
 
-/* Channel pills */
 .qm-channel-pills {
   display: flex; gap: 6px; flex-wrap: wrap;
   padding-top: 10px; margin-top: 6px;
@@ -874,7 +842,6 @@ html[data-theme="light"] .qm-pay-action.danger:hover { background: rgba(200,40,4
   transition: background 0s, border-color 0s, color 0s;
 }
 
-/* Mobile: bottom sheet */
 @media (max-width: 640px) {
   .qm-overlay { align-items: flex-end; }
   .qm-box {
