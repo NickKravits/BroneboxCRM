@@ -280,6 +280,7 @@
         const cardJobs = []
 
         for (const booking of bookings) {
+          if (booking.status !== 'booked') continue
           const object   = objectsMap.get(booking.realty_id)
           const beginStr = booking.begin_date.split('T')[0]
           const endStr   = booking.end_date.split('T')[0]
