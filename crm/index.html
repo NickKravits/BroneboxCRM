@@ -135,6 +135,10 @@
       return ''
     }
 
+    function escapeHtml(str) {
+      return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
     function cardCheckin(booking, object, paidAmount, depositAmount, depositReturned, pendingPay, pendingDeposit) {
       const contractStatus = getContractStatus(booking)
       const contractBadge  = contractStatus === null ? '' : `<span class="warn-tag">${contractStatus}</span>`
@@ -144,20 +148,20 @@
       const statusRow = (contractBadge || paymentBadge || depositBadge || timeBadge) ? `<div class="card-footer-row">${contractBadge}${paymentBadge}${depositBadge}${timeBadge}</div>` : ''
       return `
         <div class="card-header-row">
-          <div class="guest-name">${booking.fio}</div>
-          <span class="booking-source">${booking.source}</span>
+          <div class="guest-name">${escapeHtml(booking.fio)}</div>
+          <span class="booking-source">${escapeHtml(booking.source)}</span>
         </div>
-        <div class="guest-room">${object?.name || '—'}</div>
+        <div class="guest-room">${escapeHtml(object?.name) || '—'}</div>
         <div class="guest-dates">
           Заезд: ${formatDate(booking.begin_date)}
           (${booking.begin_time
-            ? `<span class="tm-confirmed">${booking.begin_time}</span>`
-            : `<span class="tm-unconfirmed">${object?.checkindef || ''}</span>`})
+            ? `<span class="tm-confirmed">${escapeHtml(booking.begin_time)}</span>`
+            : `<span class="tm-unconfirmed">${escapeHtml(object?.checkindef) || ''}</span>`})
         </div>
         <div class="card-tags-group">
           <span class="guest-tag">${nightsCount(booking.begin_date, booking.end_date)} ночей</span>
         </div>
-        ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row card-channel-row"><span class="channel-tag">${booking.channel}</span></div>`}
+        ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row card-channel-row"><span class="channel-tag">${escapeHtml(booking.channel)}</span></div>`}
         ${statusRow}
       `
     }
@@ -191,20 +195,20 @@
       const statusRow = (contractBadge || paymentBadge || depositBadge || timeBadge) ? `<div class="card-footer-row">${contractBadge}${paymentBadge}${depositBadge}${timeBadge}</div>` : ''
       return `
         <div class="card-header-row">
-          <div class="guest-name">${booking.fio}</div>
-          <span class="booking-source">${booking.source}</span>
+          <div class="guest-name">${escapeHtml(booking.fio)}</div>
+          <span class="booking-source">${escapeHtml(booking.source)}</span>
         </div>
-        <div class="guest-room">${object?.name || '—'}</div>
+        <div class="guest-room">${escapeHtml(object?.name) || '—'}</div>
         <div class="guest-dates">
           Выезд: ${formatDate(booking.end_date)}
           (${booking.end_time
-            ? `<span class="tm-confirmed">${booking.end_time}</span>`
-            : `<span class="tm-unconfirmed">${object?.checkoutdef || ''}</span>`})
+            ? `<span class="tm-confirmed">${escapeHtml(booking.end_time)}</span>`
+            : `<span class="tm-unconfirmed">${escapeHtml(object?.checkoutdef) || ''}</span>`})
         </div>
         <div class="card-tags-group">
           <span class="guest-tag">${nightsCount(booking.begin_date, booking.end_date)} ночей</span>
         </div>
-        ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row card-channel-row"><span class="channel-tag">${booking.channel}</span></div>`}
+        ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row card-channel-row"><span class="channel-tag">${escapeHtml(booking.channel)}</span></div>`}
         ${statusRow}
       `
     }
@@ -218,15 +222,15 @@
       const statusRow = (contractBadge || paymentBadge || depositBadge || timeBadge) ? `<div class="card-footer-row">${contractBadge}${paymentBadge}${depositBadge}${timeBadge}</div>` : ''
       return `
         <div class="card-header-row">
-          <div class="guest-name">${booking.fio}</div>
-          <span class="booking-source">${booking.source}</span>
+          <div class="guest-name">${escapeHtml(booking.fio)}</div>
+          <span class="booking-source">${escapeHtml(booking.source)}</span>
         </div>
-        <div class="guest-room">${object?.name || '—'}</div>
+        <div class="guest-room">${escapeHtml(object?.name) || '—'}</div>
         <div class="guest-dates">${formatDate(booking.begin_date)} — ${formatDate(booking.end_date)}</div>
         <div class="card-tags-group">
           <span class="guest-tag">${nightsCount(booking.begin_date, booking.end_date)} ночей</span>
         </div>
-        ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row card-channel-row"><span class="channel-tag">${booking.channel}</span></div>`}
+        ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row card-channel-row"><span class="channel-tag">${escapeHtml(booking.channel)}</span></div>`}
         ${statusRow}
       `
     }
@@ -417,8 +421,8 @@ function formatDate(dateStr) {
           card.className = 'object-row';
           card.innerHTML = `
             <div>
-              <div class="object-name">${object.name}</div>
-              <div class="object-meta">${object.location}</div>
+              <div class="object-name">${escapeHtml(object.name)}</div>
+              <div class="object-meta">${escapeHtml(object.location)}</div>
             </div>
             <span class="badge-warn">Не сдан</span>
             `;
@@ -465,7 +469,7 @@ function formatDate(dateStr) {
 <body>
 
 <div id="page-loader">
-  <i class="ti ti-loader-2 ti-spin"></i>
+  <div class="loader-spinner"></div>
   <span class="page-loader-text">Подождите, страница загружается</span>
 </div>
 

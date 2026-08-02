@@ -134,6 +134,10 @@
       });
     }
 
+    function escapeHtml(str) {
+      return String(str == null ? '' : str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
     function buildScheduleCard(entry) {
         var card = document.createElement('div');
         var cardClass = 'sched-card';
@@ -145,7 +149,7 @@
 
         var maidOptions = '<option value="">Не выбрано</option>';
         _maids.forEach(function(m) {
-          maidOptions += '<option value="' + m.id + '"' + (entry.maidId == m.id ? ' selected' : '') + '>' + m.name + '</option>';
+          maidOptions += '<option value="' + m.id + '"' + (entry.maidId == m.id ? ' selected' : '') + '>' + escapeHtml(m.name) + '</option>';
         });
 
         var statusBadge = '';
@@ -230,15 +234,15 @@
             '</div>' +
             '<div class="sched-comment-row">' +
               '<label class="sched-field-label">Комментарий</label>' +
-              '<textarea class="sched-textarea" placeholder="Пожелания, количество гостей..." onchange="updateField(' + idx + ', \'comment\', this.value)">' + (entry.comment || '') + '</textarea>' +
+              '<textarea class="sched-textarea" placeholder="Пожелания, количество гостей..." onchange="updateField(' + idx + ', \'comment\', this.value)">' + escapeHtml(entry.comment || '') + '</textarea>' +
             '</div>'
           : '';
 
         card.innerHTML =
           '<div class="sched-card-header">' +
             '<div class="sched-object-info">' +
-              '<div class="sched-object-name">' + (entry.objectName || 'Без названия') + '</div>' +
-              '<div class="sched-object-addr">' + (entry.objectAddress || '') + '</div>' +
+              '<div class="sched-object-name">' + escapeHtml(entry.objectName || 'Без названия') + '</div>' +
+              '<div class="sched-object-addr">' + escapeHtml(entry.objectAddress || '') + '</div>' +
               (statusBadge || reviewBlock ? '<div style="margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' + (statusBadge || '') + reviewBlock + '</div>' : '') +
             '</div>' +
             '<div class="sched-toggle-wrap">' +
@@ -461,7 +465,7 @@
 <body>
 
 <div id="page-loader">
-  <i class="ti ti-loader-2 ti-spin"></i>
+  <div class="loader-spinner"></div>
   <span class="page-loader-text">Подождите, страница загружается</span>
 </div>
 

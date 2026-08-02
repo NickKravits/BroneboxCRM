@@ -2,6 +2,7 @@
 <html lang="ru">
 <head>
   <script src="/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title id="page-title">BroneBox | Загрузка...</title>
@@ -915,7 +916,7 @@
       document.getElementById('card-instruction').style.display = ''
       if (instr.active && objects?.instruction) {
         const el = document.getElementById('checkin-instruction')
-        el.innerHTML      = objects.instruction
+        el.innerHTML      = DOMPurify.sanitize(objects.instruction, { ALLOWED_TAGS: ['strong', 'b', 'em', 'i', 'br', 'p', 'ul', 'ol', 'li'], ALLOWED_ATTR: [] })
         el.style.display  = ''
       } else if (instr.availableAt) {
         document.getElementById('instruction-notice-text').textContent = 'Инструкция будет доступна с ' + instr.availableAt

@@ -292,7 +292,7 @@
 <body>
 
 <div id="page-loader">
-  <i class="ti ti-loader-2 ti-spin"></i>
+  <div class="loader-spinner"></div>
   <span class="page-loader-text">Подождите, страница загружается</span>
 </div>
 
@@ -548,7 +548,7 @@
 
         if (item.failReason === 'object_not_found') {
             reasonHtml = '<span class="upc-reason-badge upc-reason--warn">Объект не найден</span>';
-            var opts = objects.map(function(o) { return '<option value="' + o.id + '">' + o.name + '</option>'; }).join('');
+            var opts = objects.map(function(o) { return '<option value="' + o.id + '">' + escapeHtml(o.name) + '</option>'; }).join('');
             actionHtml = '<select class="filter-select upc-obj-select" id="upc-obj-' + item.id + '"><option value="">Выберите объект...</option>' + opts + '</select>' +
                 '<button class="btn-resolve" onclick="resolveUnprocessed(' + item.id + ')"><i class="ti ti-arrow-right"></i> Перенести</button>' +
                 deleteBtnHtml;
@@ -557,18 +557,18 @@
             actionHtml = '<button class="btn-resolve" onclick="resolveUnprocessed(' + item.id + ')"><i class="ti ti-plus"></i> Создать бронь</button>' +
                 deleteBtnHtml;
         } else {
-            reasonHtml = '<span class="upc-reason-badge upc-reason--err">' + (item.failMessage || 'Неизвестная ошибка') + '</span>';
+            reasonHtml = '<span class="upc-reason-badge upc-reason--err">' + escapeHtml(item.failMessage || 'Неизвестная ошибка') + '</span>';
         }
 
         card.innerHTML =
             '<div class="bk-guest">' +
-                '<div class="bk-name">' + (item.fio || '—') + '</div>' +
-                '<div class="bk-phone">' + (item.phone || '—') + '</div>' +
+                '<div class="bk-name">' + escapeHtml(item.fio || '—') + '</div>' +
+                '<div class="bk-phone">' + escapeHtml(item.phone || '—') + '</div>' +
             '</div>' +
             '<div class="bk-divider"></div>' +
             '<div class="bk-object">' +
                 '<div class="bk-object-name">Бронь #' + item.bookingId + '</div>' +
-                '<div class="bk-object-source">' + actionLabel + ' · ' + (item.source || '—') + '</div>' +
+                '<div class="bk-object-source">' + escapeHtml(actionLabel) + ' · ' + escapeHtml(item.source || '—') + '</div>' +
             '</div>' +
             '<div class="bk-divider"></div>' +
             '<div class="bk-dates">' +

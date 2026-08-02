@@ -112,15 +112,15 @@
             const row = document.createElement('div');
             row.className = 'person-row';
             row.innerHTML = `
-            <div class="person-avatar">${initials}</div>
+            <div class="person-avatar">${escapeHtml(initials)}</div>
             <div class="person-info">
-                <div class="person-name">${person.name || 'Без имени'}</div>
-                <div class="person-login">@${person.login}</div>
+                <div class="person-name">${escapeHtml(person.name || 'Без имени')}</div>
+                <div class="person-login">@${escapeHtml(person.login)}</div>
             </div>
             <span class="badge-role">${roleBadge}</span>
             <div class="person-actions">
                 ${person.role != 'ADMINISTRATOR' ? `
-                 <button class="btn" onclick="openPermissions(${person.id}, '${person.name}')" title="Права доступа">
+                 <button class="btn" onclick="openPermissions(${person.id})" title="Права доступа">
                     <i class="ti ti-shield-cog"></i>
                     ` : ''}
                 </button>
@@ -179,9 +179,9 @@
                 const row = document.createElement('div');
                 row.className = 'person-row';
                 row.innerHTML = `
-                <div class="person-avatar">${initials}</div>
+                <div class="person-avatar">${escapeHtml(initials)}</div>
                 <div class="person-info">
-                    <div class="person-name">${maid.name || 'Без имени'}</div>
+                    <div class="person-name">${escapeHtml(maid.name || 'Без имени')}</div>
                 </div>
                 <span class="badge-role staff">Горничная</span>
                 ${haveRights == true ? `<div class="person-actions">
@@ -237,8 +237,8 @@
                 row.innerHTML = `
                 <div class="object-icon"><i class="ti ti-door"></i></div>
                 <div class="object-info">
-                    <div class="object-name">${object.name || 'Без названия'}</div>
-                    <div class="object-meta">${object.realtyid != "" ? object.realtyid + " • " : ''}${object.location}</div>
+                    <div class="object-name">${escapeHtml(object.name || 'Без названия')}</div>
+                    <div class="object-meta">${object.realtyid != "" ? escapeHtml(String(object.realtyid)) + " • " : ''}${escapeHtml(object.location)}</div>
                 </div>
                 ${haveRights == true ? `<div class="person-actions">
                     <button class="btn" onclick="openModalEditObject(${object.id})"><i class="ti ti-pencil"></i></button>
@@ -513,7 +513,7 @@
 <body>
 
 <div id="page-loader">
-  <i class="ti ti-loader-2 ti-spin"></i>
+  <div class="loader-spinner"></div>
   <span class="page-loader-text">Подождите, страница загружается</span>
 </div>
 
@@ -3303,13 +3303,13 @@ function renderMsgTemplateCard(t) {
     card.className = 'template-card'
     card.innerHTML = `
         <div class="template-head">
-            <span class="template-name">${t.name}</span>
+            <span class="template-name">${escapeHtml(t.name)}</span>
             ${_canEditTemplates ? `<div class="person-actions">
                 <button class="btn" onclick="openMsgTemplateModal(${t.id})"><i class="ti ti-pencil"></i></button>
                 <button class="btn btn-danger" onclick="deleteMsgTemplate(${t.id})"><i class="ti ti-trash"></i></button>
             </div>` : ''}
         </div>
-        <div class="template-preview">${t.body.replace(/\n/g, ' ')}</div>
+        <div class="template-preview">${escapeHtml(t.body.replace(/\n/g, ' '))}</div>
     `
     return card
 }
