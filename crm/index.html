@@ -72,6 +72,7 @@
     let _bankPaymentEdit   = false
     let _bankDepositEdit   = false
     let _depositAmountEdit = false
+    let _transferPaymentsCheck = false
 
     async function loadObjectsCache() {
       if (_objectsCache) return _objectsCache
@@ -92,14 +93,16 @@
       return card
     }
 
-    function getPaymentBadge(booking, paidAmount) {
+    function getPaymentBadge(booking, paidAmount, pendingTransfer) {
+      if (pendingTransfer) return `<span class="check-tag">Проверьте чек оплаты</span>`
       const remaining = (booking.balance_to_be_paid_1 || 0) - (paidAmount || 0)
       if (remaining === 0) return ''
       if (remaining < 0) return `<span class="pay-over-tag">Переплата</span>`
       return `<span class="warn-tag">Неоплачено</span>`
     }
 
-    function getDepositBadge(booking, object, depositAmount, depositReturned, isTodayCheckout) {
+    function getDepositBadge(booking, object, depositAmount, depositReturned, isTodayCheckout, pendingTransfer) {
+      if (pendingTransfer) return `<span class="check-tag">Проверьте чек залога</span>`
       const objectDeposit = parseFloat(object?.deposit) || 0
       const depositManualAllowed = object?.depositchanel === 'TOCHKA' || object?.depositchanel === 'TBANK'
       const depositTarget = (depositManualAllowed && booking?.manual_deposit !== null && booking?.manual_deposit !== undefined)
@@ -132,11 +135,11 @@
       return ''
     }
 
-    function cardCheckin(booking, object, paidAmount, depositAmount, depositReturned) {
+    function cardCheckin(booking, object, paidAmount, depositAmount, depositReturned, pendingPay, pendingDeposit) {
       const contractStatus = getContractStatus(booking)
       const contractBadge  = contractStatus === null ? '' : `<span class="warn-tag">${contractStatus}</span>`
-      const paymentBadge  = getPaymentBadge(booking, paidAmount)
-      const depositBadge  = getDepositBadge(booking, object, depositAmount, depositReturned, false)
+      const paymentBadge  = getPaymentBadge(booking, paidAmount, pendingPay)
+      const depositBadge  = getDepositBadge(booking, object, depositAmount, depositReturned, false, pendingDeposit)
       const timeBadge     = getTimeBadge(booking)
       const statusRow = (contractBadge || paymentBadge || depositBadge || timeBadge) ? `<div class="card-footer-row">${contractBadge}${paymentBadge}${depositBadge}${timeBadge}</div>` : ''
       return `
@@ -154,7 +157,7 @@
         <div class="card-tags-group">
           <span class="guest-tag">${nightsCount(booking.begin_date, booking.end_date)} ночей</span>
         </div>
-        ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row"><span class="channel-tag">${booking.channel}</span></div>`}
+        ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row card-channel-row"><span class="channel-tag">${booking.channel}</span></div>`}
         ${statusRow}
       `
     }
@@ -179,11 +182,11 @@
       }
     }
 
-    function cardCheckout(booking, object, paidAmount, depositAmount, depositReturned, isTodayCheckout) {
+    function cardCheckout(booking, object, paidAmount, depositAmount, depositReturned, isTodayCheckout, pendingPay, pendingDeposit) {
       const contractStatus = getContractStatus(booking)
       const contractBadge  = contractStatus === null ? '' : `<span class="warn-tag">${contractStatus}</span>`
-      const paymentBadge = getPaymentBadge(booking, paidAmount)
-      const depositBadge = getDepositBadge(booking, object, depositAmount, depositReturned, isTodayCheckout)
+      const paymentBadge = getPaymentBadge(booking, paidAmount, pendingPay)
+      const depositBadge = getDepositBadge(booking, object, depositAmount, depositReturned, isTodayCheckout, pendingDeposit)
       const timeBadge     = getTimeBadge(booking)
       const statusRow = (contractBadge || paymentBadge || depositBadge || timeBadge) ? `<div class="card-footer-row">${contractBadge}${paymentBadge}${depositBadge}${timeBadge}</div>` : ''
       return `
@@ -201,16 +204,16 @@
         <div class="card-tags-group">
           <span class="guest-tag">${nightsCount(booking.begin_date, booking.end_date)} ночей</span>
         </div>
-        ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row"><span class="channel-tag">${booking.channel}</span></div>`}
+        ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row card-channel-row"><span class="channel-tag">${booking.channel}</span></div>`}
         ${statusRow}
       `
     }
 
-    function cardLiving(booking, object, paidAmount, depositAmount, depositReturned) {
+    function cardLiving(booking, object, paidAmount, depositAmount, depositReturned, pendingPay, pendingDeposit) {
       const contractStatus = getContractStatus(booking)
       const contractBadge  = contractStatus === null ? '' : `<span class="warn-tag">${contractStatus}</span>`
-      const paymentBadge = getPaymentBadge(booking, paidAmount)
-      const depositBadge = getDepositBadge(booking, object, depositAmount, depositReturned, false)
+      const paymentBadge = getPaymentBadge(booking, paidAmount, pendingPay)
+      const depositBadge = getDepositBadge(booking, object, depositAmount, depositReturned, false, pendingDeposit)
       const timeBadge     = getTimeBadge(booking)
       const statusRow = (contractBadge || paymentBadge || depositBadge || timeBadge) ? `<div class="card-footer-row">${contractBadge}${paymentBadge}${depositBadge}${timeBadge}</div>` : ''
       return `
@@ -223,7 +226,7 @@
         <div class="card-tags-group">
           <span class="guest-tag">${nightsCount(booking.begin_date, booking.end_date)} ночей</span>
         </div>
-        ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row"><span class="channel-tag">${booking.channel}</span></div>`}
+        ${booking.channel == " " || booking.channel === "" ? '' : `<div class="card-footer-row card-channel-row"><span class="channel-tag">${booking.channel}</span></div>`}
         ${statusRow}
       `
     }
@@ -257,6 +260,7 @@
         _bankPaymentEdit   = !!meRes.bankPaymentEdit
         _bankDepositEdit   = !!meRes.bankDepositEdit
         _depositAmountEdit = !!meRes.depositAmountEdit
+        _transferPaymentsCheck = !!meRes.transferPaymentsCheck
         updateQmAddButtonsPermission()
         const userTimezone = meRes.cabinet?.Timezone || 'Europe/Moscow'
         const fmt = { timeZone: userTimezone, year: 'numeric', month: '2-digit', day: '2-digit' }
@@ -319,16 +323,20 @@
         const paidAmountsMap     = payData.amounts || {}
         const depositAmountsMap  = depositData.amounts || {}
         const depositReturnedMap = depositData.returnedAmounts || {}
+        const pendingPayMap      = payData.pendingTransfer || {}
+        const pendingDepositMap  = depositData.pendingTransfer || {}
 
         const byBucket = { tomorrowIn: [], todayIn: [], living: [], todayOut: [], tomorrowOut: [] }
         cardJobs.forEach(({ booking, object, type, bucket }) => {
           const paidAmount      = paidAmountsMap[booking.id] || 0
           const depositAmount   = depositAmountsMap[booking.id] || 0
           const depositReturned = depositReturnedMap[booking.id] || 0
+          const pendingPay      = !!pendingPayMap[booking.id]
+          const pendingDeposit  = !!pendingDepositMap[booking.id]
           let html
-          if (type === 'checkin')       html = cardCheckin(booking, object, paidAmount, depositAmount, depositReturned)
-          else if (type === 'checkout') html = cardCheckout(booking, object, paidAmount, depositAmount, depositReturned, bucket === 'todayOut')
-          else                          html = cardLiving(booking, object, paidAmount, depositAmount, depositReturned)
+          if (type === 'checkin')       html = cardCheckin(booking, object, paidAmount, depositAmount, depositReturned, pendingPay, pendingDeposit)
+          else if (type === 'checkout') html = cardCheckout(booking, object, paidAmount, depositAmount, depositReturned, bucket === 'todayOut', pendingPay, pendingDeposit)
+          else                          html = cardLiving(booking, object, paidAmount, depositAmount, depositReturned, pendingPay, pendingDeposit)
           byBucket[bucket].push({ booking, object, html })
         })
 
@@ -958,16 +966,18 @@ function formatDate(dateStr) {
 
       const card = document.querySelector(`.guest-card[data-booking-id="${_qmBookingId}"]`)
       if (card) {
-        let footer = card.querySelector('.card-footer-row')
+        let channelRow = card.querySelector('.card-channel-row')
         if (ch === 'Phone') {
-          footer?.remove()
+          channelRow?.remove()
         } else {
-          if (!footer) {
-            footer = document.createElement('div')
-            footer.className = 'card-footer-row'
-            card.appendChild(footer)
+          if (!channelRow) {
+            channelRow = document.createElement('div')
+            channelRow.className = 'card-footer-row card-channel-row'
+            const statusRow = card.querySelector('.card-footer-row:not(.card-channel-row)')
+            if (statusRow) card.insertBefore(channelRow, statusRow)
+            else card.appendChild(channelRow)
           }
-          footer.innerHTML = `<span class="channel-tag">${ch}</span>`
+          channelRow.innerHTML = `<span class="channel-tag">${ch}</span>`
         }
       }
 
@@ -1181,6 +1191,132 @@ function formatDate(dateStr) {
 
   const QM_PAY_STATUS_LABEL = { PAID: 'Оплачен', PENDING: 'Ожидание', FAILED: 'Ошибка', RETURNED: 'Возвращено' }
 
+  function isPdfUrl(url) {
+    return /\.pdf($|\?)/i.test(url || '')
+  }
+
+  function openReceiptLightbox(url) {
+    const existing = document.getElementById('receipt-lightbox')
+    if (existing) existing.remove()
+
+    const overlay = document.createElement('div')
+    overlay.id = 'receipt-lightbox'
+    overlay.className = 'receipt-lightbox-overlay'
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove() }
+
+    const contentHtml = isPdfUrl(url)
+      ? `<iframe src="${url}" class="receipt-lightbox-frame"></iframe>`
+      : `<img src="${url}" class="receipt-lightbox-img">`
+
+    overlay.innerHTML = `
+      <div class="receipt-lightbox-box">
+        <button class="receipt-lightbox-close" onclick="document.getElementById('receipt-lightbox').remove()"><i class="ti ti-x"></i></button>
+        ${contentHtml}
+      </div>
+    `
+    document.body.appendChild(overlay)
+  }
+
+  function buildTransferQmRow(row, p, kind) {
+    const amtStr  = fmtMoney(p.amount) + ' ₽'
+    const dateStr = new Date(p.createdAt).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+
+    if (p.status === 'FAILED') {
+      row.classList.add('qm-payment-row--compact')
+      row.innerHTML = `
+        <div class="qm-pay-info">
+          <span class="qm-pay-amount">${amtStr}</span>
+          <span class="qm-pay-meta">${dateStr} · Чек отклонён</span>
+        </div>
+      `
+      return
+    }
+
+    const metaParts = [dateStr, QM_PAY_STATUS_LABEL[p.status] || p.status]
+
+    let actionHtml = ''
+    if (p.status === 'PENDING') {
+      if (_transferPaymentsCheck) {
+        actionHtml = `
+          <button class="qm-pay-action" onclick="confirmTransferPayment(${p.id}, '${kind}')" title="Подтвердить"><i class="ti ti-check" style="font-size:14px;"></i></button>
+          <button class="qm-pay-action danger" onclick="rejectTransferPayment(${p.id}, '${kind}')" title="Отклонить"><i class="ti ti-x" style="font-size:14px;"></i></button>
+        `
+      } else {
+        actionHtml = `<span class="qm-pay-meta" style="opacity:.6">Ожидает проверки</span>`
+      }
+    } else if (p.status === 'PAID' || p.status === 'RETURNED') {
+      if (Number(p.returnedAmount) > 0) metaParts.push('возвращено ' + fmtMoney(p.returnedAmount) + ' ₽')
+      const nothingLeft = Number(p.amount || 0) <= 0
+      if (nothingLeft) {
+        actionHtml = `<span class="qm-pay-returned">Возвращено</span>`
+      } else if (_transferPaymentsCheck) {
+        const returnLabel = kind === 'DEPOSIT' ? 'Вернуть залог' : 'Вернуть оплату'
+        actionHtml = `<button class="qm-pay-action" onclick="openReturnPaymentModal(${p.id}, ${p.amount}, '${kind}', 'TRANSFER')" title="${returnLabel}"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
+      } else {
+        actionHtml = `<button class="qm-pay-action" disabled title="Недостаточно прав для возврата"><i class="ti ti-arrow-back-up" style="font-size:14px;"></i></button>`
+      }
+    }
+
+    const receiptHtml = p.receiptUrl
+      ? `<button class="qm-receipt-thumb" onclick="openReceiptLightbox('${p.receiptUrl}')" title="Открыть чек"><i class="ti ${isPdfUrl(p.receiptUrl) ? 'ti-file-type-pdf' : 'ti-photo'}" style="font-size:16px;"></i></button>`
+      : ''
+
+    row.innerHTML = `
+      <div class="qm-pay-info">
+        <span class="qm-pay-amount">${amtStr}</span>
+        <span class="qm-pay-meta">${metaParts.join(' · ')}</span>
+      </div>
+      ${receiptHtml}
+      ${actionHtml}
+    `
+  }
+
+  async function confirmTransferPayment(paymentId, kind) {
+    if (!confirm('Подтвердить платёж по чеку?')) return
+    const token = localStorage.getItem('broneboxtoken')
+    try {
+      const res = await fetch(API + '/payments/confirmTransfer', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId })
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        showToast(err.error || 'Ошибка подтверждения', 'danger')
+        return
+      }
+      showToast(kind === 'DEPOSIT' ? 'Залог подтверждён' : 'Оплата подтверждена', 'success')
+      if (kind === 'DEPOSIT') loadQmDeposits(_qmBookingId)
+      else loadQmPayments(_qmBookingId)
+      getBookings()
+    } catch {
+      showToast('Ошибка подтверждения', 'danger')
+    }
+  }
+
+  async function rejectTransferPayment(paymentId, kind) {
+    if (!confirm('Отклонить чек? Гостю нужно будет прикрепить новый.')) return
+    const token = localStorage.getItem('broneboxtoken')
+    try {
+      const res = await fetch(API + '/payments/rejectTransfer', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId })
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        showToast(err.error || 'Ошибка отклонения', 'danger')
+        return
+      }
+      showToast('Чек отклонён', 'success')
+      if (kind === 'DEPOSIT') loadQmDeposits(_qmBookingId)
+      else loadQmPayments(_qmBookingId)
+      getBookings()
+    } catch {
+      showToast('Ошибка отклонения', 'danger')
+    }
+  }
+
   function renderQmPaymentRows(payments, containerId, kind) {
     const list = document.getElementById(containerId)
     list.innerHTML = ''
@@ -1196,7 +1332,7 @@ function formatDate(dateStr) {
       updateQmDepositDisplay()
     }
 
-    const visible = (payments || []).filter(p => p.status !== 'PENDING')
+    const visible = (payments || []).filter(p => p.status !== 'PENDING' || p.method === 'TRANSFER')
 
     const canManualEdit = kind === 'DEPOSIT' ? _manualDepositEdit : _manualPaymentEdit
     const canBankEdit    = kind === 'DEPOSIT' ? _bankDepositEdit   : _bankPaymentEdit
@@ -1204,6 +1340,12 @@ function formatDate(dateStr) {
     visible.forEach(p => {
       const row = document.createElement('div')
       row.className = 'qm-payment-row'
+
+      if (p.method === 'TRANSFER') {
+        buildTransferQmRow(row, p, kind)
+        list.appendChild(row)
+        return
+      }
 
       const amtStr  = fmtMoney(p.amount) + ' ₽'
       const dateStr = new Date(p.createdAt).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
@@ -1415,7 +1557,7 @@ function formatDate(dateStr) {
 
     document.querySelector('#modal-return-payment .modal-title').textContent =
       (_returnPaymentKind === 'DEPOSIT' ? 'Возврат залога' : 'Возврат оплаты') +
-      (_returnPaymentMethod === 'TOCHKA' ? ' (Точка)' : '')
+      (_returnPaymentMethod === 'TOCHKA' ? ' (Точка)' : _returnPaymentMethod === 'TRANSFER' ? ' (Перевод)' : '')
 
     const inp = document.getElementById('return-payment-input')
     inp.value = _returnPaymentMax % 1 === 0 ? String(_returnPaymentMax) : String(_returnPaymentMax.toFixed(2))
@@ -1451,7 +1593,9 @@ function formatDate(dateStr) {
     btn.disabled = true
     try {
       const token = localStorage.getItem('broneboxtoken')
-      const endpoint = _returnPaymentMethod === 'TOCHKA' ? '/payments/returnTochkaPayment' : '/payments/manualreturn'
+      const endpoint = _returnPaymentMethod === 'TOCHKA' ? '/payments/returnTochkaPayment'
+        : _returnPaymentMethod === 'TRANSFER' ? '/payments/returnTransferPayment'
+        : '/payments/manualreturn'
       const res = await fetch(`${API}${endpoint}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -1545,10 +1689,13 @@ function formatDate(dateStr) {
     const existing = document.getElementById('qm-tg-popover')
     if (existing) { existing.remove(); return }
 
-    const btn = document.getElementById('qm-contact-btn')
+    const desktopBtn = document.getElementById('qm-contact-btn')
+    const mobileBtn  = document.getElementById('qm-mob-contact')
+    const isMobileBtn = !!(mobileBtn && mobileBtn.offsetParent !== null)
+    const btn = isMobileBtn ? mobileBtn : desktopBtn
     const popover = document.createElement('div')
     popover.id = 'qm-tg-popover'
-    popover.className = 'qm-tg-popover'
+    popover.className = 'qm-tg-popover' + (isMobileBtn ? ' qm-tg-popover--up' : '')
 
     const makeItem = (label, body) => {
       const item = document.createElement('div')

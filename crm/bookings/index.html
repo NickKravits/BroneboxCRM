@@ -86,14 +86,16 @@
         return "Что-то с договором!";
     }
 
-    function getPaymentBadge(booking, paidAmount) {
+    function getPaymentBadge(booking, paidAmount, pendingTransfer) {
+        if (pendingTransfer) return `<span class="check-tag">Проверьте чек оплаты</span>`;
         const remaining = (booking.balance_to_be_paid_1 || 0) - (paidAmount || 0);
         if (remaining === 0) return '';
         if (remaining < 0) return `<span class="pay-over-tag">Переплата</span>`;
         return '';
     }
 
-    function getDepositBadge(booking, object, depositAmount, depositReturned) {
+    function getDepositBadge(booking, object, depositAmount, depositReturned, pendingTransfer) {
+        if (pendingTransfer) return `<span class="check-tag">Проверьте чек залога</span>`;
         const objectDeposit = parseFloat(object?.deposit) || 0;
         const depositManualAllowed = object?.depositchanel === 'TOCHKA' || object?.depositchanel === 'TBANK';
         const depositTarget = (depositManualAllowed && booking?.manual_deposit !== null && booking?.manual_deposit !== undefined)
@@ -111,13 +113,13 @@
         return '';
     }
 
-    function buildBookingRowHtml(booking, object, paidAmount, depositAmount, depositReturned) {
+    function buildBookingRowHtml(booking, object, paidAmount, depositAmount, depositReturned, pendingPay, pendingDeposit) {
         const toPay = Math.max(0, (booking.balance_to_be_paid_1 || 0) - (paidAmount || 0));
 
         const contractStatus = getContractStatus(booking);
         const contractBadge  = contractStatus === null ? '' : `<span class="warn-tag">${escapeHtml(contractStatus)}</span>`;
-        const paymentBadge   = getPaymentBadge(booking, paidAmount);
-        const depositBadge   = getDepositBadge(booking, object, depositAmount, depositReturned);
+        const paymentBadge   = getPaymentBadge(booking, paidAmount, pendingPay);
+        const depositBadge   = getDepositBadge(booking, object, depositAmount, depositReturned, pendingDeposit);
         const badges = [contractBadge, paymentBadge, depositBadge].filter(Boolean).join('');
 
         const guestLinkBtn = booking.link
@@ -191,6 +193,8 @@
             const paidAmountsMap     = payData.amounts || {};
             const depositAmountsMap  = depositData.amounts || {};
             const depositReturnedMap = depositData.returnedAmounts || {};
+            const pendingPayMap      = payData.pendingTransfer || {};
+            const pendingDepositMap  = depositData.pendingTransfer || {};
 
             const wantedIds = new Set(bookings.map(b => String(b.id)));
             Array.from(container.children).forEach(child => {
@@ -205,7 +209,9 @@
                     booking, object,
                     paidAmountsMap[booking.id] || 0,
                     depositAmountsMap[booking.id] || 0,
-                    depositReturnedMap[booking.id] || 0
+                    depositReturnedMap[booking.id] || 0,
+                    !!pendingPayMap[booking.id],
+                    !!pendingDepositMap[booking.id]
                 );
                 let row = container.querySelector(`.booking-row[data-booking-id="${booking.id}"]`);
                 if (row) {

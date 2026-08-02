@@ -316,6 +316,14 @@
             `;
         }
 
+        const transferBtn = document.querySelector('#transfer-instructions')?.closest('.integration-card')?.querySelector('.btn-save');
+        const transferField = document.getElementById('transfer-instructions');
+        if (transferBtn && transferField) {
+            const allowed = permissions == true;
+            transferBtn.disabled = !allowed;
+            transferField.disabled = !allowed;
+        }
+
         if (tochka == "CONNECTED") {
             document.getElementById('tochka-con-label').textContent = 'Подключено';
             document.getElementById('tochka-con-label').classList.replace('disconnected', 'connected');
@@ -433,6 +441,34 @@
         ta.focus();
     }
 
+    async function loadTransferInstructions() {
+        const token = localStorage.getItem('broneboxtoken');
+        try {
+            const res = await fetch(API + '/cabinet/transfer-instructions', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            const el = document.getElementById('transfer-instructions');
+            if (el) el.value = data.transferInstructions ?? '';
+        } catch (err) { console.error(err); }
+    }
+
+    async function saveTransferInstructions() {
+        const token = localStorage.getItem('broneboxtoken');
+        const transferInstructions = document.getElementById('transfer-instructions')?.value ?? '';
+        try {
+            const res = await fetch(API + '/cabinet/transfer-instructions', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ transferInstructions })
+            });
+            const data = await res.json();
+            if (!res.ok) { showToast(data.error || 'Ошибка', 'danger'); return; }
+            showToast('Инструкция сохранена', 'success');
+        } catch (err) { showToast('Ошибка при сохранении', 'danger'); }
+    }
+
     function insertHeaderFooterVar(id, v) {
         const ta = document.getElementById(id);
         if (!ta) return;
@@ -453,6 +489,7 @@
                 loadServiceSettings(),
                 loadCleaningTemplate(),
                 loadMsgTemplates(),
+                loadTransferInstructions(),
             ]);
         } catch (e) {
             console.error(e);
@@ -605,6 +642,21 @@
           </div>
           <div class="int-desc">Автоматический учёт платежей и выгрузка финансовых операций.</div>
           <div id="tochka-actions"></div>
+        </div>
+        <div class="integration-card" style="grid-column: span 2; min-width: 260px;">
+          <div class="int-head">
+            <div class="int-icon">💸</div>
+            <div>
+              <div class="int-name">Переводы</div>
+            </div>
+          </div>
+          <div class="int-desc">Инструкция для гостя — как оплатить переводом (реквизиты, номер карты и т.д.). Показывается на странице гостя для объектов с приёмом через перевод.</div>
+          <div class="field-group" style="margin-top:10px;">
+            <textarea class="field-input" id="transfer-instructions" rows="4" placeholder="Например: Переведите сумму на карту 0000 0000 0000 0000 (Тинькофф, Иван И.). После перевода прикрепите чек ниже на этой странице."></textarea>
+          </div>
+          <button class="btn btn-save" style="margin-top:10px;width:100%;justify-content:center;" onclick="saveTransferInstructions()">
+            <i class="ti ti-check"></i> Сохранить
+          </button>
         </div>
       </div>
     </div>
@@ -835,6 +887,10 @@
       <label class="perm-row">
         <div class="perm-info"><span class="perm-name">Изменение суммы залога</span><span class="perm-desc">Может менять сумму залога, которая применяется к брони</span></div>
         <label class="toggle-switch"><input type="checkbox" id="perm-depositamountedit"><span class="toggle-track"></span></label>
+      </label>
+      <label class="perm-row">
+        <div class="perm-info"><span class="perm-name">Проверка платежей переводом</span><span class="perm-desc">Может проверять чеки, подтверждать, отклонять и возвращать платежи с методом «Перевод»</span></div>
+        <label class="toggle-switch"><input type="checkbox" id="perm-transferpaymentscheck"><span class="toggle-track"></span></label>
       </label>
     </div>
     <div class="modal-footer">
@@ -1201,6 +1257,7 @@
               <option value="NONE">Не принимать</option>
               <option value="TOCHKA">Точка банк</option>
               <option value="TBANK">Т-Банк бизнес</option>
+              <option value="TRANSFER">Перевод</option>
               <option value="MONETA">Монета (RealtyCalendar)</option>
             </select>
           </div>
@@ -1215,6 +1272,7 @@
               <option value="NONE">Не принимать</option>
               <option value="TOCHKA">Точка банк</option>
               <option value="TBANK">Т-Банк бизнес</option>
+              <option value="TRANSFER">Перевод</option>
             </select>
           </div>
         </div>
@@ -1552,6 +1610,7 @@ function clearEditPhotos() {
               <option value="NONE">Не принимать</option>
               <option value="TOCHKA">Точка банк</option>
               <option value="TBANK">Т-Банк бизнес</option>
+              <option value="TRANSFER">Перевод</option>
               <option value="MONETA">Монета (RealtyCalendar)</option>
             </select>
           </div>
@@ -1566,6 +1625,7 @@ function clearEditPhotos() {
               <option value="NONE">Не принимать</option>
               <option value="TOCHKA">Точка банк</option>
               <option value="TBANK">Т-Банк бизнес</option>
+              <option value="TRANSFER">Перевод</option>
             </select>
           </div>
         </div>
@@ -2958,6 +3018,7 @@ for (const photo of photosData.photos) {
             document.getElementById('perm-financesinformationpayment').checked = (permissions.financesinformationpayment === "YES");
             document.getElementById('perm-financesinformationdeposit').checked = (permissions.financesinformationdeposit === "YES");
             document.getElementById('perm-depositamountedit').checked = (permissions.depositamountedit === "YES");
+            document.getElementById('perm-transferpaymentscheck').checked = (permissions.transferpaymentscheck === "YES");
         }
 
         document.getElementById('modal-username').textContent = data.name || 'Без имени';

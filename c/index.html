@@ -226,6 +226,9 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
       <span id="payment-notice-text"></span>
     </div>
+    <div class="transfer-instructions" id="payment-transfer-instructions" style="display:none">
+      <p id="payment-transfer-instructions-text"></p>
+    </div>
     <div class="channel-tag" id="payment-channel-tag" style="display:none"></div>
   </div>
 
@@ -256,6 +259,9 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
       <p><strong>Залог не уходит арендодателю.</strong> Сумма замораживается на вашей карте и автоматически разблокируется после проверки объекта. Если всё в порядке — деньги возвращаются полностью.</p>
     </div>
+    <div class="transfer-instructions" id="deposit-transfer-instructions" style="display:none">
+      <p id="deposit-transfer-instructions-text"></p>
+    </div>
     <div class="channel-tag" id="deposit-channel-tag" style="display:none"></div>
   </div>
 
@@ -282,6 +288,22 @@
       <button class="btn-pay" id="pay-modal-confirm" onclick="confirmPayment()">Перейти к оплате</button>
     </div>
     <div class="pay-modal-error" id="pay-modal-error" style="display:none"></div>
+  </div>
+</div>
+
+<div class="pay-modal-overlay" id="receipt-modal-overlay" style="display:none" onclick="handleReceiptModalOverlay(event)">
+  <div class="pay-modal">
+    <div class="pay-modal-title" id="receipt-modal-title">Прикрепить чек</div>
+    <p class="pay-modal-desc">Прикрепите фото или PDF-документ, подтверждающий перевод.</p>
+    <div class="pay-modal-field">
+      <label for="receipt-file">Файл чека</label>
+      <input type="file" id="receipt-file" accept="image/*,application/pdf" />
+    </div>
+    <div class="pay-modal-actions">
+      <button class="btn-pay-cancel" onclick="closeReceiptModal()">Отмена</button>
+      <button class="btn-pay" id="receipt-modal-confirm" onclick="confirmReceiptUpload()">Отправить</button>
+    </div>
+    <div class="pay-modal-error" id="receipt-modal-error" style="display:none"></div>
   </div>
 </div>
 
@@ -422,7 +444,7 @@
     }
   }
 
-  const CHANNEL_NAMES = { TOCHKA: 'Точка Банк', TBANK: 'Т-Банк', MONETA: 'Moneta', NONE: 'менеджера' }
+  const CHANNEL_NAMES = { TOCHKA: 'Точка Банк', TBANK: 'Т-Банк', MONETA: 'Moneta', TRANSFER: 'Перевод', NONE: 'менеджера' }
 
   function renderChannelTag(elId, channel, prefix) {
     if (!channel || channel === 'NONE') return
@@ -441,7 +463,36 @@
     Внесён
   </div>`
 
-  function renderPayment(booking, objects, show, paidAmount) {
+  function renderTransferAction(kind, actionEl, tp, instructions, amountDue) {
+    const isDeposit = kind === 'DEPOSIT'
+    const btnClass   = isDeposit ? 'btn-deposit' : 'btn-pay'
+    const instrBlock = document.getElementById(isDeposit ? 'deposit-transfer-instructions' : 'payment-transfer-instructions')
+    const instrText  = document.getElementById(isDeposit ? 'deposit-transfer-instructions-text' : 'payment-transfer-instructions-text')
+    const noticeEl   = document.getElementById(isDeposit ? 'deposit-notice' : 'payment-notice')
+    const noticeText = document.getElementById(isDeposit ? 'deposit-notice-text' : 'payment-notice-text')
+
+    if (tp && tp.status === 'PENDING') {
+      actionEl.innerHTML = ''
+      instrBlock.style.display = 'none'
+      noticeText.textContent = 'Чек на проверке у менеджера. Мы сообщим, как только это будет подтверждено.'
+      noticeEl.style.display = ''
+      return
+    }
+
+    const rejected = tp && tp.status === 'FAILED'
+    const btnLabel = rejected ? 'Прикрепить чек ещё раз' : 'Прикрепить чек'
+    actionEl.innerHTML = `<button class="${btnClass}" onclick="openReceiptUploadModal('${kind}')">${btnLabel}</button>`
+
+    const lines = []
+    if (rejected) lines.push('Чек отклонён менеджером. Переведите сумму ещё раз и прикрепите новый чек.')
+    lines.push('Сумма к переводу: ' + formatPrice(amountDue))
+    if (instructions) lines.push(instructions)
+
+    instrText.textContent = lines.join('\n\n')
+    instrBlock.style.display = ''
+  }
+
+  function renderPayment(booking, objects, show, paidAmount, transferPay, transferInstructions) {
     const pay = show.payanddeposit || {}
     if (!objects) return
 
@@ -486,6 +537,7 @@
 
     const action = document.getElementById('pay-obj-action')
     document.getElementById('payment-notice').style.display = 'none'
+    document.getElementById('payment-transfer-instructions').style.display = 'none'
 
     if (fullyPaid) {
       action.innerHTML = PAID_BADGE
@@ -502,6 +554,8 @@
           document.getElementById('payment-notice-text').textContent = 'Оплата через Точка Банк временно недоступна. Обратитесь к вашему менеджеру.'
           document.getElementById('payment-notice').style.display = ''
         }
+      } else if (objects.paymentchanel === 'TRANSFER') {
+        renderTransferAction('PAY', action, transferPay, transferInstructions, toPay)
       } else {
         action.innerHTML = `<button class="btn-pay">Оплатить ${formatPrice(toPay)}</button>`
       }
@@ -585,7 +639,69 @@
     btn.textContent = 'Перейти к оплате'
   }
 
-  function renderDeposit(booking, objects, show, depositHeld, depositReturned, checkoutPassed, depositTarget) {
+  let _receiptModalKind = 'PAY'
+
+  function openReceiptUploadModal(kind) {
+    _receiptModalKind = kind
+    document.getElementById('receipt-modal-title').textContent = kind === 'DEPOSIT' ? 'Прикрепить чек о залоге' : 'Прикрепить чек об оплате'
+    document.getElementById('receipt-file').value = ''
+    document.getElementById('receipt-modal-error').style.display = 'none'
+    document.getElementById('receipt-modal-overlay').style.display = 'flex'
+  }
+
+  function closeReceiptModal() {
+    document.getElementById('receipt-modal-overlay').style.display = 'none'
+  }
+
+  function handleReceiptModalOverlay(e) {
+    if (e.target.id === 'receipt-modal-overlay') closeReceiptModal()
+  }
+
+  function showReceiptModalError(msg) {
+    const el = document.getElementById('receipt-modal-error')
+    el.textContent   = msg
+    el.style.display = ''
+  }
+
+  async function confirmReceiptUpload() {
+    const fileInput = document.getElementById('receipt-file')
+    const file = fileInput.files[0]
+    if (!file) {
+      showReceiptModalError('Выберите файл')
+      return
+    }
+
+    document.getElementById('receipt-modal-error').style.display = 'none'
+
+    const btn = document.getElementById('receipt-modal-confirm')
+    btn.disabled    = true
+    btn.textContent = 'Отправка...'
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const params = new URLSearchParams({ id: getBookingLink(), type: _receiptModalKind })
+      const res  = await fetch(API + '/guest/payment/uploadReceipt?' + params.toString(), {
+        method: 'POST',
+        body:   formData
+      })
+      const data = await res.json()
+      if (res.ok && data.ok) {
+        closeReceiptModal()
+        loadData(getBookingLink())
+        return
+      }
+      showReceiptModalError(data.error || 'Не удалось загрузить чек')
+    } catch {
+      showReceiptModalError('Не удалось связаться с сервером')
+    }
+
+    btn.disabled    = false
+    btn.textContent = 'Отправить'
+  }
+
+  function renderDeposit(booking, objects, show, depositHeld, depositReturned, checkoutPassed, depositTarget, transferDeposit, transferInstructions) {
     const pay = show.payanddeposit || {}
     if (!objects) return
 
@@ -626,6 +742,7 @@
 
     const action = document.getElementById('deposit-obj-action')
     document.getElementById('deposit-notice').style.display = 'none'
+    document.getElementById('deposit-transfer-instructions').style.display = 'none'
 
     if (checkoutPassed) {
       action.innerHTML = ''
@@ -660,6 +777,8 @@
         document.getElementById('deposit-notice-text').textContent = 'Ссылка для внесения залога временно недоступна. Обратитесь к вашему менеджеру.'
         document.getElementById('deposit-notice').style.display = ''
       }
+    } else if (objects.depositchanel === 'TRANSFER') {
+      renderTransferAction('DEPOSIT', action, transferDeposit, transferInstructions, remaining)
     } else {
       action.innerHTML = `<button class="btn-deposit">Внести залог</button>`
     }
@@ -724,7 +843,7 @@
     }
   }
 
-  function applyData(booking, objects, photos, show, bookingState, checkoutPassed, paidAmount, depositHeld, depositReturned, depositTarget) {
+  function applyData(booking, objects, photos, show, bookingState, checkoutPassed, paidAmount, depositHeld, depositReturned, depositTarget, transferInstructions, transferPay, transferDeposit) {
     const completed  = bookingState === 'booked' && checkoutPassed
     const isCanceled = bookingState === 'canceled' || bookingState === 'deleted'
     const isRequest  = bookingState === 'request'
@@ -748,7 +867,7 @@
       return
     }
 
-    _state = { booking, objects, show, completed, checkoutPassed, paidAmount, depositHeld, depositReturned, depositTarget }
+    _state = { booking, objects, show, completed, checkoutPassed, paidAmount, depositHeld, depositReturned, depositTarget, transferInstructions, transferPay, transferDeposit }
 
     const nights   = countNights(booking.begin_date, booking.end_date)
     const checkin  = formatDate(booking.begin_date)
@@ -817,8 +936,8 @@
 
     const pay = show.payanddeposit || {}
     if (pay.visible) {
-      renderPayment(booking, objects, show, paidAmount)
-      renderDeposit(booking, objects, show, depositHeld, depositReturned, checkoutPassed, depositTarget)
+      renderPayment(booking, objects, show, paidAmount, transferPay, transferInstructions)
+      renderDeposit(booking, objects, show, depositHeld, depositReturned, checkoutPassed, depositTarget, transferDeposit, transferInstructions)
     }
 
     const rate = show.rateclean || {}
@@ -847,8 +966,8 @@
       if (res.status === 404) { showNotFound(); return }
       if (!res.ok)            { showNotFound(); return }
 
-      const { booking, objects, photos, show, bookingState, checkoutPassed, paidAmount, depositHeld, depositReturned, depositTarget } = await res.json()
-      applyData(booking, objects, photos, show, bookingState, checkoutPassed, paidAmount, depositHeld, depositReturned, depositTarget)
+      const { booking, objects, photos, show, bookingState, checkoutPassed, paidAmount, depositHeld, depositReturned, depositTarget, transferInstructions, transferPay, transferDeposit } = await res.json()
+      applyData(booking, objects, photos, show, bookingState, checkoutPassed, paidAmount, depositHeld, depositReturned, depositTarget, transferInstructions, transferPay, transferDeposit)
 
     } catch (e) {
       console.error('Ошибка загрузки:', e)

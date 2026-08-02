@@ -479,6 +479,24 @@ body {
   font-weight: 500;
 }
 
+.transfer-instructions {
+  background: var(--amber-bg);
+  border: 0.5px solid var(--amber-border);
+  border-radius: var(--radius-sm);
+  padding: 11px 14px;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.transfer-instructions p {
+  font-size: 12px;
+  color: var(--amber-text);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
 .contract-row {
   display: flex;
   align-items: center;

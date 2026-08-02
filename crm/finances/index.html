@@ -109,7 +109,7 @@
           <div id="trend-chart-wrap"><div class="chart-empty">Загрузка...</div></div>
         </div>
         <div class="chart-card">
-          <div class="chart-card-title">Статистика по источникам за 30 дней</div>
+          <div class="chart-card-title" id="donut-card-title">Статистика по источникам</div>
           <div id="donut-wrap"><div class="chart-empty">Загрузка...</div></div>
         </div>
       </div>
@@ -117,16 +117,17 @@
       <div class="filters-bar">
         <div class="filter-group">
           <span class="filter-label">Источник</span>
-          <select class="filter-select" id="filter-source" onchange="loadPayments()">
+          <select class="filter-select" id="filter-source" onchange="loadPayments(); loadStats();">
             <option value="">Все источники</option>
             <option value="TOCHKA">Точка</option>
             <option value="TBANK">Т-Банк</option>
             <option value="MANAGER">Ручной ввод</option>
+            <option value="TRANSFER">Переводы</option>
           </select>
         </div>
         <div class="filter-group">
           <span class="filter-label">Статус</span>
-          <select class="filter-select" id="filter-status" onchange="loadPayments()">
+          <select class="filter-select" id="filter-status" onchange="loadPayments(); loadStats();">
             <option value="">Все статусы</option>
             <option value="PAID">Оплачено</option>
             <option value="PENDING">Ожидание</option>
@@ -136,11 +137,54 @@
         </div>
         <div class="filter-group">
           <span class="filter-label">Тип</span>
-          <select class="filter-select" id="filter-type" onchange="loadPayments()">
+          <select class="filter-select" id="filter-type" onchange="loadPayments(); loadStats();">
             <option value="" id="filter-type-all">Все типы</option>
             <option value="PAY" id="filter-type-pay">Оплата</option>
             <option value="DEPOSIT" id="filter-type-deposit">Залог</option>
           </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Дата платежа</span>
+          <div class="filter-date-range">
+            <input type="date" class="filter-input" id="filter-paid-from" onchange="loadPayments(); loadStats();">
+            <span class="filter-date-sep">—</span>
+            <input type="date" class="filter-input" id="filter-paid-to" onchange="loadPayments(); loadStats();">
+          </div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Дата возврата</span>
+          <div class="filter-date-range">
+            <input type="date" class="filter-input" id="filter-returned-from" onchange="loadPayments(); loadStats();">
+            <span class="filter-date-sep">—</span>
+            <input type="date" class="filter-input" id="filter-returned-to" onchange="loadPayments(); loadStats();">
+          </div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Дата заезда</span>
+          <div class="filter-date-range">
+            <input type="date" class="filter-input" id="filter-checkin-from" onchange="loadPayments(); loadStats();">
+            <span class="filter-date-sep">—</span>
+            <input type="date" class="filter-input" id="filter-checkin-to" onchange="loadPayments(); loadStats();">
+          </div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Дата выезда</span>
+          <div class="filter-date-range">
+            <input type="date" class="filter-input" id="filter-checkout-from" onchange="loadPayments(); loadStats();">
+            <span class="filter-date-sep">—</span>
+            <input type="date" class="filter-input" id="filter-checkout-to" onchange="loadPayments(); loadStats();">
+          </div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Объекты</span>
+          <div class="multiselect" id="filter-objects-wrap">
+            <button type="button" class="filter-select multiselect-toggle" id="filter-objects-toggle" onclick="toggleObjectsDropdown(event)">Все объекты</button>
+            <div class="multiselect-panel" id="filter-objects-panel" style="display:none"></div>
+          </div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">&nbsp;</span>
+          <button class="btn-report" onclick="openReportModal()"><i class="ti ti-file-spreadsheet"></i> Сформировать отчёт</button>
         </div>
       </div>
 
@@ -189,6 +233,12 @@
         <div class="pay-modal-row"><span class="lbl">Статус в Точке</span><span class="val" id="pm-tochka-status">—</span></div>
         <div class="pay-modal-row"><span class="lbl">Тип оплаты</span><span class="val" id="pm-tochka-type">—</span></div>
       </div>
+
+      <div class="pay-modal-block" id="pm-transfer-block" style="display:none">
+        <div class="pay-modal-row"><span class="lbl">Чек</span></div>
+        <div id="pm-transfer-receipt"></div>
+        <div id="pm-transfer-actions" style="display:flex; gap:8px; margin-top:6px;"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -217,13 +267,91 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="report-modal" onclick="handleReportModalOverlay(event)">
+  <div class="modal" style="width:960px;">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <span class="modal-label">Отчёт по платежам</span>
+      </div>
+      <button class="modal-close" onclick="closeReportModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+
+      <div class="report-filters">
+        <div class="filter-group">
+          <span class="filter-label">Тип платежа</span>
+          <select class="filter-select" id="report-type">
+            <option value="ALL">Все</option>
+            <option value="PAY">Оплаты</option>
+            <option value="DEPOSIT">Залоги</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Дата платежа с</span>
+          <input type="date" class="filter-input" id="report-paid-from">
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Дата платежа по</span>
+          <input type="date" class="filter-input" id="report-paid-to">
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Источники</span>
+          <div class="multiselect" id="report-sources-wrap">
+            <button type="button" class="filter-select multiselect-toggle" id="report-sources-toggle" onclick="toggleReportDropdown(event, 'sources')">Все источники</button>
+            <div class="multiselect-panel" id="report-sources-panel" style="display:none">
+              <label class="multiselect-item"><input type="checkbox" value="MANAGER" onchange="onReportSourcesChange()"> <span>Ручной ввод</span></label>
+              <label class="multiselect-item"><input type="checkbox" value="TOCHKA" onchange="onReportSourcesChange()"> <span>Точка</span></label>
+              <label class="multiselect-item"><input type="checkbox" value="TBANK" onchange="onReportSourcesChange()"> <span>Т-Банк</span></label>
+              <label class="multiselect-item"><input type="checkbox" value="TRANSFER" onchange="onReportSourcesChange()"> <span>Переводы</span></label>
+            </div>
+          </div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">Объекты</span>
+          <div class="multiselect" id="report-objects-wrap">
+            <button type="button" class="filter-select multiselect-toggle" id="report-objects-toggle" onclick="toggleReportDropdown(event, 'objects')">Все объекты</button>
+            <div class="multiselect-panel" id="report-objects-panel" style="display:none"></div>
+          </div>
+        </div>
+        <button class="btn-report" onclick="generateReport()"><i class="ti ti-chart-bar"></i> Показать</button>
+      </div>
+
+      <div id="report-results" style="display:none">
+        <div class="report-table-wrap">
+          <table class="report-table" id="report-table">
+            <thead>
+              <tr>
+                <th>Дата платежа</th>
+                <th>Дата возврата</th>
+                <th>Объект</th>
+                <th>Адрес</th>
+                <th>Даты проживания</th>
+                <th>Бронь №</th>
+                <th>Получено</th>
+                <th>Возвращено</th>
+                <th>Осталось</th>
+              </tr>
+            </thead>
+            <tbody id="report-table-body"></tbody>
+          </table>
+        </div>
+        <div class="report-totals" id="report-totals"></div>
+        <button class="btn-report" style="margin-top:14px;" onclick="exportReportCsv()"><i class="ti ti-download"></i> Экспортировать в Excel</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <script>
-  const SOURCE_LABELS = { TOCHKA: 'Точка', TBANK: 'Т-Банк', MANAGER: 'Ручной ввод' };
-  const SOURCE_COLORS = { TOCHKA: '#a855f7', TBANK: '#eab308', MANAGER: '#9ca3af' };
+  const SOURCE_LABELS = { TOCHKA: 'Точка', TBANK: 'Т-Банк', MANAGER: 'Ручной ввод', TRANSFER: 'Переводы' };
+  const SOURCE_COLORS = { TOCHKA: '#a855f7', TBANK: '#eab308', MANAGER: '#9ca3af', TRANSFER: '#22d3ee' };
   const STATUS_LABELS = { PAID: 'Оплачено', PENDING: 'Ожидание', FAILED: 'Ошибка', RETURNED: 'Возвращено' };
   const TYPE_LABELS   = { PAY: 'Оплата', DEPOSIT: 'Залог' };
 
   let _payments = [];
+  let _objectsCache = null;
+  let _selectedFilterObjects = new Set();
 
   let _manualPaymentEdit = false;
   let _manualDepositEdit = false;
@@ -231,6 +359,7 @@
   let _bankDepositEdit   = false;
   let _financesInformationPayment = false;
   let _financesInformationDeposit = false;
+  let _transferPaymentsCheck = false;
 
   function toggleSidebar() {
     document.getElementById('sidebar').classList.toggle('open');
@@ -283,6 +412,7 @@
       _bankDepositEdit   = !!data.bankDepositEdit;
       _financesInformationPayment = !!data.financesInformationPayment;
       _financesInformationDeposit = !!data.financesInformationDeposit;
+      _transferPaymentsCheck = !!data.transferPaymentsCheck;
       applyFinancesAccess();
     } catch (err) {
       console.error('Ошибка при получении данных пользователя:', err);
@@ -465,10 +595,82 @@
     `;
   }
 
+  async function loadObjectsCache() {
+    if (_objectsCache) return _objectsCache;
+    const token = localStorage.getItem('broneboxtoken');
+    const res = await fetch(`${API}/objects/getall`, { headers: { 'Authorization': `Bearer ${token}` } });
+    const { objects } = await res.json();
+    _objectsCache = (objects || [])
+      .filter(o => o.realtyid != null)
+      .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ru'));
+    return _objectsCache;
+  }
+
+  async function populateObjectsFilter() {
+    const objects = await loadObjectsCache();
+    const panel = document.getElementById('filter-objects-panel');
+    panel.innerHTML = objects.map(o => `
+      <label class="multiselect-item">
+        <input type="checkbox" value="${o.realtyid}" onchange="onObjectsFilterChange()">
+        <span>${escapeHtml(o.name || String(o.realtyid))}</span>
+      </label>
+    `).join('');
+  }
+
+  function toggleObjectsDropdown(e) {
+    if (e) e.stopPropagation();
+    const panel = document.getElementById('filter-objects-panel');
+    panel.style.display = panel.style.display === 'none' ? '' : 'none';
+  }
+
+  function onObjectsFilterChange() {
+    const panel = document.getElementById('filter-objects-panel');
+    const checked = Array.from(panel.querySelectorAll('input:checked')).map(i => i.value);
+    _selectedFilterObjects = new Set(checked);
+    const toggle = document.getElementById('filter-objects-toggle');
+    toggle.textContent = checked.length === 0 ? 'Все объекты' : `Выбрано: ${checked.length}`;
+    loadPayments();
+    loadStats();
+  }
+
+  document.addEventListener('click', (e) => {
+    const wrap = document.getElementById('filter-objects-wrap');
+    const panel = document.getElementById('filter-objects-panel');
+    if (wrap && panel && panel.style.display !== 'none' && !wrap.contains(e.target)) {
+      panel.style.display = 'none';
+    }
+  });
+
+  function buildFilterParams() {
+    const params = new URLSearchParams();
+    const source = document.getElementById('filter-source').value;
+    const status = document.getElementById('filter-status').value;
+    const type   = document.getElementById('filter-type').value;
+    if (source) params.set('source', source);
+    if (status) params.set('status', status);
+    if (type)   params.set('type', type);
+
+    const pairs = [
+      ['filter-paid-from', 'paidFrom'], ['filter-paid-to', 'paidTo'],
+      ['filter-returned-from', 'returnedFrom'], ['filter-returned-to', 'returnedTo'],
+      ['filter-checkin-from', 'checkinFrom'], ['filter-checkin-to', 'checkinTo'],
+      ['filter-checkout-from', 'checkoutFrom'], ['filter-checkout-to', 'checkoutTo'],
+    ];
+    pairs.forEach(([id, param]) => {
+      const val = document.getElementById(id)?.value;
+      if (val) params.set(param, val);
+    });
+
+    if (_selectedFilterObjects.size) params.set('objects', Array.from(_selectedFilterObjects).join(','));
+
+    return params;
+  }
+
   async function loadStats() {
     const token = localStorage.getItem('broneboxtoken');
     try {
-      const res = await fetch(`${API}/payments/stats`, {
+      const params = buildFilterParams();
+      const res = await fetch(`${API}/payments/stats?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) throw new Error();
@@ -488,6 +690,7 @@
     const alreadyRefundedOnce = Number(p.returnedAmount || 0) > 0;
     const canManualEdit = p.type === 'DEPOSIT' ? _manualDepositEdit : _manualPaymentEdit;
     const canBankEdit    = p.type === 'DEPOSIT' ? _bankDepositEdit   : _bankPaymentEdit;
+    const isCompactFailed = p.method === 'TRANSFER' && p.status === 'FAILED';
 
     let actionHtml = '';
     if (p.method === 'MANAGER') {
@@ -495,6 +698,14 @@
         actionHtml += `<button class="btn-return" style="background:rgba(212,83,126,0.12);border-color:rgba(212,83,126,0.28);color:var(--accent-pink)" onclick="event.stopPropagation(); removePayment(${p.id})" title="Удалить"><i class="ti ti-trash"></i> Удалить</button>`;
       } else {
         actionHtml += `<button class="btn-return" disabled title="Недостаточно прав для удаления"><i class="ti ti-trash"></i> Удалить</button>`;
+      }
+    }
+    if (p.method === 'TRANSFER' && p.status === 'PENDING') {
+      if (_transferPaymentsCheck) {
+        actionHtml += `<button class="btn-return" onclick="event.stopPropagation(); confirmTransferPaymentRow(${p.id})"><i class="ti ti-check"></i> Подтвердить</button>`;
+        actionHtml += `<button class="btn-return" style="background:rgba(212,83,126,0.12);border-color:rgba(212,83,126,0.28);color:var(--accent-pink)" onclick="event.stopPropagation(); rejectTransferPaymentRow(${p.id})"><i class="ti ti-x"></i> Отклонить</button>`;
+      } else {
+        actionHtml += `<span class="pay-meta-line" style="opacity:.6">Ожидает проверки</span>`;
       }
     }
     if (!nothingLeft && wasPaid) {
@@ -512,10 +723,18 @@
         }
       } else if (p.method === 'TBANK') {
         actionHtml += `<button class="btn-return" disabled title="Возврат для этого способа оплаты пока недоступен"><i class="ti ti-arrow-back-up"></i> Вернуть</button>`;
+      } else if (p.method === 'TRANSFER') {
+        if (_transferPaymentsCheck) {
+          actionHtml += `<button class="btn-return" onclick="event.stopPropagation(); openReturnPaymentModal(${p.id}, ${p.amount}, '${p.method}')"><i class="ti ti-arrow-back-up"></i> Вернуть</button>`;
+        } else {
+          actionHtml += `<button class="btn-return" disabled title="Недостаточно прав для возврата"><i class="ti ti-arrow-back-up"></i> Вернуть</button>`;
+        }
       }
     }
 
-    const bookingLabel = p.bookingFio ? `Бронирование №${p.bookingId} · ${escapeHtml(p.bookingFio)}` : `Бронирование №${p.bookingId}`;
+    const objectPart = p.objectName ? ` · ${escapeHtml(p.objectName)}` : '';
+    const datesPart  = (p.checkinDate && p.checkoutDate) ? ` · ${fmtDate(p.checkinDate)} — ${fmtDate(p.checkoutDate)}` : '';
+    const bookingLabel = (p.bookingFio ? `Бронирование №${p.bookingId} · ${escapeHtml(p.bookingFio)}` : `Бронирование №${p.bookingId}`) + objectPart + datesPart;
 
     const returnedAmount = Number(p.returnedAmount || 0);
     const totalAmount = Number(p.amount || 0) + returnedAmount;
@@ -529,10 +748,14 @@
       dateLine = `Создано: ${fmtDateTime(p.createdAt)}`;
     }
 
+    const receiptIndicator = (p.method === 'TRANSFER' && p.receiptUrl && !isCompactFailed)
+      ? `<span class="pay-receipt-dot" title="Есть чек"><i class="ti ${/\.pdf($|\?)/i.test(p.receiptUrl) ? 'ti-file-type-pdf' : 'ti-photo'}"></i></span>`
+      : '';
+
     return `
-      <div class="payment-row" onclick="openPaymentModal(${p.id})">
+      <div class="payment-row${isCompactFailed ? ' payment-row--compact' : ''}" onclick="openPaymentModal(${p.id})">
         <div class="pay-info">
-          <span class="pay-title">Оплата №${p.id} · ${TYPE_LABELS[p.type] || p.type}</span>
+          <span class="pay-title">Оплата №${p.id} · ${TYPE_LABELS[p.type] || p.type} ${receiptIndicator}</span>
           <span class="pay-meta-line">Источник: ${SOURCE_LABELS[p.method] || p.method}</span>
           <span class="pay-meta-line"><span class="status-dot status-dot--${p.status}"></span> Статус: ${STATUS_LABELS[p.status] || p.status}</span>
           <span class="pay-meta-line">${dateLine}</span>
@@ -568,13 +791,7 @@
   async function loadPayments() {
     const token = localStorage.getItem('broneboxtoken');
     const container = document.getElementById('payments-container');
-    const params = new URLSearchParams();
-    const source = document.getElementById('filter-source').value;
-    const status = document.getElementById('filter-status').value;
-    const type   = document.getElementById('filter-type').value;
-    if (source) params.set('source', source);
-    if (status) params.set('status', status);
-    if (type)   params.set('type', type);
+    const params = buildFilterParams();
 
     try {
       const res = await fetch(`${API}/payments/getall?${params.toString()}`, {
@@ -636,13 +853,14 @@
     if (!nothingLeft && wasPaid) {
       if (p.method === 'MANAGER') canReturn = canManualEdit;
       else if (p.method === 'TOCHKA' && !alreadyRefundedOnce) canReturn = canBankEdit;
+      else if (p.method === 'TRANSFER') canReturn = _transferPaymentsCheck;
     }
-    returnBtn.style.display = (wasPaid && !nothingLeft) ? '' : 'none';
+    returnBtn.style.display = (wasPaid && !nothingLeft && p.method !== 'TBANK') ? '' : 'none';
     returnBtn.disabled = !canReturn;
     returnBtn.title = canReturn ? '' :
       (p.method === 'TBANK' ? 'Возврат для этого способа оплаты пока недоступен' :
-       alreadyRefundedOnce ? 'Через Точку можно вернуть только один раз' :
-       (p.method === 'MANAGER' || p.method === 'TOCHKA') ? 'Недостаточно прав для возврата' : '');
+       alreadyRefundedOnce && p.method === 'TOCHKA' ? 'Через Точку можно вернуть только один раз' :
+       (p.method === 'MANAGER' || p.method === 'TOCHKA' || p.method === 'TRANSFER') ? 'Недостаточно прав для возврата' : '');
     returnBtn.onclick = () => openReturnPaymentModal(p.id, p.amount, p.method);
 
     const tochkaBlock = document.getElementById('pm-tochka-block');
@@ -652,6 +870,32 @@
       tochkaBlock.style.display = '';
     } else {
       tochkaBlock.style.display = 'none';
+    }
+
+    const transferBlock = document.getElementById('pm-transfer-block');
+    if (p.method === 'TRANSFER') {
+      transferBlock.style.display = '';
+      const receiptEl = document.getElementById('pm-transfer-receipt');
+      if (p.receiptUrl) {
+        const isPdf = /\.pdf($|\?)/i.test(p.receiptUrl);
+        receiptEl.innerHTML = isPdf
+          ? `<button class="pay-goto" onclick="event.stopPropagation(); openReceiptLightbox('${p.receiptUrl}')"><i class="ti ti-file-type-pdf"></i> Открыть PDF чека</button>`
+          : `<img src="${p.receiptUrl}" class="pm-receipt-img" onclick="event.stopPropagation(); openReceiptLightbox('${p.receiptUrl}')">`;
+      } else {
+        receiptEl.innerHTML = `<span class="val">Чек не прикреплён</span>`;
+      }
+
+      const actionsEl = document.getElementById('pm-transfer-actions');
+      if (p.status === 'PENDING' && _transferPaymentsCheck) {
+        actionsEl.innerHTML = `
+          <button class="btn-return" onclick="confirmTransferPaymentRow(${p.id})"><i class="ti ti-check"></i> Подтвердить</button>
+          <button class="btn-return" style="background:rgba(212,83,126,0.12);border-color:rgba(212,83,126,0.28);color:var(--accent-pink)" onclick="rejectTransferPaymentRow(${p.id})"><i class="ti ti-x"></i> Отклонить</button>
+        `;
+      } else {
+        actionsEl.innerHTML = '';
+      }
+    } else {
+      transferBlock.style.display = 'none';
     }
 
     document.getElementById('payment-modal').classList.add('active');
@@ -685,6 +929,232 @@
     } catch {
       showToast('Ошибка удаления', 'danger');
     }
+  }
+
+  function openReceiptLightbox(url) {
+    const existing = document.getElementById('receipt-lightbox');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'receipt-lightbox';
+    overlay.className = 'receipt-lightbox-overlay';
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+    const isPdf = /\.pdf($|\?)/i.test(url || '');
+    const contentHtml = isPdf
+      ? `<iframe src="${url}" class="receipt-lightbox-frame"></iframe>`
+      : `<img src="${url}" class="receipt-lightbox-img">`;
+
+    overlay.innerHTML = `
+      <div class="receipt-lightbox-box">
+        <button class="receipt-lightbox-close" onclick="document.getElementById('receipt-lightbox').remove()"><i class="ti ti-x"></i></button>
+        ${contentHtml}
+      </div>
+    `;
+    document.body.appendChild(overlay);
+  }
+
+  async function confirmTransferPaymentRow(paymentId) {
+    if (!confirm('Подтвердить платёж по чеку?')) return;
+    const token = localStorage.getItem('broneboxtoken');
+    try {
+      const res = await fetch(`${API}/payments/confirmTransfer`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        showToast(err.error || 'Ошибка подтверждения', 'danger');
+        return;
+      }
+      showToast('Платёж подтверждён', 'success');
+      closePaymentModal();
+      loadPayments();
+      loadStats();
+    } catch {
+      showToast('Ошибка подтверждения', 'danger');
+    }
+  }
+
+  async function rejectTransferPaymentRow(paymentId) {
+    if (!confirm('Отклонить чек? Гостю нужно будет прикрепить новый.')) return;
+    const token = localStorage.getItem('broneboxtoken');
+    try {
+      const res = await fetch(`${API}/payments/rejectTransfer`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        showToast(err.error || 'Ошибка отклонения', 'danger');
+        return;
+      }
+      showToast('Чек отклонён', 'success');
+      closePaymentModal();
+      loadPayments();
+      loadStats();
+    } catch {
+      showToast('Ошибка отклонения', 'danger');
+    }
+  }
+
+  let _reportRows = [];
+  let _reportTotals = { count: 0, received: 0, returned: 0, remaining: 0 };
+  let _selectedReportSources = new Set();
+  let _selectedReportObjects = new Set();
+
+  function openReportModal() {
+    document.getElementById('report-results').style.display = 'none';
+    document.getElementById('report-modal').classList.add('active');
+    populateReportObjectsPanel();
+  }
+
+  function closeReportModal() {
+    document.getElementById('report-modal').classList.remove('active');
+  }
+
+  function handleReportModalOverlay(e) {
+    if (e.target.id === 'report-modal') closeReportModal();
+  }
+
+  async function populateReportObjectsPanel() {
+    const objects = await loadObjectsCache();
+    const panel = document.getElementById('report-objects-panel');
+    panel.innerHTML = objects.map(o => `
+      <label class="multiselect-item">
+        <input type="checkbox" value="${o.realtyid}" onchange="onReportObjectsChange()">
+        <span>${escapeHtml(o.name || String(o.realtyid))}</span>
+      </label>
+    `).join('');
+  }
+
+  function toggleReportDropdown(e, which) {
+    e.stopPropagation();
+    const panel = document.getElementById(`report-${which}-panel`);
+    panel.style.display = panel.style.display === 'none' ? '' : 'none';
+  }
+
+  function onReportSourcesChange() {
+    const panel = document.getElementById('report-sources-panel');
+    const checked = Array.from(panel.querySelectorAll('input:checked')).map(i => i.value);
+    _selectedReportSources = new Set(checked);
+    document.getElementById('report-sources-toggle').textContent = checked.length === 0 ? 'Все источники' : `Выбрано: ${checked.length}`;
+  }
+
+  function onReportObjectsChange() {
+    const panel = document.getElementById('report-objects-panel');
+    const checked = Array.from(panel.querySelectorAll('input:checked')).map(i => i.value);
+    _selectedReportObjects = new Set(checked);
+    document.getElementById('report-objects-toggle').textContent = checked.length === 0 ? 'Все объекты' : `Выбрано: ${checked.length}`;
+  }
+
+  document.addEventListener('click', (e) => {
+    ['report-sources-wrap', 'report-objects-wrap'].forEach(id => {
+      const wrap = document.getElementById(id);
+      if (wrap && !wrap.contains(e.target)) {
+        const panel = wrap.querySelector('.multiselect-panel');
+        if (panel) panel.style.display = 'none';
+      }
+    });
+  });
+
+  async function generateReport() {
+    const token = localStorage.getItem('broneboxtoken');
+    const type = document.getElementById('report-type').value;
+    const paidFrom = document.getElementById('report-paid-from').value;
+    const paidTo = document.getElementById('report-paid-to').value;
+
+    const body = {};
+    if (type !== 'ALL') body.type = type;
+    if (paidFrom) body.paidFrom = paidFrom;
+    if (paidTo) body.paidTo = paidTo;
+    if (_selectedReportSources.size) body.sources = Array.from(_selectedReportSources);
+    if (_selectedReportObjects.size) body.objects = Array.from(_selectedReportObjects).map(Number);
+
+    try {
+      const res = await fetch(`${API}/payments/report`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'Ошибка построения отчёта', 'danger');
+        return;
+      }
+      _reportRows = data.rows || [];
+      _reportTotals = data.totals || { count: 0, received: 0, returned: 0, remaining: 0 };
+      renderReportTable();
+      document.getElementById('report-results').style.display = '';
+    } catch {
+      showToast('Ошибка построения отчёта', 'danger');
+    }
+  }
+
+  function renderReportTable() {
+    const tbody = document.getElementById('report-table-body');
+    if (!_reportRows.length) {
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:20px;">Платежи не найдены</td></tr>`;
+    } else {
+      tbody.innerHTML = _reportRows.map(r => `
+        <tr>
+          <td>${fmtDate(r.paidAt) || '—'}</td>
+          <td>${r.returnedAt ? fmtDate(r.returnedAt) : '—'}</td>
+          <td>${escapeHtml(r.objectName || '—')}</td>
+          <td>${escapeHtml(r.objectAddress || '—')}</td>
+          <td>${r.checkinDate && r.checkoutDate ? `${fmtDate(r.checkinDate)} — ${fmtDate(r.checkoutDate)}` : '—'}</td>
+          <td>№${r.bookingId}</td>
+          <td>${fmtMoney(r.received)} ₽</td>
+          <td>${fmtMoney(r.returned)} ₽</td>
+          <td>${fmtMoney(r.remaining)} ₽</td>
+        </tr>
+      `).join('');
+    }
+
+    document.getElementById('report-totals').innerHTML = `
+      <span>Платежей: <strong>${_reportTotals.count}</strong></span>
+      <span>Получено: <strong>${fmtMoney(_reportTotals.received)} ₽</strong></span>
+      <span>Возвращено: <strong>${fmtMoney(_reportTotals.returned)} ₽</strong></span>
+      <span>Осталось: <strong>${fmtMoney(_reportTotals.remaining)} ₽</strong></span>
+    `;
+  }
+
+  function exportReportCsv() {
+    if (!_reportRows.length) {
+      showToast('Нет данных для экспорта', 'info');
+      return;
+    }
+    const headers = ['Дата платежа','Дата возврата','Объект','Адрес','Даты проживания','Бронь №','Получено','Возвращено','Осталось'];
+    const escapeCsv = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const lines = [headers.map(escapeCsv).join(';')];
+    _reportRows.forEach(r => {
+      lines.push([
+        fmtDate(r.paidAt) || '',
+        r.returnedAt ? fmtDate(r.returnedAt) : '',
+        r.objectName || '',
+        r.objectAddress || '',
+        (r.checkinDate && r.checkoutDate) ? `${fmtDate(r.checkinDate)} — ${fmtDate(r.checkoutDate)}` : '',
+        r.bookingId,
+        r.received,
+        r.returned,
+        r.remaining
+      ].map(escapeCsv).join(';'));
+    });
+    lines.push('');
+    lines.push([escapeCsv('Итого'), '', '', '', '', escapeCsv(_reportTotals.count + ' платежей'), _reportTotals.received, _reportTotals.returned, _reportTotals.remaining].join(';'));
+
+    const csvContent = String.fromCharCode(0xFEFF) + lines.join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Отчёт по платежам ${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   let _returnPaymentId     = null;
@@ -730,7 +1200,9 @@
     btn.disabled = true;
     try {
       const token = localStorage.getItem('broneboxtoken');
-      const endpoint = _returnPaymentMethod === 'TOCHKA' ? '/payments/returnTochkaPayment' : '/payments/manualreturn';
+      const endpoint = _returnPaymentMethod === 'TOCHKA' ? '/payments/returnTochkaPayment'
+        : _returnPaymentMethod === 'TRANSFER' ? '/payments/returnTransferPayment'
+        : '/payments/manualreturn';
       const res = await fetch(`${API}${endpoint}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -761,7 +1233,7 @@
     try {
       await getUserData();
       if (_financesInformationPayment || _financesInformationDeposit) {
-        await Promise.all([loadPayments(), loadStats()]);
+        await Promise.all([loadPayments(), loadStats(), populateObjectsFilter()]);
       }
     } finally {
       const loader = document.getElementById('page-loader');
