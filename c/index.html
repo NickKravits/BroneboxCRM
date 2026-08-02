@@ -229,7 +229,6 @@
     <div class="transfer-instructions" id="payment-transfer-instructions" style="display:none">
       <p id="payment-transfer-instructions-text"></p>
     </div>
-    <div class="channel-tag" id="payment-channel-tag" style="display:none"></div>
   </div>
 
   <div class="card" id="card-deposit" style="display:none">
@@ -262,7 +261,6 @@
     <div class="transfer-instructions" id="deposit-transfer-instructions" style="display:none">
       <p id="deposit-transfer-instructions-text"></p>
     </div>
-    <div class="channel-tag" id="deposit-channel-tag" style="display:none"></div>
   </div>
 
   <div class="card" id="card-review" style="display:none">
@@ -444,15 +442,6 @@
     }
   }
 
-  const CHANNEL_NAMES = { TOCHKA: 'Точка Банк', TBANK: 'Т-Банк', MONETA: 'Moneta', TRANSFER: 'Перевод', NONE: 'менеджера' }
-
-  function renderChannelTag(elId, channel, prefix) {
-    if (!channel || channel === 'NONE') return
-    const el = document.getElementById(elId)
-    el.textContent   = prefix + ' · ' + (CHANNEL_NAMES[channel] || channel)
-    el.style.display = ''
-  }
-
   const PAID_BADGE = `<div class="paid-badge">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
     Оплачено
@@ -560,8 +549,6 @@
         action.innerHTML = `<button class="btn-pay">Оплатить ${formatPrice(toPay)}</button>`
       }
     }
-
-    renderChannelTag('payment-channel-tag', objects.paymentchanel, 'Оплата через')
   }
 
   let _payModalKind = 'PAY' // 'PAY' | 'DEPOSIT'
@@ -786,8 +773,6 @@
     } else {
       action.innerHTML = `<button class="btn-deposit">Внести залог</button>`
     }
-
-    renderChannelTag('deposit-channel-tag', objects.depositchanel, 'Принимается через')
   }
 
   let _selectedRating = 0

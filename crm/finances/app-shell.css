@@ -878,14 +878,17 @@ html[data-theme="light"] .app-tabbar { --glass-bg: rgba(243,241,236,0.82); }
   .finance-charts { grid-template-columns: 1fr; }
   .donut-wrap { gap: 14px; }
 
-  .filters-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: stretch; padding: 14px; }
+  .filters-bar { display: grid; grid-template-columns: 1fr; gap: 10px; align-items: stretch; padding: 14px; }
   .filter-group { min-width: 0; }
   .filter-input, .filter-select { min-width: 0; width: 100%; }
-  .filter-group--wide { grid-column: 1 / -1; }
   .filter-date-range { min-width: 0; }
   .filter-date-range .filter-input[type="date"] { min-width: 0; flex: 1; }
   .filter-group--btn .filter-label { display: none; }
   .filter-group--btn .btn-report { width: 100%; justify-content: center; }
+
+  .report-filters { flex-direction: column; align-items: stretch; }
+  .report-filters .filter-group { width: 100%; }
+  .report-filters > .btn-report { width: 100%; justify-content: center; }
 
 
   .payment-row { flex-direction: column; align-items: stretch; gap: 10px; padding: 14px 16px; }

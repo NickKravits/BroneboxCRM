@@ -222,8 +222,10 @@
         <div class="pay-modal-row"><span class="lbl">Метод</span><span class="val" id="pm-method">—</span></div>
         <div class="pay-modal-row"><span class="lbl">Статус</span><span class="val" id="pm-status">—</span></div>
         <div class="pay-modal-row"><span class="lbl">Создано</span><span class="val" id="pm-created">—</span></div>
+        <div class="pay-modal-row" id="pm-madeby-row" style="display:none"><span class="lbl">Кем создан</span><span class="val" id="pm-madeby">—</span></div>
         <div class="pay-modal-row"><span class="lbl">Оплачено</span><span class="val" id="pm-paidat">—</span></div>
         <div class="pay-modal-row"><span class="lbl">Возвращено</span><span class="val" id="pm-returnedat">Возврата нет</span></div>
+        <div class="pay-modal-row" id="pm-returnedby-row" style="display:none"><span class="lbl">Кем возвращён</span><span class="val" id="pm-returnedby">—</span></div>
         <button class="btn-return" id="pm-return-btn" style="align-self:flex-start; margin-top:4px;">
           <i class="ti ti-arrow-back-up"></i> Вернуть
         </button>
@@ -268,7 +270,7 @@
 </div>
 
 <div class="modal-overlay" id="report-modal" onclick="handleReportModalOverlay(event)">
-  <div class="modal" style="width:960px;">
+  <div class="modal modal--report">
     <div class="modal-header">
       <div class="modal-title-wrap">
         <span class="modal-label">Отчёт по платежам</span>
@@ -841,8 +843,10 @@
     if (!p) return;
 
     document.getElementById('pm-id').textContent = '№ ' + p.id;
-    document.getElementById('pm-booking-label').textContent = p.bookingFio
-      ? `Бронирование №${p.bookingId} · ${p.bookingFio}` : `Бронирование №${p.bookingId}`;
+    const pmObjectPart = p.objectName ? ` · ${p.objectName}` : '';
+    const pmDatesPart  = (p.checkinDate && p.checkoutDate) ? ` · ${fmtDate(p.checkinDate)} — ${fmtDate(p.checkoutDate)}` : '';
+    document.getElementById('pm-booking-label').textContent = (p.bookingFio
+      ? `Бронирование №${p.bookingId} · ${p.bookingFio}` : `Бронирование №${p.bookingId}`) + pmObjectPart + pmDatesPart;
     document.getElementById('pm-goto-btn').onclick = () => goToBooking(p.bookingId);
 
     const pmReturnedAmount = Number(p.returnedAmount || 0);
@@ -856,6 +860,22 @@
     document.getElementById('pm-created').textContent = fmtDate(p.createdAt) || '—';
     document.getElementById('pm-paidat').textContent = fmtDate(p.paidAt) || 'Не оплачено';
     document.getElementById('pm-returnedat').textContent = p.returnedAt ? fmtDate(p.returnedAt) : 'Возврата нет';
+
+    const madebyRow = document.getElementById('pm-madeby-row');
+    if (p.method === 'MANAGER' && p.madeBy) {
+      document.getElementById('pm-madeby').textContent = p.madeBy;
+      madebyRow.style.display = '';
+    } else {
+      madebyRow.style.display = 'none';
+    }
+
+    const returnedbyRow = document.getElementById('pm-returnedby-row');
+    if (p.returnedBy) {
+      document.getElementById('pm-returnedby').textContent = p.returnedBy;
+      returnedbyRow.style.display = '';
+    } else {
+      returnedbyRow.style.display = 'none';
+    }
 
     const nothingLeft = Number(p.amount || 0) <= 0;
     const wasPaid = p.status === 'PAID' || p.status === 'RETURNED';

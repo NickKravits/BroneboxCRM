@@ -1,5 +1,13 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.ti-spin {
+  display: inline-block;
+  animation: spin 0.9s linear infinite;
+}
+
 #page-loader {
   position: fixed;
   inset: 0;

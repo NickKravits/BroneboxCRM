@@ -830,10 +830,10 @@ html[data-theme="light"] .app-tabbar { --glass-bg: rgba(243,241,236,0.82); }
 
 @media (max-width: 768px) {
   
-  .filters-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: stretch; padding: 14px; }
+  .filters-bar { display: grid; grid-template-columns: 1fr; gap: 10px; align-items: stretch; padding: 14px; }
   .filter-group { min-width: 0; }
   .filter-input, .filter-select { min-width: 0; width: 100%; }
-  .filters-bar > .btn-apply { grid-column: 1 / -1; width: 100%; justify-content: center; }
+  .filters-bar > .btn-apply { width: 100%; justify-content: center; }
 
   
   .page-header > .btn-apply { width: 100%; justify-content: center; }
