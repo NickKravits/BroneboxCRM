@@ -23,7 +23,7 @@
   </script>
 
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>BroneBox CRM — Финансы</title>
   <link rel="icon" type="image/png" href="/favicon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -143,7 +143,7 @@
             <option value="DEPOSIT" id="filter-type-deposit">Залог</option>
           </select>
         </div>
-        <div class="filter-group">
+        <div class="filter-group filter-group--wide">
           <span class="filter-label">Дата платежа</span>
           <div class="filter-date-range">
             <input type="date" class="filter-input" id="filter-paid-from" onchange="loadPayments(); loadStats();">
@@ -151,7 +151,7 @@
             <input type="date" class="filter-input" id="filter-paid-to" onchange="loadPayments(); loadStats();">
           </div>
         </div>
-        <div class="filter-group">
+        <div class="filter-group filter-group--wide">
           <span class="filter-label">Дата возврата</span>
           <div class="filter-date-range">
             <input type="date" class="filter-input" id="filter-returned-from" onchange="loadPayments(); loadStats();">
@@ -159,7 +159,7 @@
             <input type="date" class="filter-input" id="filter-returned-to" onchange="loadPayments(); loadStats();">
           </div>
         </div>
-        <div class="filter-group">
+        <div class="filter-group filter-group--wide">
           <span class="filter-label">Дата заезда</span>
           <div class="filter-date-range">
             <input type="date" class="filter-input" id="filter-checkin-from" onchange="loadPayments(); loadStats();">
@@ -167,7 +167,7 @@
             <input type="date" class="filter-input" id="filter-checkin-to" onchange="loadPayments(); loadStats();">
           </div>
         </div>
-        <div class="filter-group">
+        <div class="filter-group filter-group--wide">
           <span class="filter-label">Дата выезда</span>
           <div class="filter-date-range">
             <input type="date" class="filter-input" id="filter-checkout-from" onchange="loadPayments(); loadStats();">
@@ -182,7 +182,7 @@
             <div class="multiselect-panel" id="filter-objects-panel" style="display:none"></div>
           </div>
         </div>
-        <div class="filter-group">
+        <div class="filter-group filter-group--wide filter-group--btn">
           <span class="filter-label">&nbsp;</span>
           <button class="btn-report" onclick="openReportModal()"><i class="ti ti-file-spreadsheet"></i> Сформировать отчёт</button>
         </div>
@@ -321,15 +321,16 @@
           <table class="report-table" id="report-table">
             <thead>
               <tr>
-                <th>Дата платежа</th>
-                <th>Дата возврата</th>
-                <th>Объект</th>
+                <th class="sortable" onclick="sortReportTable('paidAt')">Дата платежа <i class="ti ti-selector sort-icon" data-key="paidAt"></i></th>
+                <th class="sortable" onclick="sortReportTable('returnedAt')">Дата возврата <i class="ti ti-selector sort-icon" data-key="returnedAt"></i></th>
+                <th class="sortable" onclick="sortReportTable('method')">Источник <i class="ti ti-selector sort-icon" data-key="method"></i></th>
+                <th class="sortable" onclick="sortReportTable('objectName')">Объект <i class="ti ti-selector sort-icon" data-key="objectName"></i></th>
                 <th>Адрес</th>
                 <th>Даты проживания</th>
-                <th>Бронь №</th>
-                <th>Получено</th>
-                <th>Возвращено</th>
-                <th>Осталось</th>
+                <th class="sortable" onclick="sortReportTable('bookingId')">Бронь № <i class="ti ti-selector sort-icon" data-key="bookingId"></i></th>
+                <th class="sortable" onclick="sortReportTable('received')">Получено <i class="ti ti-selector sort-icon" data-key="received"></i></th>
+                <th class="sortable" onclick="sortReportTable('returned')">Возвращено <i class="ti ti-selector sort-icon" data-key="returned"></i></th>
+                <th class="sortable" onclick="sortReportTable('remaining')">Осталось <i class="ti ti-selector sort-icon" data-key="remaining"></i></th>
               </tr>
             </thead>
             <tbody id="report-table-body"></tbody>
@@ -617,10 +618,25 @@
     `).join('');
   }
 
+  function positionMultiselectPanel(panel, toggleEl) {
+    if (panel.parentElement !== document.body) document.body.appendChild(panel);
+    const r = toggleEl.getBoundingClientRect();
+    panel.style.top = (r.bottom + 6) + 'px';
+    panel.style.left = r.left + 'px';
+    panel.style.width = Math.max(220, r.width) + 'px';
+  }
+
   function toggleObjectsDropdown(e) {
     if (e) e.stopPropagation();
+    const toggle = document.getElementById('filter-objects-toggle');
     const panel = document.getElementById('filter-objects-panel');
-    panel.style.display = panel.style.display === 'none' ? '' : 'none';
+    const opening = panel.style.display === 'none' || !panel.style.display;
+    if (opening) {
+      positionMultiselectPanel(panel, toggle);
+      panel.style.display = 'block';
+    } else {
+      panel.style.display = 'none';
+    }
   }
 
   function onObjectsFilterChange() {
@@ -636,7 +652,7 @@
   document.addEventListener('click', (e) => {
     const wrap = document.getElementById('filter-objects-wrap');
     const panel = document.getElementById('filter-objects-panel');
-    if (wrap && panel && panel.style.display !== 'none' && !wrap.contains(e.target)) {
+    if (wrap && panel && panel.style.display !== 'none' && !wrap.contains(e.target) && !panel.contains(e.target)) {
       panel.style.display = 'none';
     }
   });
@@ -1013,6 +1029,8 @@
 
   function closeReportModal() {
     document.getElementById('report-modal').classList.remove('active');
+    document.getElementById('report-sources-panel').style.display = 'none';
+    document.getElementById('report-objects-panel').style.display = 'none';
   }
 
   function handleReportModalOverlay(e) {
@@ -1032,8 +1050,15 @@
 
   function toggleReportDropdown(e, which) {
     e.stopPropagation();
+    const toggle = document.getElementById(`report-${which}-toggle`);
     const panel = document.getElementById(`report-${which}-panel`);
-    panel.style.display = panel.style.display === 'none' ? '' : 'none';
+    const opening = panel.style.display === 'none' || !panel.style.display;
+    if (opening) {
+      positionMultiselectPanel(panel, toggle);
+      panel.style.display = 'block';
+    } else {
+      panel.style.display = 'none';
+    }
   }
 
   function onReportSourcesChange() {
@@ -1051,11 +1076,11 @@
   }
 
   document.addEventListener('click', (e) => {
-    ['report-sources-wrap', 'report-objects-wrap'].forEach(id => {
-      const wrap = document.getElementById(id);
-      if (wrap && !wrap.contains(e.target)) {
-        const panel = wrap.querySelector('.multiselect-panel');
-        if (panel) panel.style.display = 'none';
+    ['report-sources', 'report-objects'].forEach(prefix => {
+      const wrap = document.getElementById(`${prefix}-wrap`);
+      const panel = document.getElementById(`${prefix}-panel`);
+      if (wrap && panel && panel.style.display !== 'none' && !wrap.contains(e.target) && !panel.contains(e.target)) {
+        panel.style.display = 'none';
       }
     });
   });
@@ -1093,24 +1118,59 @@
     }
   }
 
+  let _reportSortKey = 'paidAt';
+  let _reportSortDir = 'desc';
+
+  function getReportSortValue(row, key) {
+    if (key === 'paidAt' || key === 'returnedAt') return row[key] ? new Date(row[key]).getTime() : 0;
+    if (key === 'method') return SOURCE_LABELS[row.method] || row.method || '';
+    if (key === 'objectName') return row.objectName || '';
+    if (key === 'bookingId' || key === 'received' || key === 'returned' || key === 'remaining') return Number(row[key]) || 0;
+    return row[key] || '';
+  }
+
+  function sortReportTable(key) {
+    if (_reportSortKey === key) {
+      _reportSortDir = _reportSortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      _reportSortKey = key;
+      _reportSortDir = key === 'paidAt' || key === 'returnedAt' ? 'desc' : 'asc';
+    }
+    _reportRows.sort((a, b) => {
+      const va = getReportSortValue(a, key), vb = getReportSortValue(b, key);
+      const cmp = typeof va === 'string' ? va.localeCompare(vb, 'ru') : va - vb;
+      return _reportSortDir === 'asc' ? cmp : -cmp;
+    });
+    renderReportTable();
+  }
+
   function renderReportTable() {
     const tbody = document.getElementById('report-table-body');
     if (!_reportRows.length) {
-      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:20px;">Платежи не найдены</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--text-muted);padding:20px;">Платежи не найдены</td></tr>`;
     } else {
       tbody.innerHTML = _reportRows.map(r => `
         <tr>
           <td>${fmtDate(r.paidAt) || '—'}</td>
           <td>${r.returnedAt ? fmtDate(r.returnedAt) : '—'}</td>
+          <td><span class="report-source"><span class="report-source-dot" style="background:${SOURCE_COLORS[r.method] || '#888'}"></span>${SOURCE_LABELS[r.method] || r.method}</span></td>
           <td>${escapeHtml(r.objectName || '—')}</td>
           <td>${escapeHtml(r.objectAddress || '—')}</td>
           <td>${r.checkinDate && r.checkoutDate ? `${fmtDate(r.checkinDate)} — ${fmtDate(r.checkoutDate)}` : '—'}</td>
           <td>№${r.bookingId}</td>
-          <td>${fmtMoney(r.received)} ₽</td>
-          <td>${fmtMoney(r.returned)} ₽</td>
-          <td>${fmtMoney(r.remaining)} ₽</td>
+          <td class="report-amount received">${fmtMoney(r.received)} ₽</td>
+          <td class="report-amount returned">${fmtMoney(r.returned)} ₽</td>
+          <td class="report-amount remaining">${fmtMoney(r.remaining)} ₽</td>
         </tr>
       `).join('');
+    }
+
+    document.querySelectorAll('#report-table .sort-icon').forEach(el => {
+      el.className = 'ti ti-selector sort-icon';
+    });
+    const activeIcon = document.querySelector(`#report-table .sort-icon[data-key="${_reportSortKey}"]`);
+    if (activeIcon) {
+      activeIcon.className = `ti ti-${_reportSortDir === 'asc' ? 'chevron-up' : 'chevron-down'} sort-icon active`;
     }
 
     document.getElementById('report-totals').innerHTML = `
@@ -1126,13 +1186,14 @@
       showToast('Нет данных для экспорта', 'info');
       return;
     }
-    const headers = ['Дата платежа','Дата возврата','Объект','Адрес','Даты проживания','Бронь №','Получено','Возвращено','Осталось'];
+    const headers = ['Дата платежа','Дата возврата','Источник','Объект','Адрес','Даты проживания','Бронь №','Получено','Возвращено','Осталось'];
     const escapeCsv = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const lines = [headers.map(escapeCsv).join(';')];
     _reportRows.forEach(r => {
       lines.push([
         fmtDate(r.paidAt) || '',
         r.returnedAt ? fmtDate(r.returnedAt) : '',
+        SOURCE_LABELS[r.method] || r.method || '',
         r.objectName || '',
         r.objectAddress || '',
         (r.checkinDate && r.checkoutDate) ? `${fmtDate(r.checkinDate)} — ${fmtDate(r.checkoutDate)}` : '',
@@ -1143,7 +1204,7 @@
       ].map(escapeCsv).join(';'));
     });
     lines.push('');
-    lines.push([escapeCsv('Итого'), '', '', '', '', escapeCsv(_reportTotals.count + ' платежей'), _reportTotals.received, _reportTotals.returned, _reportTotals.remaining].join(';'));
+    lines.push([escapeCsv('Итого'), '', '', '', '', '', escapeCsv(_reportTotals.count + ' платежей'), _reportTotals.received, _reportTotals.returned, _reportTotals.remaining].join(';'));
 
     const csvContent = String.fromCharCode(0xFEFF) + lines.join('\r\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

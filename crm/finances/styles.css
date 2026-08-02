@@ -183,9 +183,9 @@
       font-family: inherit;
     }
     .multiselect-panel {
-      position: absolute; top: calc(100% + 6px); left: 0; z-index: 40;
+      position: fixed; z-index: 400;
       min-width: 220px; max-height: 260px; overflow-y: auto;
-      background: #1a1a18;
+      background: var(--bg-light);
       border: 0.5px solid var(--border-mid);
       border-radius: 10px;
       padding: 6px;
@@ -695,23 +695,37 @@
 }
 
 .report-table-wrap {
-  width: 100%; overflow-x: auto;
+  width: 100%; max-height: 420px; overflow: auto;
   border: 0.5px solid var(--border);
   border-radius: 12px;
 }
 .report-table { width: 100%; border-collapse: collapse; font-size: 12.5px; white-space: nowrap; }
 .report-table th {
+  position: sticky; top: 0; z-index: 1;
   text-align: left; font-weight: 600; color: var(--text-muted);
   font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em;
-  padding: 10px 12px; border-bottom: 0.5px solid var(--border);
-  background: rgba(255,255,255,0.02);
+  padding: 10px 12px; border-bottom: 0.5px solid var(--border-mid);
+  background: var(--bg-light);
 }
+.report-table th.sortable { cursor: pointer; user-select: none; transition: color 0.15s; }
+.report-table th.sortable:hover { color: var(--text-secondary); }
+.sort-icon { font-size: 13px; margin-left: 2px; vertical-align: -2px; opacity: 0.35; }
+.sort-icon.active { opacity: 1; color: #22d3ee; }
 .report-table td {
   padding: 9px 12px; color: var(--text-primary);
   border-bottom: 0.5px solid var(--border);
 }
+.report-table tbody tr:nth-child(even) { background: var(--surface); }
 .report-table tbody tr:last-child td { border-bottom: none; }
-.report-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+.report-table tbody tr:hover { background: var(--surface-hover); }
+
+.report-source { display: inline-flex; align-items: center; gap: 6px; }
+.report-source-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+.report-amount { font-weight: 500; }
+.report-amount.received { color: var(--text-primary); }
+.report-amount.returned { color: var(--accent-amber); }
+.report-amount.remaining { color: #2ed19d; }
 
 .report-totals {
   display: flex; gap: 20px; flex-wrap: wrap;
