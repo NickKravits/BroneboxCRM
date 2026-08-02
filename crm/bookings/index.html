@@ -97,7 +97,7 @@
     function getDepositBadge(booking, object, depositAmount, depositReturned, pendingTransfer) {
         if (pendingTransfer) return `<span class="check-tag">Проверьте чек залога</span>`;
         const objectDeposit = parseFloat(object?.deposit) || 0;
-        const depositManualAllowed = object?.depositchanel === 'TOCHKA' || object?.depositchanel === 'TBANK';
+        const depositManualAllowed = object?.depositchanel === 'TOCHKA' || object?.depositchanel === 'TBANK' || object?.depositchanel === 'TRANSFER';
         const depositTarget = (depositManualAllowed && booking?.manual_deposit !== null && booking?.manual_deposit !== undefined)
             ? booking.manual_deposit : objectDeposit;
         const held = depositAmount || 0;
@@ -630,7 +630,7 @@
     }
 
     const STATUS_LABELS_RU = { booked: 'Забронировано', deleted: 'Удалено', canceled: 'Отменено', request: 'Запрос' };
-    const CHANNEL_LABELS_RU = { TOCHKA: 'Точка Банк', TBANK: 'Т-Банк', MONETA: 'Moneta', NONE: 'Через менеджера' };
+    const CHANNEL_LABELS_RU = { TOCHKA: 'Точка Банк', TBANK: 'Т-Банк', MONETA: 'Moneta', TRANSFER: 'Перевод', NONE: 'Через менеджера' };
 
     function renderChannelValue(elId, channel) {
         document.getElementById(elId).textContent = (channel && channel !== 'NONE') ? (CHANNEL_LABELS_RU[channel] || channel) : 'Через менеджера';
@@ -755,13 +755,13 @@
             document.getElementById('m-remaining').textContent = remaining > 0 ? fmtMoney(remaining) + ' ₽' : 'Оплачено полностью';
             renderChannelValue('m-pay-channel', object?.paymentchanel);
 
-            const depositViaTochka = object?.depositchanel === 'TOCHKA';
+            const depositTrackedByPayments = object?.depositchanel === 'TOCHKA' || object?.depositchanel === 'TRANSFER';
             const depositHeldFromPayments = sumField(depData.payments, 'amount');
             const depositReturnedFromPayments = sumField(depData.payments, 'returnedAmount');
-            const depositHeld = depositViaTochka ? depositHeldFromPayments : (booking.deposit || 0) + depositHeldFromPayments;
-            const depositReturned = depositViaTochka ? depositReturnedFromPayments : (booking.returned || 0) + depositReturnedFromPayments;
+            const depositHeld = depositTrackedByPayments ? depositHeldFromPayments : (booking.deposit || 0) + depositHeldFromPayments;
+            const depositReturned = depositTrackedByPayments ? depositReturnedFromPayments : (booking.returned || 0) + depositReturnedFromPayments;
 
-            const depositManualAllowed = object?.depositchanel === 'TOCHKA' || object?.depositchanel === 'TBANK';
+            const depositManualAllowed = object?.depositchanel === 'TOCHKA' || object?.depositchanel === 'TBANK' || object?.depositchanel === 'TRANSFER';
             const depositTarget = (depositManualAllowed && booking.manual_deposit !== null && booking.manual_deposit !== undefined)
                 ? booking.manual_deposit : (parseFloat(object?.deposit) || 0);
 

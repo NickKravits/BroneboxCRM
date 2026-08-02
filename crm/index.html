@@ -104,7 +104,7 @@
     function getDepositBadge(booking, object, depositAmount, depositReturned, isTodayCheckout, pendingTransfer) {
       if (pendingTransfer) return `<span class="check-tag">Проверьте чек залога</span>`
       const objectDeposit = parseFloat(object?.deposit) || 0
-      const depositManualAllowed = object?.depositchanel === 'TOCHKA' || object?.depositchanel === 'TBANK'
+      const depositManualAllowed = object?.depositchanel === 'TOCHKA' || object?.depositchanel === 'TBANK' || object?.depositchanel === 'TRANSFER'
       const depositTarget = (depositManualAllowed && booking?.manual_deposit !== null && booking?.manual_deposit !== undefined)
         ? booking.manual_deposit : objectDeposit
       const held     = depositAmount || 0
@@ -899,7 +899,7 @@ function formatDate(dateStr) {
       : n.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   }
 
-  const QM_CHANNEL = { TOCHKA: 'Точка Банк', TBANK: 'Т-Банк', MONETA: 'Moneta' }
+  const QM_CHANNEL = { TOCHKA: 'Точка Банк', TBANK: 'Т-Банк', MONETA: 'Moneta', TRANSFER: 'Перевод' }
   const QM_STATUS  = { booked: 'Забронировано', canceled: 'Отменено', deleted: 'Удалено', request: 'Запрос' }
 
   const QM_CH_ICONS  = { Phone: 'ti-phone', Telegram: 'ti-brand-telegram', Max: 'ti-message-circle' }
@@ -1097,12 +1097,12 @@ function formatDate(dateStr) {
         depChanEl.style.display = 'none'
       }
 
-      _qmBookingDepositBase = depCh === 'TOCHKA' ? 0 : Number(booking.deposit || 0)
+      _qmBookingDepositBase = (depCh === 'TOCHKA' || depCh === 'TRANSFER') ? 0 : Number(booking.deposit || 0)
       _qmObjectDepositMax   = parseFloat(object?.deposit) || 0
       _qmDepositPaidSum     = 0
       updateQmDepositDisplay()
 
-      _qmDepositManualAllowed = depCh === 'TOCHKA' || depCh === 'TBANK'
+      _qmDepositManualAllowed = depCh === 'TOCHKA' || depCh === 'TBANK' || depCh === 'TRANSFER'
       _qmManualDeposit = (booking.manual_deposit !== null && booking.manual_deposit !== undefined)
         ? Number(booking.manual_deposit) : null
       updateQmDepositTargetDisplay()
@@ -1195,7 +1195,13 @@ function formatDate(dateStr) {
     return /\.pdf($|\?)/i.test(url || '')
   }
 
+  function resolveReceiptUrl(url) {
+    if (!url) return url
+    return /^https?:\/\//i.test(url) ? url : `${API}${url}`
+  }
+
   function openReceiptLightbox(url) {
+    url = resolveReceiptUrl(url)
     const existing = document.getElementById('receipt-lightbox')
     if (existing) existing.remove()
 

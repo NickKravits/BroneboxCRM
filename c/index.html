@@ -484,7 +484,7 @@
     actionEl.innerHTML = `<button class="${btnClass}" onclick="openReceiptUploadModal('${kind}')">${btnLabel}</button>`
 
     const lines = []
-    if (rejected) lines.push('Чек отклонён менеджером. Переведите сумму ещё раз и прикрепите новый чек.')
+    if (rejected) lines.push('Чек отклонён менеджером. Проверьте платёж и прикрепите чек ещё раз.')
     lines.push('Сумма к переводу: ' + formatPrice(amountDue))
     if (instructions) lines.push(instructions)
 

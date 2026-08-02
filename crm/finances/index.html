@@ -896,7 +896,7 @@
         const isPdf = /\.pdf($|\?)/i.test(p.receiptUrl);
         receiptEl.innerHTML = isPdf
           ? `<button class="pay-goto" onclick="event.stopPropagation(); openReceiptLightbox('${p.receiptUrl}')"><i class="ti ti-file-type-pdf"></i> Открыть PDF чека</button>`
-          : `<img src="${p.receiptUrl}" class="pm-receipt-img" onclick="event.stopPropagation(); openReceiptLightbox('${p.receiptUrl}')">`;
+          : `<img src="${resolveReceiptUrl(p.receiptUrl)}" class="pm-receipt-img" onclick="event.stopPropagation(); openReceiptLightbox('${p.receiptUrl}')">`;
       } else {
         receiptEl.innerHTML = `<span class="val">Чек не прикреплён</span>`;
       }
@@ -947,7 +947,13 @@
     }
   }
 
+  function resolveReceiptUrl(url) {
+    if (!url) return url;
+    return /^https?:\/\//i.test(url) ? url : `${API}${url}`;
+  }
+
   function openReceiptLightbox(url) {
+    url = resolveReceiptUrl(url);
     const existing = document.getElementById('receipt-lightbox');
     if (existing) existing.remove();
 
