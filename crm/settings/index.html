@@ -1056,11 +1056,6 @@
         </div>
       </div>
 
-      <div class="field-group">
-        <label class="field-label" for="obj-map-create">Ссылка на 2GIS</label>
-        <input class="field-input" id="obj-map-create" type="url" placeholder="https://2gis.ru/...">
-      </div>
-
       <div class="modal-section-divider">Фотографии</div>
 
       <div class="photos-row" id="obj-photos-row">
@@ -1346,11 +1341,6 @@
           <label class="field-label" for="obj-checkout-time-edit">Время выезда</label>
           <input class="field-input" id="obj-checkout-time-edit" type="time" value="12:00">
         </div>
-      </div>
-
-      <div class="field-group">
-        <label class="field-label" for="obj-map-edit">Ссылка на 2GIS</label>
-        <input class="field-input" id="obj-map-edit" type="url" placeholder="https://2gis.ru/...">
       </div>
 
       <div class="modal-section-divider">Фотографии</div>
@@ -2658,7 +2648,6 @@ async function loadODTemplates(apiKey) {
     const showInstructionTiming = document.getElementById('obj-show-instructions-edit').value;
     const showContractTiming = document.getElementById('obj-show-contract-edit').value;
     const showReviewTiming = document.getElementById('obj-show-review-edit').value;
-    const mapLink = document.getElementById('obj-map-edit').value.trim();
     const instructions = document.getElementById('obj-instructions-edit').value.trim();
     const okiDokiRowId = document.getElementById('obj-okidoki-row-edit').value.trim();
     const okiDokiValueId = document.getElementById('obj-okidoki-val-edit').value.trim();
@@ -2712,7 +2701,7 @@ async function loadODTemplates(apiKey) {
                 objectId: currentEditingObjectId,
                 realtyId: realtyIdInt, name, instructions, checkInTime, checkOutTime,
                 showPaymentTiming, showInstructionTiming, showContractTiming, showReviewTiming,
-                location, mapLink, defaultDeposit, okiDokiRowId, okiDokiValueId, okiDokiNameId, okiDokiDateInId, okiDokiDateOutId, okiDokiDepositId, okiDokiPayedId, okiDokiPayPerDayId, okidokiactive, DepositChanel, PaymentChanel, active
+                location, defaultDeposit, okiDokiRowId, okiDokiValueId, okiDokiNameId, okiDokiDateInId, okiDokiDateOutId, okiDokiDepositId, okiDokiPayedId, okiDokiPayPerDayId, okidokiactive, DepositChanel, PaymentChanel, active
             })
         });
 
@@ -2776,7 +2765,6 @@ async function loadODTemplates(apiKey) {
       document.getElementById('obj-show-contract-edit').value = data.object.sscontract;
       document.getElementById('obj-show-review-edit').value = data.object.ssrateclean;
       document.getElementById('obj-location-edit').value = data.object.location;
-      document.getElementById('obj-map-edit').value = data.object.maplink;
       document.getElementById('obj-deposit-edit').value = data.object.deposit;
       document.getElementById('obj-okidoki-row-edit').value = data.object.odstringid;
       document.getElementById('obj-okidoki-val-edit').value = data.object.odvalueid;
@@ -2857,7 +2845,6 @@ for (const photo of photosData.photos) {
     const sscontract = document.getElementById('obj-show-contract-create').value.trim(); //
     const ssrateclean = document.getElementById('obj-show-review-create').value.trim();
     const location = document.getElementById('obj-location-create').value.trim(); //
-    const maplink = document.getElementById('obj-map-create').value.trim(); //
     const deposit = document.getElementById('obj-deposit-create').value.trim(); //
     const odstringid = document.getElementById('obj-okidoki-row-create').value.trim(); //
     const odvalueid = document.getElementById('obj-okidoki-val-create').value.trim(); //
@@ -2893,7 +2880,7 @@ for (const photo of photosData.photos) {
       const res = await fetch(API + '/objects/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ realtyId: realtyid, name: name, instructions: instruction, checkInTime: checkindef, checkOutTime: checkoutdef, showPaymentTiming: sspayanddeposit, showInstructionTiming: ssinstruction, showContractTiming: sscontract, showReviewTiming: ssrateclean, location: location, mapLink: maplink, defaultDeposit: deposit, okiDokiRowId: odstringid, okiDokiValueId: odvalueid, okiDokiNameId: odnameid, okiDokiDateInId: oddateinid, okiDokiDateOutId: oddateoutid, okiDokiDepositId: oddepositid, okiDokiPayedId: odpayedid, okiDokiPayPerDayId: odpayperdayid, okidokiactive, DepositChanel: depositchanel, PaymentChanel: paymentchanel, active: active })
+        body: JSON.stringify({ realtyId: realtyid, name: name, instructions: instruction, checkInTime: checkindef, checkOutTime: checkoutdef, showPaymentTiming: sspayanddeposit, showInstructionTiming: ssinstruction, showContractTiming: sscontract, showReviewTiming: ssrateclean, location: location, defaultDeposit: deposit, okiDokiRowId: odstringid, okiDokiValueId: odvalueid, okiDokiNameId: odnameid, okiDokiDateInId: oddateinid, okiDokiDateOutId: oddateoutid, okiDokiDepositId: oddepositid, okiDokiPayedId: odpayedid, okiDokiPayPerDayId: odpayperdayid, okidokiactive, DepositChanel: depositchanel, PaymentChanel: paymentchanel, active: active })
       });
 
       const data = await res.json();
@@ -2931,7 +2918,7 @@ for (const photo of photosData.photos) {
   }
 
   function resetCreateForm() {
-    ['obj-name-create','obj-location-create','obj-lot-create','obj-map-create',
+    ['obj-name-create','obj-location-create','obj-lot-create',
      'obj-instructions-create','obj-okidoki-row-create','obj-okidoki-val-create',
      'obj-okidoki-name-create','obj-okidoki-datein-create','obj-okidoki-dateout-create',
      'obj-okidoki-deposit-create','obj-okidoki-payed-create','obj-okidoki-payperday-create'

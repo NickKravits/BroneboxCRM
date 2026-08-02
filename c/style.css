@@ -391,6 +391,25 @@ body {
   opacity: 0.82;
 }
 
+.btn-receipt {
+  font-family: var(--font-main);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--bg-card);
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 11px 22px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.btn-receipt:hover {
+  opacity: 0.82;
+}
+
 .deposit-row {
   display: flex;
   align-items: center;
@@ -552,6 +571,11 @@ body {
   }
 
   .btn-pay {
+    width: 100%;
+    text-align: center;
+  }
+
+  .btn-receipt {
     width: 100%;
     text-align: center;
   }

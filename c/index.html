@@ -255,7 +255,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
       <span id="deposit-notice-text"></span>
     </div>
-    <div class="deposit-note">
+    <div class="deposit-note" id="deposit-freeze-note">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
       <p><strong>Залог не уходит арендодателю.</strong> Сумма замораживается на вашей карте и автоматически разблокируется после проверки объекта. Если всё в порядке — деньги возвращаются полностью.</p>
     </div>
@@ -465,7 +465,7 @@
 
   function renderTransferAction(kind, actionEl, tp, instructions, amountDue) {
     const isDeposit = kind === 'DEPOSIT'
-    const btnClass   = isDeposit ? 'btn-deposit' : 'btn-pay'
+    const btnClass   = 'btn-receipt'
     const instrBlock = document.getElementById(isDeposit ? 'deposit-transfer-instructions' : 'payment-transfer-instructions')
     const instrText  = document.getElementById(isDeposit ? 'deposit-transfer-instructions-text' : 'payment-transfer-instructions-text')
     const noticeEl   = document.getElementById(isDeposit ? 'deposit-notice' : 'payment-notice')
@@ -646,6 +646,9 @@
     document.getElementById('receipt-modal-title').textContent = kind === 'DEPOSIT' ? 'Прикрепить чек о залоге' : 'Прикрепить чек об оплате'
     document.getElementById('receipt-file').value = ''
     document.getElementById('receipt-modal-error').style.display = 'none'
+    const btn = document.getElementById('receipt-modal-confirm')
+    btn.disabled    = false
+    btn.textContent = 'Отправить'
     document.getElementById('receipt-modal-overlay').style.display = 'flex'
   }
 
@@ -713,6 +716,7 @@
     }
 
     document.getElementById('card-deposit').style.display = ''
+    document.getElementById('deposit-freeze-note').style.display = objects.depositchanel === 'TRANSFER' ? 'none' : ''
 
     const held         = depositHeld || 0
     const returned     = depositReturned || 0
