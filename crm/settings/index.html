@@ -540,8 +540,9 @@
         if (!checkbox) return;
 
         if (!pushSupported()) {
-            const card = checkbox.closest('.service-card');
-            if (card) card.style.display = 'none';
+            checkbox.checked = false;
+            checkbox.disabled = true;
+            setPushHint('Ваш браузер не поддерживает push-уведомления. Если открываете ссылку из другого приложения (Telegram, Instagram и т.п.) — откройте её в самом браузере (Safari/Chrome), либо обновите браузер до последней версии.');
             return;
         }
 
