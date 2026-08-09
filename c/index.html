@@ -122,7 +122,7 @@
   <div class="card" id="card-dates">
     <div class="card-title">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-      Даты проживания
+      <span id="dates-title-text">Даты проживания</span>
     </div>
     <div class="dates-grid">
       <div class="date-item">
@@ -142,10 +142,12 @@
         <div class="time-field">
           <label for="ci">Время заезда</label>
           <input type="time" id="ci" />
+          <div class="time-field-hint" id="ci-hint"></div>
         </div>
         <div class="time-field">
           <label for="co">Время выезда</label>
           <input type="time" id="co" />
+          <div class="time-field-hint" id="co-hint"></div>
         </div>
       </div>
       <button class="btn-save-time" id="btn-save-time" onclick="saveTime()" disabled>Сохранить</button>
@@ -833,6 +835,15 @@
     }
   }
 
+  function updateDatesTitleHighlight(completed, booking) {
+    const titleEl = document.getElementById('dates-title-text')
+    if (!completed && (!booking.begin_time || !booking.end_time)) {
+      titleEl.classList.add('title-highlight')
+    } else {
+      titleEl.classList.remove('title-highlight')
+    }
+  }
+
   function applyData(booking, objects, photos, show, bookingState, checkoutPassed, paidAmount, depositHeld, depositReturned, depositTarget, transferInstructions, transferPay, transferDeposit) {
     const completed  = bookingState === 'booked' && checkoutPassed
     const isCanceled = bookingState === 'canceled' || bookingState === 'deleted'
@@ -867,8 +878,19 @@
     document.getElementById('checkout-date').textContent = checkout.date
     document.getElementById('checkout-day').textContent  = checkout.day + ' · ' + nights + ' ' + nightsWord(nights)
 
-    if (booking.begin_time) document.getElementById('ci').value = booking.begin_time
-    if (booking.end_time)   document.getElementById('co').value = booking.end_time
+    const defaultCheckin  = objects?.checkindef  || '14:00'
+    const defaultCheckout = objects?.checkoutdef || '12:00'
+
+    const ciEl = document.getElementById('ci')
+    const coEl = document.getElementById('co')
+    if (booking.begin_time) ciEl.value = booking.begin_time
+    if (booking.end_time)   coEl.value = booking.end_time
+    ciEl.placeholder = defaultCheckin
+    coEl.placeholder = defaultCheckout
+    document.getElementById('ci-hint').textContent = 'По умолчанию: ' + defaultCheckin
+    document.getElementById('co-hint').textContent = 'По умолчанию: ' + defaultCheckout
+
+    updateDatesTitleHighlight(completed, booking)
 
     if (completed) {
       document.getElementById('greeting-text').innerHTML =
@@ -1037,19 +1059,26 @@
     _waitPayTimer = setTimeout(() => pollTochkaPayment(link, kind), WAIT_PAY_INTERVAL_MS)
   }
 
+  function resolvedTimeValue(inputEl, defaultVal) {
+    return inputEl.value || defaultVal
+  }
+
   function initTimeSaving() {
     const ci  = document.getElementById('ci')
     const co  = document.getElementById('co')
     const btn = document.getElementById('btn-save-time')
 
     function checkChanges() {
-      const ciChanged = ci.value !== (_state.booking.begin_time || '')
-      const coChanged = co.value !== (_state.booking.end_time   || '')
+      const newCi = resolvedTimeValue(ci, ci.placeholder)
+      const newCo = resolvedTimeValue(co, co.placeholder)
+      const ciChanged = newCi !== (_state.booking.begin_time || '')
+      const coChanged = newCo !== (_state.booking.end_time   || '')
       btn.disabled = !(ciChanged || coChanged)
     }
 
     ci.addEventListener('change', checkChanges)
     co.addEventListener('change', checkChanges)
+    checkChanges()
   }
 
   async function saveTime() {
@@ -1058,13 +1087,15 @@
     const btn  = document.getElementById('btn-save-time')
     const link = getBookingLink()
 
-    const ciChanged = ci.value !== (_state.booking.begin_time || '')
-    const coChanged = co.value !== (_state.booking.end_time   || '')
+    const newCi = resolvedTimeValue(ci, ci.placeholder)
+    const newCo = resolvedTimeValue(co, co.placeholder)
+    const ciChanged = newCi !== (_state.booking.begin_time || '')
+    const coChanged = newCo !== (_state.booking.end_time   || '')
     if (!ciChanged && !coChanged) return
 
     const payload = { id: link }
-    if (ciChanged) payload.begin_time = ci.value
-    if (coChanged) payload.end_time   = co.value
+    if (ciChanged) payload.begin_time = newCi
+    if (coChanged) payload.end_time   = newCo
 
     btn.disabled = true
 
@@ -1075,8 +1106,9 @@
         body:    JSON.stringify(payload)
       })
       if (res.ok) {
-        if (ciChanged) { _state.booking.begin_time = ci.value || null; ci.classList.add('success') }
-        if (coChanged) { _state.booking.end_time   = co.value || null; co.classList.add('success') }
+        if (ciChanged) { _state.booking.begin_time = newCi; ci.value = newCi; ci.classList.add('success') }
+        if (coChanged) { _state.booking.end_time   = newCo; co.value = newCo; co.classList.add('success') }
+        updateDatesTitleHighlight(_state.completed, _state.booking)
         renderTodos(_state.booking, _state.objects, _state.show, _state.completed, _state.paidAmount, _state.depositHeld, _state.depositTarget, _state.depositReturned)
         setTimeout(() => { ci.classList.remove('success'); co.classList.remove('success') }, 1500)
       } else {

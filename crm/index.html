@@ -535,7 +535,7 @@ function formatDate(dateStr) {
 
     <div class="mobile-section-anchor" id="mobile-section-anchor">
       <span class="col-dot" id="mobile-anchor-dot"></span>
-      <span id="mobile-anchor-label">Завтра заезд</span>
+      <span id="mobile-anchor-label">Сегодня выезд</span>
       <span class="col-count" id="mobile-anchor-count">...</span>
     </div>
 
@@ -549,15 +549,15 @@ function formatDate(dateStr) {
 
     <div class="columns-row" id="columns-row">
 
-        <div>
-            <div class="col-header" data-label="Завтра заезд">
-                <span class="col-dot" style="background:var(--accent-amber)"></span>
-                Завтра заезд
-                <span class="col-count" id="col-count-tomorrow-in">...</span>
-            </div>
-            <div id="tomorrow-in-container">
-            </div>
+      <div>
+        <div class="col-header" data-label="Сегодня выезд">
+          <span class="col-dot" style="background:var(--accent-orange)"></span>
+          Сегодня выезд
+          <span class="col-count" id="col-count-today-out">...</span>
         </div>
+        <div id="today-out-container">
+        </div>
+      </div>
 
         <div>
             <div class="col-header" data-label="Сегодня заезд">
@@ -569,32 +569,32 @@ function formatDate(dateStr) {
       </div>
 
       <div>
-        <div class="col-header" data-label="Живут">
-          <span class="col-dot" style="background:var(--accent-green)"></span>
-          Живут
-          <span class="col-count" id="col-count-living">...</span>
-        </div>
-        <div id="living-container">
-        </div>
-      </div>
-
-      <div>
-        <div class="col-header" data-label="Сегодня выезд">
-          <span class="col-dot" style="background:var(--accent-orange)"></span>
-          Сегодня выезд
-          <span class="col-count" id="col-count-today-out">...</span>
-        </div>
-        <div id="today-out-container">
-        </div>
-      </div>
-
-      <div>
         <div class="col-header" data-label="Завтра выезд">
           <span class="col-dot" style="background:var(--accent-gray)"></span>
           Завтра выезд
           <span class="col-count" id="col-count-tomorrow-out">...</span>
         </div>
         <div id="tomorrow-out-container">
+        </div>
+      </div>
+
+        <div>
+            <div class="col-header" data-label="Завтра заезд">
+                <span class="col-dot" style="background:var(--accent-amber)"></span>
+                Завтра заезд
+                <span class="col-count" id="col-count-tomorrow-in">...</span>
+            </div>
+            <div id="tomorrow-in-container">
+            </div>
+        </div>
+
+      <div>
+        <div class="col-header" data-label="Живут">
+          <span class="col-dot" style="background:var(--accent-green)"></span>
+          Живут
+          <span class="col-count" id="col-count-living">...</span>
+        </div>
+        <div id="living-container">
         </div>
       </div>
 

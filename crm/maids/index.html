@@ -25,6 +25,17 @@
     var _maids = [];
     var _dirtyObjectIds = new Set();
     var _scheduleLoaded = false;
+    var _cleaningTemplateData = null;
+
+    async function loadCleaningTemplateData() {
+      var token = localStorage.getItem('broneboxtoken');
+      try {
+        var res = await fetch(API + '/cabinet/cleaning-template', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (res.ok) _cleaningTemplateData = await res.json();
+      } catch (err) { console.error(err); }
+    }
 
     function tomorrow() {
       var d = new Date();
@@ -325,13 +336,13 @@
     }
 
     async function copySchedule() {
-      var token = localStorage.getItem('broneboxtoken');
       try {
-        var res = await fetch(API + '/cabinet/cleaning-template', {
-          headers: { 'Authorization': 'Bearer ' + token }
-        });
-        if (!res.ok) throw new Error('Template fetch failed');
-        var data = await res.json();
+        if (!_cleaningTemplateData) {
+          window.showToast('Шаблон ещё загружается, попробуйте ещё раз через секунду', 'warning', 3000);
+          loadCleaningTemplateData();
+          return;
+        }
+        var data = _cleaningTemplateData;
         var template = data.template;
 
         var included = _scheduleEntries.filter(function(e) { return e.included; });
@@ -431,6 +442,7 @@
         }
         window.showToast('Шаблон сохранён', 'success', 3000);
         closeTemplateModal();
+        loadCleaningTemplateData();
       } catch (err) {
         window.showToast('Ошибка при сохранении', 'danger', 3000);
         console.error(err);
@@ -441,7 +453,7 @@
       var dateInput = document.getElementById('schedule-date');
       dateInput.value = tomorrow();
       try {
-        await Promise.all([getUserData(), loadSchedule()]);
+        await Promise.all([getUserData(), loadSchedule(), loadCleaningTemplateData()]);
       } finally {
         var loader = document.getElementById('page-loader');
         loader.classList.add('hidden');
