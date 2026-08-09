@@ -683,6 +683,9 @@ html[data-theme="light"] .channel-tag { color: #1768C2; }
 html[data-theme="light"] .topbar-logout { color: #A8345C; }
 html[data-theme="light"] .topbar-logout:active { background: rgba(168,52,92,0.1); }
 
+.push-toggle--active { color: var(--accent-green); }
+.push-toggle--denied { color: var(--text-muted); opacity: 0.5; }
+
 .app-topbar {
   display: none;
   position: fixed; top: 0; left: 0; right: 0; z-index: 60;

@@ -396,6 +396,149 @@
     });
   }
 
+  function urlBase64ToUint8Array(base64String) {
+    var padding = '='.repeat((4 - base64String.length % 4) % 4);
+    var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    var rawData = window.atob(base64);
+    var outputArray = new Uint8Array(rawData.length);
+    for (var i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  }
+
+  function pushSupported() {
+    return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  }
+
+  var _pushBtn = null;
+
+  function setPushIcon(state) {
+    if (!_pushBtn) return;
+    var icon = _pushBtn.querySelector('i');
+    _pushBtn.classList.remove('push-toggle--denied', 'push-toggle--active');
+    if (state === 'active') {
+      icon.className = 'ti ti-bell-filled';
+      _pushBtn.classList.add('push-toggle--active');
+      _pushBtn.setAttribute('aria-label', 'Уведомления включены — нажмите, чтобы выключить');
+    } else if (state === 'denied') {
+      icon.className = 'ti ti-bell-off';
+      _pushBtn.classList.add('push-toggle--denied');
+      _pushBtn.setAttribute('aria-label', 'Уведомления заблокированы в браузере');
+    } else {
+      icon.className = 'ti ti-bell';
+      _pushBtn.setAttribute('aria-label', 'Включить уведомления');
+    }
+  }
+
+  function refreshPushButtonState() {
+    if (!_pushBtn) return;
+    if (Notification.permission === 'denied') { setPushIcon('denied'); return; }
+    if (Notification.permission !== 'granted') { setPushIcon('default'); return; }
+    navigator.serviceWorker.getRegistration('/crm/').then(function (reg) {
+      if (!reg) { setPushIcon('default'); return; }
+      reg.pushManager.getSubscription().then(function (sub) {
+        setPushIcon(sub ? 'active' : 'default');
+      });
+    }).catch(function () { setPushIcon('default'); });
+  }
+
+  function doSubscribePush() {
+    return navigator.serviceWorker.register('/crm/sw.js', { scope: '/crm/' })
+      .then(function () { return navigator.serviceWorker.ready; })
+      .then(function (reg) { return reg.pushManager.getSubscription().then(function (sub) { return { reg: reg, sub: sub }; }); })
+      .then(function (r) {
+        if (r.sub) return r.sub;
+        return fetch(API + '/push/vapid-public-key')
+          .then(function (res) { return res.json(); })
+          .then(function (data) {
+            if (!data.publicKey) throw new Error('VAPID ключ не настроен на сервере');
+            return r.reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(data.publicKey)
+            });
+          });
+      })
+      .then(function (sub) {
+        var token = localStorage.getItem('broneboxtoken');
+        var json = sub.toJSON();
+        return fetch(API + '/push/subscribe', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys })
+        });
+      });
+  }
+
+  function doUnsubscribePush() {
+    return navigator.serviceWorker.getRegistration('/crm/').then(function (reg) {
+      if (!reg) return;
+      return reg.pushManager.getSubscription().then(function (sub) {
+        if (!sub) return;
+        var endpoint = sub.endpoint;
+        var token = localStorage.getItem('broneboxtoken');
+        return sub.unsubscribe().then(function () {
+          return fetch(API + '/push/unsubscribe', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ endpoint: endpoint })
+          }).catch(function () {});
+        });
+      });
+    });
+  }
+
+  function togglePush() {
+    if (Notification.permission === 'denied') {
+      window.showToast && window.showToast('Уведомления заблокированы в настройках браузера', 'warning');
+      return;
+    }
+
+    navigator.serviceWorker.getRegistration('/crm/').then(function (reg) {
+      var subP = (reg && Notification.permission === 'granted') ? reg.pushManager.getSubscription() : Promise.resolve(null);
+      subP.then(function (sub) {
+        if (sub) {
+          doUnsubscribePush().then(function () {
+            setPushIcon('default');
+            window.showToast && window.showToast('Уведомления выключены', 'info');
+          });
+          return;
+        }
+
+        var permissionPromise = Notification.permission === 'default'
+          ? Notification.requestPermission()
+          : Promise.resolve(Notification.permission);
+
+        permissionPromise.then(function (permission) {
+          if (permission !== 'granted') { refreshPushButtonState(); return; }
+          doSubscribePush().then(function () {
+            setPushIcon('active');
+            window.showToast && window.showToast('Уведомления включены', 'success');
+          }).catch(function (e) {
+            console.error(e);
+            window.showToast && window.showToast('Не удалось включить уведомления', 'danger');
+          });
+        });
+      });
+    });
+  }
+
+  function initPushToggle() {
+    if (!pushSupported()) return;
+
+    var actions = document.querySelector('.app-topbar-actions');
+    if (!actions) return;
+
+    _pushBtn = document.createElement('button');
+    _pushBtn.type = 'button';
+    _pushBtn.className = 'theme-toggle theme-toggle--topbar push-toggle';
+    _pushBtn.innerHTML = '<i class="ti ti-bell" aria-hidden="true"></i>';
+    _pushBtn.addEventListener('click', togglePush);
+    actions.insertBefore(_pushBtn, actions.firstChild);
+
+    refreshPushButtonState();
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     applyTheme(getTheme());
     buildSidebarToggle();
@@ -403,6 +546,7 @@
     buildTabbar();
     buildAvatarMenu();
     initMobileSectionAnchor();
+    initPushToggle();
     connectSSE();
   });
 })();
