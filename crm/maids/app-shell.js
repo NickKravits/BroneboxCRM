@@ -411,28 +411,33 @@
     return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
   }
 
-  var _pushBtn = null;
+  var _pushBtns = [];
 
   function setPushIcon(state) {
-    if (!_pushBtn) return;
-    var icon = _pushBtn.querySelector('i');
-    _pushBtn.classList.remove('push-toggle--denied', 'push-toggle--active');
-    if (state === 'active') {
-      icon.className = 'ti ti-bell-filled';
-      _pushBtn.classList.add('push-toggle--active');
-      _pushBtn.setAttribute('aria-label', 'Уведомления включены — нажмите, чтобы выключить');
-    } else if (state === 'denied') {
-      icon.className = 'ti ti-bell-off';
-      _pushBtn.classList.add('push-toggle--denied');
-      _pushBtn.setAttribute('aria-label', 'Уведомления заблокированы в браузере');
-    } else {
-      icon.className = 'ti ti-bell';
-      _pushBtn.setAttribute('aria-label', 'Включить уведомления');
-    }
+    _pushBtns.forEach(function (btn) {
+      var icon = btn.querySelector('i');
+      var label = btn.querySelector('.theme-toggle-label');
+      btn.classList.remove('push-toggle--denied', 'push-toggle--active');
+      if (state === 'active') {
+        icon.className = 'ti ti-bell-filled';
+        btn.classList.add('push-toggle--active');
+        btn.setAttribute('aria-label', 'Уведомления включены — нажмите, чтобы выключить');
+        if (label) label.textContent = 'Уведомления включены';
+      } else if (state === 'denied') {
+        icon.className = 'ti ti-bell-off';
+        btn.classList.add('push-toggle--denied');
+        btn.setAttribute('aria-label', 'Уведомления заблокированы в браузере');
+        if (label) label.textContent = 'Уведомления заблокированы';
+      } else {
+        icon.className = 'ti ti-bell';
+        btn.setAttribute('aria-label', 'Включить уведомления');
+        if (label) label.textContent = 'Уведомления';
+      }
+    });
   }
 
   function refreshPushButtonState() {
-    if (!_pushBtn) return;
+    if (!_pushBtns.length) return;
     if (Notification.permission === 'denied') { setPushIcon('denied'); return; }
     if (Notification.permission !== 'granted') { setPushIcon('default'); return; }
     navigator.serviceWorker.getRegistration('/crm/').then(function (reg) {
@@ -523,19 +528,35 @@
     });
   }
 
+  function makePushToggleButton(extraClass, withLabel) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'theme-toggle push-toggle ' + extraClass;
+    var html = '<i class="ti ti-bell" aria-hidden="true"></i>';
+    if (withLabel) html += '<span class="theme-toggle-label">Уведомления</span>';
+    btn.innerHTML = html;
+    btn.addEventListener('click', togglePush);
+    return btn;
+  }
+
   function initPushToggle() {
     if (!pushSupported()) return;
 
+    var sidebarBottom = document.querySelector('.sidebar-bottom');
+    if (sidebarBottom) {
+      var sidebarBtn = makePushToggleButton('theme-toggle--sidebar', true);
+      sidebarBottom.insertBefore(sidebarBtn, sidebarBottom.firstChild);
+      _pushBtns.push(sidebarBtn);
+    }
+
     var actions = document.querySelector('.app-topbar-actions');
-    if (!actions) return;
+    if (actions) {
+      var topbarBtn = makePushToggleButton('theme-toggle--topbar', false);
+      actions.insertBefore(topbarBtn, actions.firstChild);
+      _pushBtns.push(topbarBtn);
+    }
 
-    _pushBtn = document.createElement('button');
-    _pushBtn.type = 'button';
-    _pushBtn.className = 'theme-toggle theme-toggle--topbar push-toggle';
-    _pushBtn.innerHTML = '<i class="ti ti-bell" aria-hidden="true"></i>';
-    _pushBtn.addEventListener('click', togglePush);
-    actions.insertBefore(_pushBtn, actions.firstChild);
-
+    if (!_pushBtns.length) return;
     refreshPushButtonState();
   }
 
