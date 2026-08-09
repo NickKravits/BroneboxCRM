@@ -478,6 +478,123 @@
         ta.focus();
     }
 
+    function pushSupported() {
+        return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+    }
+
+    function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+        return outputArray;
+    }
+
+    function setPushHint(text) {
+        const hint = document.getElementById('svc-push-hint');
+        if (!hint) return;
+        if (text) { hint.textContent = text; hint.style.display = ''; }
+        else { hint.style.display = 'none'; }
+    }
+
+    async function doSubscribePush() {
+        const reg = await navigator.serviceWorker.register('/crm/sw.js', { scope: '/crm/' });
+        await navigator.serviceWorker.ready;
+        let sub = await reg.pushManager.getSubscription();
+        if (!sub) {
+            const res = await fetch(API + '/push/vapid-public-key');
+            const data = await res.json();
+            if (!data.publicKey) throw new Error('VAPID ключ не настроен на сервере');
+            sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(data.publicKey)
+            });
+        }
+        const token = localStorage.getItem('broneboxtoken');
+        const json = sub.toJSON();
+        await fetch(API + '/push/subscribe', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys })
+        });
+    }
+
+    async function doUnsubscribePush() {
+        const reg = await navigator.serviceWorker.getRegistration('/crm/');
+        if (!reg) return;
+        const sub = await reg.pushManager.getSubscription();
+        if (!sub) return;
+        const endpoint = sub.endpoint;
+        const token = localStorage.getItem('broneboxtoken');
+        await sub.unsubscribe();
+        await fetch(API + '/push/unsubscribe', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ endpoint })
+        }).catch(() => {});
+    }
+
+    async function initPushSettings() {
+        const checkbox = document.getElementById('svc-push-toggle');
+        if (!checkbox) return;
+
+        if (!pushSupported()) {
+            const card = checkbox.closest('.service-card');
+            if (card) card.style.display = 'none';
+            return;
+        }
+
+        if (Notification.permission === 'denied') {
+            checkbox.checked = false;
+            checkbox.disabled = true;
+            setPushHint('Уведомления заблокированы в настройках браузера. Разрешите их вручную в настройках сайта, чтобы включить.');
+            return;
+        }
+
+        try {
+            const reg = await navigator.serviceWorker.getRegistration('/crm/');
+            const sub = reg ? await reg.pushManager.getSubscription() : null;
+            checkbox.checked = !!sub;
+        } catch (e) { console.error(e); }
+    }
+
+    async function onPushToggleChange() {
+        const checkbox = document.getElementById('svc-push-toggle');
+        if (!checkbox) return;
+
+        if (checkbox.checked) {
+            try {
+                let permission = Notification.permission;
+                if (permission === 'default') permission = await Notification.requestPermission();
+                if (permission !== 'granted') {
+                    checkbox.checked = false;
+                    if (permission === 'denied') {
+                        checkbox.disabled = true;
+                        setPushHint('Уведомления заблокированы в настройках браузера. Разрешите их вручную в настройках сайта, чтобы включить.');
+                    }
+                    return;
+                }
+                await doSubscribePush();
+                setPushHint('');
+                showToast('Уведомления включены', 'success');
+            } catch (e) {
+                console.error(e);
+                checkbox.checked = false;
+                showToast('Не удалось включить уведомления', 'danger');
+            }
+        } else {
+            try {
+                await doUnsubscribePush();
+                setPushHint('');
+                showToast('Уведомления выключены', 'info');
+            } catch (e) {
+                console.error(e);
+                showToast('Не удалось выключить уведомления', 'danger');
+            }
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
         initPermissionsSync();
         try {
@@ -490,6 +607,7 @@
                 loadCleaningTemplate(),
                 loadMsgTemplates(),
                 loadTransferInstructions(),
+                initPushSettings(),
             ]);
         } catch (e) {
             console.error(e);
@@ -507,8 +625,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
-  <link rel="stylesheet" href="styles.css?v=20260731">
-  <link rel="stylesheet" href="app-shell.css?v=20260731">
+  <link rel="stylesheet" href="styles.css?v=74fc02b">
+  <link rel="stylesheet" href="app-shell.css?v=74fc02b">
 </head>
 <body>
 
@@ -806,6 +924,15 @@
           <button class="btn btn-save" onclick="saveCabinetTimezone()">
             <i class="ti ti-check"></i> Сохранить
           </button>
+        </div>
+
+        <div class="service-card">
+          <div class="service-card-title"><i class="ti ti-bell"></i> Уведомления</div>
+          <label class="perm-row">
+            <div class="perm-info"><span class="perm-name">Push-уведомления браузера</span><span class="perm-desc">Новые брони, оплаты и залоги через Точку, чеки от гостей, подписанные договоры</span></div>
+            <label class="toggle-switch"><input type="checkbox" id="svc-push-toggle" onchange="onPushToggleChange()"><span class="toggle-track"></span></label>
+          </label>
+          <div class="field-hint" id="svc-push-hint" style="display:none;margin-top:8px"></div>
         </div>
 
         <div class="service-card">
@@ -3480,6 +3607,6 @@ async function saveCabinetTimezone() {
   </div>
 </div>
 
-<script src="app-shell.js?v=20260731"></script>
+<script src="app-shell.js?v=74fc02b"></script>
 </body>
 </html>

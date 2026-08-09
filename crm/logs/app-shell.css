@@ -199,6 +199,16 @@ html[data-theme="light"] .modal-box {
 }
 .modal-title { font-size: 15px; font-weight: 600; color: var(--text-primary); }
 
+.modal-close {
+  display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; flex-shrink: 0;
+  border: none; background: transparent; border-radius: 50%;
+  color: var(--text-muted); cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.modal-close i { font-size: 18px; }
+.modal-close:hover { background: var(--surface-hover); color: var(--text-secondary); }
+
 .modal-body { flex: 1; overflow-y: auto; padding: 18px 22px; display: flex; flex-direction: column; gap: 14px; }
 .modal-scroll { scrollbar-width: thin; scrollbar-color: var(--border-mid) transparent; }
 .modal-scroll::-webkit-scrollbar { width: 3px; }
@@ -682,9 +692,6 @@ html[data-theme="light"] .channel-tag { color: #1768C2; }
 .topbar-logout:active { background: rgba(212,83,126,0.12); }
 html[data-theme="light"] .topbar-logout { color: #A8345C; }
 html[data-theme="light"] .topbar-logout:active { background: rgba(168,52,92,0.1); }
-
-.push-toggle--active { color: var(--accent-green); }
-.push-toggle--denied { color: var(--text-muted); opacity: 0.5; }
 
 .app-topbar {
   display: none;
