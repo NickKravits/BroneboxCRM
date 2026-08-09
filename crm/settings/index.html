@@ -482,6 +482,14 @@
         return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
     }
 
+    function isIOSDevice() {
+        return /iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    }
+
+    function isStandaloneApp() {
+        return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    }
+
     function urlBase64ToUint8Array(base64String) {
         const padding = '='.repeat((4 - base64String.length % 4) % 4);
         const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -542,7 +550,11 @@
         if (!pushSupported()) {
             checkbox.checked = false;
             checkbox.disabled = true;
-            setPushHint('Ваш браузер не поддерживает push-уведомления. Если открываете ссылку из другого приложения (Telegram, Instagram и т.п.) — откройте её в самом браузере (Safari/Chrome), либо обновите браузер до последней версии.');
+            if (isIOSDevice() && !isStandaloneApp()) {
+                setPushHint('На iPhone/iPad Apple разрешает push-уведомления только сайтам, добавленным на экран «Домой». Нажмите «Поделиться» внизу Safari → «На экран «Домой»» — и открывайте CRM через эту иконку, а не через обычную вкладку.');
+            } else {
+                setPushHint('Ваш браузер не поддерживает push-уведомления. Если открываете ссылку из другого приложения (Telegram, Instagram и т.п.) — откройте её в самом браузере (Safari/Chrome), либо обновите браузер до последней версии.');
+            }
             return;
         }
 
