@@ -478,10 +478,6 @@
         ta.focus();
     }
 
-    function pushSupported() {
-        return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
-    }
-
     function isIOSDevice() {
         return /iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     }
@@ -547,29 +543,25 @@
         const checkbox = document.getElementById('svc-push-toggle');
         if (!checkbox) return;
 
-        if (!pushSupported()) {
-            checkbox.checked = false;
-            checkbox.disabled = true;
-            if (isIOSDevice() && !isStandaloneApp()) {
-                setPushHint('На iPhone/iPad Apple разрешает push-уведомления только сайтам, добавленным на экран «Домой». Нажмите «Поделиться» внизу Safari → «На экран «Домой»» — и открывайте CRM через эту иконку, а не через обычную вкладку.');
-            } else {
-                setPushHint('Ваш браузер не поддерживает push-уведомления. Если открываете ссылку из другого приложения (Telegram, Instagram и т.п.) — откройте её в самом браузере (Safari/Chrome), либо обновите браузер до последней версии.');
-            }
-            return;
-        }
-
-        if (Notification.permission === 'denied') {
-            checkbox.checked = false;
-            checkbox.disabled = true;
-            setPushHint('Уведомления заблокированы в настройках браузера. Разрешите их вручную в настройках сайта, чтобы включить.');
-            return;
-        }
-
+        // Ничего не блокируем заранее по угадыванию поддержки — просто пробуем.
+        // Единственное реальное основание отключить кнопку — браузер уже явно
+        // и окончательно запретил уведомления (это не догадка, а факт).
         try {
+            if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
+                checkbox.checked = false;
+                checkbox.disabled = true;
+                setPushHint('Уведомления заблокированы в настройках браузера. Разрешите их вручную в настройках сайта, чтобы включить.');
+                return;
+            }
+
             const reg = await navigator.serviceWorker.getRegistration('/crm/');
             const sub = reg ? await reg.pushManager.getSubscription() : null;
             checkbox.checked = !!sub;
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+            // Не смогли проверить текущее состояние — не страшно, кнопка всё равно кликабельна,
+            // при попытке включить всё равно попробуем по-настоящему и покажем ошибку, если что.
+        }
     }
 
     async function onPushToggleChange() {
@@ -594,7 +586,10 @@
             } catch (e) {
                 console.error(e);
                 checkbox.checked = false;
-                showToast('Не удалось включить уведомления', 'danger');
+                const extra = (isIOSDevice() && !isStandaloneApp())
+                    ? ' Попробуйте добавить сайт на экран «Домой» (Поделиться → «На экран «Домой»») и открыть уже оттуда.'
+                    : '';
+                showToast('Не удалось включить уведомления.' + extra, 'danger');
             }
         } else {
             try {
