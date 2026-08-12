@@ -560,7 +560,9 @@
     _payModalKind = 'PAY'
     document.getElementById('pay-modal-title').textContent = 'Оплата бронирования'
     document.getElementById('pay-modal-desc').textContent  = 'Укажите email — на него будет отправлен чек об оплате.'
-    document.getElementById('pay-modal-confirm').textContent = 'Перейти к оплате'
+    const btn = document.getElementById('pay-modal-confirm')
+    btn.disabled    = false
+    btn.textContent = 'Перейти к оплате'
     document.getElementById('pay-email').value = _state.booking.email || ''
     document.getElementById('pay-email').classList.remove('error')
     document.getElementById('pay-modal-error').style.display = 'none'
@@ -571,7 +573,9 @@
     _payModalKind = 'DEPOSIT'
     document.getElementById('pay-modal-title').textContent = 'Внесение залога'
     document.getElementById('pay-modal-desc').textContent  = 'Укажите email — на него будет отправлен чек о внесении залога.'
-    document.getElementById('pay-modal-confirm').textContent = 'Перейти к оплате'
+    const btn = document.getElementById('pay-modal-confirm')
+    btn.disabled    = false
+    btn.textContent = 'Перейти к оплате'
     document.getElementById('pay-email').value = _state.booking.email || ''
     document.getElementById('pay-email').classList.remove('error')
     document.getElementById('pay-modal-error').style.display = 'none'
@@ -1175,6 +1179,33 @@
     openWaitPayOverlay(payKind)
     pollTochkaPayment(link, payKind)
   }
+
+  // Если гость уходит на оплату (window.location.href = data.url) и потом жмёт «Назад»
+  // в браузере, страница часто восстанавливается из bfcache в точности в том состоянии,
+  // в котором была перед уходом — то есть с задизейбленной кнопкой "Подождите..." в модалке
+  // ввода почты. Из-за этого модалка выглядит рабочей, но клики по кнопке ничего не делают.
+  // На восстановление из bfcache (event.persisted) сбрасываем зависшие модалки/оверлей
+  // ожидания и перезапрашиваем актуальные данные бронирования (оплата могла уже пройти).
+  window.addEventListener('pageshow', function (event) {
+    if (!event.persisted) return
+
+    const payBtn = document.getElementById('pay-modal-confirm')
+    payBtn.disabled    = false
+    payBtn.textContent = 'Перейти к оплате'
+    document.getElementById('pay-modal-overlay').style.display = 'none'
+
+    const receiptBtn = document.getElementById('receipt-modal-confirm')
+    receiptBtn.disabled    = false
+    receiptBtn.textContent = 'Отправить'
+    document.getElementById('receipt-modal-overlay').style.display = 'none'
+
+    document.getElementById('wait-pay-overlay').style.display = 'none'
+    if (_waitPayTimer) { clearTimeout(_waitPayTimer); _waitPayTimer = null }
+    _waitPayAttempts = 0
+
+    const currentLink = getBookingLink()
+    if (currentLink) loadData(currentLink)
+  })
 </script>
 
 </body>
