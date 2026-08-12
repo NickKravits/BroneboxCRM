@@ -3417,7 +3417,7 @@ async function loadMsgTemplates() {
         const me  = await meRes.json()
         const { templates } = await tplRes.json()
 
-        _canEditTemplates = me.role === 'ADMINISTRATOR' || me.staff?.managetemplates === 'YES'
+        _canEditTemplates = me.templatesEdit === true
         const btn = document.getElementById('btn-new-tpl')
         if (btn && _canEditTemplates) btn.style.display = ''
 
