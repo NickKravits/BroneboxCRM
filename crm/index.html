@@ -737,7 +737,7 @@ function formatDate(dateStr) {
           <div class="qm-phone-group">
             <span class="qm-phone-lbl"><i class="ti ti-link"></i></span>
             <span class="qm-phone-val qm-guestlink-val" id="qm-guestlink-text">—</span>
-            <button class="btn-copy-qm" onclick="copyGuestLink()" title="Копировать ссылку"><i class="ti ti-copy"></i></button>
+            <button class="btn-copy-qm" onclick="showLinkTemplatePicker()" title="Копировать ссылку"><i class="ti ti-copy"></i></button>
           </div>
         </div>
         
@@ -1743,9 +1743,7 @@ function formatDate(dateStr) {
     }, 0)
   }
 
-  function copyGuestLink() {
-    const text = document.getElementById('qm-guestlink-text')?.textContent?.trim()
-    if (!text || text === '—') return
+  function copyGuestLinkText(text) {
     navigator.clipboard.writeText(text).then(() => {
       const btn = document.getElementById('qm-guestlink-row')?.querySelector('.btn-copy-qm')
       if (!btn) return
@@ -1754,6 +1752,48 @@ function formatDate(dateStr) {
       btn.classList.add('copied')
       setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('copied') }, 1500)
     })
+  }
+
+  function showLinkTemplatePicker() {
+    const existing = document.getElementById('qm-link-popover')
+    if (existing) { existing.remove(); return }
+
+    const link = document.getElementById('qm-guestlink-text')?.textContent?.trim()
+    if (!link || link === '—') return
+
+    const btn = document.getElementById('qm-guestlink-row')?.querySelector('.btn-copy-qm')
+    if (!btn) return
+
+    const popover = document.createElement('div')
+    popover.id = 'qm-link-popover'
+    popover.className = 'qm-tg-popover'
+
+    const makeItem = (label, body) => {
+      const item = document.createElement('div')
+      item.className = 'qm-tg-popover-item'
+      item.textContent = label
+      item.onclick = (e) => {
+        e.stopPropagation()
+        popover.remove()
+        copyGuestLinkText(body ? fillTemplate(body) : link)
+      }
+      return item
+    }
+
+    popover.appendChild(makeItem('Без шаблона', null))
+    _qmTemplates.forEach(tpl => popover.appendChild(makeItem(tpl.name, tpl.body)))
+
+    btn.style.position = 'relative'
+    btn.appendChild(popover)
+
+    setTimeout(() => {
+      document.addEventListener('click', function closePopover(e) {
+        if (!popover.contains(e.target)) {
+          popover.remove()
+          document.removeEventListener('click', closePopover)
+        }
+      })
+    }, 0)
   }
 </script>
 
