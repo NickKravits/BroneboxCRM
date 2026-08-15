@@ -415,7 +415,7 @@
     banner.id = 'update-banner';
     banner.className = 'update-banner';
     banner.innerHTML =
-      '<span class="update-banner-text">Доступна новая версия CRM</span>' +
+      '<span class="update-banner-text">Вышло обновление CRM</span>' +
       '<button class="update-banner-btn" type="button">Обновить</button>' +
       '<button class="update-banner-close" type="button" aria-label="Закрыть"><i class="ti ti-x"></i></button>';
     banner.querySelector('.update-banner-btn').addEventListener('click', applyUpdate);
