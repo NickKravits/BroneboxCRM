@@ -901,6 +901,8 @@ html[data-theme="light"] .qm-box {
   border-color: rgba(26,22,18,0.10);
   box-shadow: 0 24px 60px -20px rgba(26,22,18,0.22);
 }
+html[data-theme="light"] .qm-loading-overlay { background: #ffffff; }
+html[data-theme="light"] .qm-loading-text { color: rgba(26,22,18,0.40); }
 html[data-theme="light"] .qm-header { border-color: rgba(26,22,18,0.08); }
 html[data-theme="light"] .qm-name   { color: rgba(26,22,18,0.92); }
 html[data-theme="light"] .qm-meta   { color: rgba(26,22,18,0.40); }
