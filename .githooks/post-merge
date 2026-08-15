@@ -9,8 +9,8 @@
 cd "$(dirname "$0")/.."
 bash bump-version.sh
 
-if ! git diff --quiet -- '*index.html'; then
-  git add -- '*index.html'
+if ! git diff --quiet -- '*index.html' crm/version.json; then
+  git add -- '*index.html' crm/version.json
   git commit -m "chore: bump asset version" --quiet --no-verify
   echo "Версия закоммичена."
 fi

@@ -396,6 +396,52 @@
     });
   }
 
+  function getRunningVersion() {
+    var el = document.querySelector('script[src*="app-shell.js"]');
+    if (!el) return null;
+    var m = el.getAttribute('src').match(/[?&]v=([a-f0-9]+)/);
+    return m ? m[1] : null;
+  }
+
+  function applyUpdate() {
+    var url = new URL(window.location.href);
+    url.searchParams.set('_r', Date.now());
+    window.location.href = url.toString();
+  }
+
+  function showUpdateBanner() {
+    if (document.getElementById('update-banner')) return;
+    var banner = document.createElement('div');
+    banner.id = 'update-banner';
+    banner.className = 'update-banner';
+    banner.innerHTML =
+      '<span class="update-banner-text">Доступна новая версия CRM</span>' +
+      '<button class="update-banner-btn" type="button">Обновить</button>' +
+      '<button class="update-banner-close" type="button" aria-label="Закрыть"><i class="ti ti-x"></i></button>';
+    banner.querySelector('.update-banner-btn').addEventListener('click', applyUpdate);
+    banner.querySelector('.update-banner-close').addEventListener('click', function () { banner.remove(); });
+    document.body.appendChild(banner);
+  }
+
+  function checkForUpdate() {
+    var current = getRunningVersion();
+    if (!current) return;
+    fetch('/crm/version.json?_=' + Date.now(), { cache: 'no-store' })
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (data) {
+        if (data && data.version && data.version !== current) showUpdateBanner();
+      })
+      .catch(function () {});
+  }
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') checkForUpdate();
+  });
+  window.addEventListener('pageshow', checkForUpdate);
+  setInterval(function () {
+    if (document.visibilityState === 'visible') checkForUpdate();
+  }, 10 * 60 * 1000);
+
   document.addEventListener('DOMContentLoaded', function () {
     applyTheme(getTheme());
     buildSidebarToggle();
