@@ -584,6 +584,7 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
 .qm-overlay.active { opacity: 1; pointer-events: all; }
 
 .qm-box {
+  position: relative;
   width: 460px; max-width: calc(100vw - 32px);
   max-height: calc(100vh - 48px);
   background: #111110;
@@ -595,6 +596,16 @@ html[data-theme="light"] .busy-overlay-text { color: rgba(0,0,0,0.75); }
   transition: transform 0.22s cubic-bezier(.4,0,.2,1);
 }
 .qm-overlay.active .qm-box { transform: translateY(0) scale(1); }
+
+.qm-loading-overlay {
+  position: absolute; inset: 0; z-index: 5;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  background: #111110;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+.qm-loading-overlay.active { opacity: 1; pointer-events: all; }
+.qm-loading-text { font-size: 13px; color: rgba(255,255,255,0.4); }
 
 .qm-header {
   display: flex; align-items: flex-start; justify-content: space-between;

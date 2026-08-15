@@ -701,6 +701,11 @@ function formatDate(dateStr) {
 <div class="qm-overlay" id="quick-modal" onclick="closeQuickModal(event)">
   <div class="qm-box">
 
+    <div class="qm-loading-overlay" id="qm-loading-overlay">
+      <div class="loader-spinner"></div>
+      <span class="qm-loading-text">Загружаем информацию о бронировании...</span>
+    </div>
+
     <div class="qm-header">
       <div class="qm-header-main">
         <div class="qm-name" id="qm-fio">...</div>
@@ -1006,9 +1011,15 @@ function formatDate(dateStr) {
     _qmBookingId  = bookingId
 
     document.getElementById('quick-modal').classList.add('active')
+    document.getElementById('qm-loading-overlay').classList.add('active')
     document.getElementById('qm-fio').textContent = '...'
     document.getElementById('qm-object').textContent = ''
     document.getElementById('qm-status').textContent = ''
+    // Сбрасываем номер сразу, чтобы при медленном интернете не скопировали
+    // старый номер предыдущей брони, пока грузятся новые данные.
+    _qmPhone = ''
+    document.getElementById('qm-phone').textContent = '—'
+    document.getElementById('qm-addphone-row').style.display = 'none'
 
     try {
       const bRes = await fetch(API + '/bookings/get-by-id', {
@@ -1166,6 +1177,8 @@ function formatDate(dateStr) {
 
     } catch (err) {
       console.error('quickModal error:', err)
+    } finally {
+      document.getElementById('qm-loading-overlay').classList.remove('active')
     }
   }
 
