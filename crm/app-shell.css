@@ -218,7 +218,7 @@ html[data-theme="light"] .modal-box {
   background: #2ed19d;
   box-shadow: 0 4px 16px rgba(0,0,0,0.25);
 }
-.update-banner-text { font-size: 13px; font-weight: 500; color: #06231a; }
+.update-banner-text { font-size: 13px; font-weight: 600; color: #06231a; }
 .update-banner-btn {
   background: rgba(6,35,26,0.15); border: none; border-radius: 8px;
   padding: 5px 12px; font-size: 12px; font-weight: 600;
