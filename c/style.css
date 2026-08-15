@@ -877,6 +877,25 @@ body {
   flex-shrink: 0;
 }
 
+.contract-signed-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--green-bg);
+  border: 0.5px solid var(--green-border);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  font-size: 13px;
+  color: var(--green-text);
+  line-height: 1.5;
+}
+
+.contract-signed-notice svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
 .state-icon-amber {
   background: var(--amber-bg);
   border: 0.5px solid var(--amber-border);
