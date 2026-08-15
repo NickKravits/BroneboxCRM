@@ -486,6 +486,17 @@
         return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
     }
 
+    function initUpdateAppSection() {
+        const section = document.getElementById('svc-update-app-section');
+        if (section && isStandaloneApp()) section.style.display = '';
+    }
+
+    function forceUpdateApp() {
+        const url = new URL(window.location.href);
+        url.searchParams.set('_r', Date.now());
+        window.location.href = url.toString();
+    }
+
     function urlBase64ToUint8Array(base64String) {
         const padding = '='.repeat((4 - base64String.length % 4) % 4);
         const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -605,6 +616,7 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
         initPermissionsSync();
+        initUpdateAppSection();
         try {
             await Promise.all([
                 getUserData(),
@@ -639,8 +651,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
-  <link rel="stylesheet" href="styles.css?v=cccbce0">
-  <link rel="stylesheet" href="app-shell.css?v=cccbce0">
+  <link rel="stylesheet" href="styles.css?v=68e7a2b">
+  <link rel="stylesheet" href="app-shell.css?v=68e7a2b">
 </head>
 <body>
 
@@ -947,6 +959,14 @@
             <label class="toggle-switch"><input type="checkbox" id="svc-push-toggle" onchange="onPushToggleChange()"><span class="toggle-track"></span></label>
           </label>
           <div class="field-hint" id="svc-push-hint" style="display:none;margin-top:8px"></div>
+        </div>
+
+        <div class="service-card" id="svc-update-app-section" style="display:none">
+          <div class="service-card-title"><i class="ti ti-refresh"></i> Обновление приложения</div>
+          <div class="field-hint">Если что-то отображается некорректно — попробуйте принудительно обновить приложение до последней версии.</div>
+          <button class="btn btn-save" onclick="forceUpdateApp()">
+            <i class="ti ti-refresh"></i> Обновить приложение
+          </button>
         </div>
 
         <div class="service-card">
@@ -3621,6 +3641,6 @@ async function saveCabinetTimezone() {
   </div>
 </div>
 
-<script src="app-shell.js?v=cccbce0"></script>
+<script src="app-shell.js?v=68e7a2b"></script>
 </body>
 </html>
